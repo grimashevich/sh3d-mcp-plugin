@@ -1,5 +1,6 @@
 package com.sh3d.mcp.server;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -7,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class TcpServerTest {
 
     @Test
+    @Disabled("TODO: implement integration test with mock HomeAccessor")
     void testStartAndStop() {
-        // TODO: implement — интеграционный тест
         // PluginConfig config = PluginConfig.load();
         // CommandRegistry registry = new CommandRegistry();
         // registry.register("ping", new PingHandler());
@@ -20,8 +21,8 @@ class TcpServerTest {
     }
 
     @Test
+    @Disabled("TODO: implement integration test with socket connection")
     void testPingOverSocket() {
-        // TODO: implement — интеграционный тест
         // 1. Запустить TcpServer
         // 2. Подключиться через Socket
         // 3. Отправить {"action": "ping"}

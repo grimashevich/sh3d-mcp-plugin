@@ -27,11 +27,13 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final CommandRegistry commandRegistry;
     private final HomeAccessor accessor;
+    private final int maxLineLength;
 
-    public ClientHandler(Socket socket, CommandRegistry commandRegistry, HomeAccessor accessor) {
+    public ClientHandler(Socket socket, CommandRegistry commandRegistry, HomeAccessor accessor, int maxLineLength) {
         this.socket = socket;
         this.commandRegistry = commandRegistry;
         this.accessor = accessor;
+        this.maxLineLength = maxLineLength;
     }
 
     @Override
@@ -45,7 +47,7 @@ public class ClientHandler implements Runnable {
                      new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)) {
 
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = readLine(reader)) != null) {
                 if (line.trim().isEmpty()) {
                     continue;
                 }
@@ -71,6 +73,28 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             LOG.log(Level.FINE, "Error closing client socket", e);
         }
+    }
+
+    /**
+     * Читает строку с ограничением длины. Возвращает null при EOF.
+     * Бросает IOException если строка превышает maxLineLength.
+     */
+    private String readLine(BufferedReader reader) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int ch;
+        while ((ch = reader.read()) != -1) {
+            if (ch == '\n') {
+                return sb.toString();
+            }
+            if (ch == '\r') {
+                continue;
+            }
+            if (sb.length() >= maxLineLength) {
+                throw new IOException("Line exceeds maximum length: " + maxLineLength);
+            }
+            sb.append((char) ch);
+        }
+        return sb.length() > 0 ? sb.toString() : null;
     }
 
     private String processLine(String line) {

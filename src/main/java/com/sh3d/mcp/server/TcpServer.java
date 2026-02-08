@@ -23,6 +23,7 @@ public class TcpServer {
     private static final Logger LOG = Logger.getLogger(TcpServer.class.getName());
 
     private final int port;
+    private final int maxLineLength;
     private final CommandRegistry commandRegistry;
     private final HomeAccessor accessor;
 
@@ -33,6 +34,7 @@ public class TcpServer {
 
     public TcpServer(PluginConfig config, CommandRegistry commandRegistry, HomeAccessor accessor) {
         this.port = config.getPort();
+        this.maxLineLength = config.getMaxLineLength();
         this.commandRegistry = commandRegistry;
         this.accessor = accessor;
     }
@@ -101,12 +103,16 @@ public class TcpServer {
     private void acceptLoop() {
         try {
             serverSocket = new ServerSocket(port);
-            state.set(ServerState.RUNNING);
+            if (!state.compareAndSet(ServerState.STARTING, ServerState.RUNNING)) {
+                // stop() was called while we were starting — abort
+                serverSocket.close();
+                return;
+            }
             LOG.info("MCP TCP server started on port " + port);
 
             while (state.get() == ServerState.RUNNING) {
                 Socket clientSocket = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(clientSocket, commandRegistry, accessor);
+                ClientHandler handler = new ClientHandler(clientSocket, commandRegistry, accessor, maxLineLength);
                 activeClients.add(handler);
 
                 Thread clientThread = new Thread(() -> {
@@ -121,7 +127,8 @@ public class TcpServer {
             }
 
         } catch (IOException e) {
-            if (state.get() == ServerState.RUNNING) {
+            ServerState current = state.get();
+            if (current == ServerState.RUNNING || current == ServerState.STARTING) {
                 LOG.log(Level.SEVERE, "Accept loop error", e);
             }
             // Если STOPPING — это нормальное завершение через close()

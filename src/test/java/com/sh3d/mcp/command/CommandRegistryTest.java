@@ -3,6 +3,7 @@ package com.sh3d.mcp.command;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -20,16 +21,16 @@ class CommandRegistryTest {
     }
 
     @Test
+    @Disabled("TODO: implement with HomeAccessor mock")
     void testRegisterAndDispatch() {
-        // TODO: implement — requires HomeAccessor mock
         // Request req = new Request("ping", Collections.emptyMap());
         // Response resp = registry.dispatch(req, mockAccessor);
         // assertTrue(resp.isOk());
     }
 
     @Test
+    @Disabled("TODO: implement with HomeAccessor mock")
     void testDispatchUnknownAction() {
-        // TODO: implement
         // Request req = new Request("unknown", Collections.emptyMap());
         // Response resp = registry.dispatch(req, mockAccessor);
         // assertTrue(resp.isError());

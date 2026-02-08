@@ -1,5 +1,6 @@
 package com.sh3d.mcp.config;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,8 +17,8 @@ class PluginConfigTest {
     }
 
     @Test
+    @Disabled("TODO: implement System property override test")
     void testSystemPropertyOverride() {
-        // TODO: implement
         // System.setProperty("sh3d.mcp.port", "9999");
         // try {
         //     PluginConfig config = PluginConfig.load();

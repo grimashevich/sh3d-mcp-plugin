@@ -36,6 +36,10 @@ public class PluginConfig {
         Properties fileProps = loadPropertiesFile();
 
         int port = getInt("sh3d.mcp.port", fileProps, DEFAULT_PORT);
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException(
+                    "Invalid port: " + port + " (must be 1-65535)");
+        }
         int maxLine = getInt("sh3d.mcp.maxLineLength", fileProps, DEFAULT_MAX_LINE_LENGTH);
         int edtTimeout = getInt("sh3d.mcp.edtTimeout", fileProps, DEFAULT_EDT_TIMEOUT);
         boolean autoStart = getBoolean("sh3d.mcp.autoStart", fileProps, DEFAULT_AUTO_START);

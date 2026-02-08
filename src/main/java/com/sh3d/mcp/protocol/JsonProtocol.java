@@ -30,14 +30,18 @@ public final class JsonProtocol {
         }
         JsonReader reader = new JsonReader(json);
         Object parsed = reader.readValue();
+        reader.skipWhitespace();
+        if (reader.hasMore()) {
+            throw new IllegalArgumentException("Invalid JSON: unexpected content after root value");
+        }
         if (!(parsed instanceof Map)) {
             throw new IllegalArgumentException("Invalid JSON: expected object at root");
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) parsed;
         Object action = root.get("action");
-        if (action == null) {
-            throw new IllegalArgumentException("Missing 'action' field");
+        if (action == null || action.toString().isEmpty()) {
+            throw new IllegalArgumentException("Missing or empty 'action' field");
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> params = root.containsKey("params") && root.get("params") instanceof Map
@@ -152,12 +156,20 @@ public final class JsonProtocol {
      * Поддерживает: String, Number (int/double), Boolean, Null, Object, Array.
      */
     static final class JsonReader {
+        private static final int MAX_DEPTH = 32;
+
         private final String src;
         private int pos;
+        private int depth;
 
         JsonReader(String src) {
             this.src = src;
             this.pos = 0;
+            this.depth = 0;
+        }
+
+        boolean hasMore() {
+            return pos < src.length();
         }
 
         Object readValue() {
@@ -176,11 +188,15 @@ public final class JsonProtocol {
         }
 
         private Map<String, Object> readObject() {
+            if (++depth > MAX_DEPTH) {
+                throw error("Nesting depth exceeds maximum of " + MAX_DEPTH);
+            }
             expect('{');
             Map<String, Object> map = new LinkedHashMap<>();
             skipWhitespace();
             if (pos < src.length() && src.charAt(pos) == '}') {
                 pos++;
+                depth--;
                 return map;
             }
             while (true) {
@@ -196,6 +212,7 @@ public final class JsonProtocol {
                 }
                 if (src.charAt(pos) == '}') {
                     pos++;
+                    depth--;
                     return map;
                 }
                 expect(',');
@@ -203,11 +220,15 @@ public final class JsonProtocol {
         }
 
         private List<Object> readArray() {
+            if (++depth > MAX_DEPTH) {
+                throw error("Nesting depth exceeds maximum of " + MAX_DEPTH);
+            }
             expect('[');
             List<Object> list = new java.util.ArrayList<>();
             skipWhitespace();
             if (pos < src.length() && src.charAt(pos) == ']') {
                 pos++;
+                depth--;
                 return list;
             }
             while (true) {
@@ -218,6 +239,7 @@ public final class JsonProtocol {
                 }
                 if (src.charAt(pos) == ']') {
                     pos++;
+                    depth--;
                     return list;
                 }
                 expect(',');
@@ -313,7 +335,7 @@ public final class JsonProtocol {
             throw error("Expected null");
         }
 
-        private void skipWhitespace() {
+        void skipWhitespace() {
             while (pos < src.length() && src.charAt(pos) <= ' ') {
                 pos++;
             }

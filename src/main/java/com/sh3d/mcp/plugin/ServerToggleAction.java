@@ -15,30 +15,26 @@ public class ServerToggleAction extends PluginAction {
     private static final Logger LOG = Logger.getLogger(ServerToggleAction.class.getName());
 
     private final TcpServer tcpServer;
-    private boolean running;
 
     public ServerToggleAction(Plugin plugin, TcpServer tcpServer) {
         super();
         this.tcpServer = tcpServer;
-        this.running = false;
         updateMenuText();
     }
 
     @Override
     public void execute() {
-        if (running) {
+        if (tcpServer.isRunning()) {
             tcpServer.stop();
-            running = false;
             LOG.info("MCP Server stopped by user");
         } else {
             tcpServer.start();
-            running = true;
             LOG.info("MCP Server started by user");
         }
         updateMenuText();
     }
 
     private void updateMenuText() {
-        putPropertyValue(Property.NAME, running ? "MCP Server: Stop" : "MCP Server: Start");
+        putPropertyValue(Property.NAME, tcpServer.isRunning() ? "MCP Server: Stop" : "MCP Server: Start");
     }
 }
