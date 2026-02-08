@@ -78,14 +78,19 @@ public class PluginConfig {
 
     static Path resolveConfigPath() {
         String appData = System.getenv("APPDATA");
-        if (appData != null) {
+        if (appData != null && !appData.isEmpty()) {
             return Paths.get(appData, "eTeks", "Sweet Home 3D", "plugins", "sh3d-mcp.properties");
         }
         String home = System.getProperty("user.home");
-        if (home != null) {
-            return Paths.get(home, ".eteks", "sweethome3d", "plugins", "sh3d-mcp.properties");
+        if (home == null || home.isEmpty()) {
+            return null;
         }
-        return null;
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        if (osName.startsWith("mac")) {
+            return Paths.get(home, "Library", "Application Support",
+                    "eTeks", "Sweet Home 3D", "plugins", "sh3d-mcp.properties");
+        }
+        return Paths.get(home, ".eteks", "sweethome3d", "plugins", "sh3d-mcp.properties");
     }
 
     private static int getInt(String key, Properties fileProps, int defaultValue) {

@@ -29,7 +29,7 @@ class PluginConfigTest {
     }
 
     @Test
-    void testResolveConfigPathUsesUserHomeWhenNoAppData() {
+    void testResolveConfigPathReturnsValidPath() {
         Path path = PluginConfig.resolveConfigPath();
         assertNotNull(path);
         String pathStr = path.toString();
