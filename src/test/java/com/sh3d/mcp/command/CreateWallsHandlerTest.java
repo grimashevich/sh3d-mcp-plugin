@@ -30,6 +30,23 @@ class CreateWallsHandlerTest {
     }
 
     @Test
+    void testNegativeThicknessReturnsError() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 100.0);
+        params.put("height", 100.0);
+        params.put("thickness", -5.0);
+
+        Request req = new Request("create_walls", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("thickness"));
+        assertEquals(0, home.getWalls().size());
+    }
+
+    @Test
     void testCreateRoomAdds4Walls() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("x", 0.0);
