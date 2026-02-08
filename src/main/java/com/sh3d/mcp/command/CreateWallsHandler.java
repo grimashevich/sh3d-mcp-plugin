@@ -43,6 +43,9 @@ public class CreateWallsHandler implements CommandHandler {
         if (height <= 0) {
             return Response.error("Parameter 'height' must be positive, got " + height);
         }
+        if (thickness <= 0) {
+            return Response.error("Parameter 'thickness' must be positive, got " + thickness);
+        }
 
         accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
