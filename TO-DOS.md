@@ -32,7 +32,7 @@
 
 ## 2026-02-08 — CreateWallsHandler
 
-- [ ] Реализовать команду create_walls
+- [x] Реализовать команду create_walls (DONE: 9 тестов)
 
 **Problem:** Обработчик — заглушка с `UnsupportedOperationException`. Это ключевая команда MVP (P1) — создание прямоугольной комнаты из 4 стен.
 

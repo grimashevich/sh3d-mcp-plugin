@@ -1,8 +1,13 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Обработчик команды "create_walls".
@@ -26,23 +31,49 @@ public class CreateWallsHandler implements CommandHandler {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        // TODO: реализовать
-        // 1. Валидация: x, y (обязательные), width > 0, height > 0
-        // 2. thickness = request.getFloat("thickness", 10.0f)
-        // 3. accessor.runOnEDT(() -> {
-        //      Home home = accessor.getHome();
-        //      Wall w1 = new Wall(x, y, x + width, y);
-        //      w1.setThickness(thickness);
-        //      Wall w2 = new Wall(x + width, y, x + width, y + height);
-        //      ... создать w3, w4
-        //      w1.setWallAtEnd(w2); w2.setWallAtStart(w1);
-        //      w2.setWallAtEnd(w3); w3.setWallAtStart(w2);
-        //      w3.setWallAtEnd(w4); w4.setWallAtStart(w3);
-        //      w4.setWallAtEnd(w1); w1.setWallAtStart(w4);
-        //      home.addWall(w1); home.addWall(w2); ...
-        //      return 4;
-        //    });
-        // 4. Вернуть Response.ok(Map.of("wallsCreated", 4, "message", ...))
-        throw new UnsupportedOperationException("TODO: implement create_walls");
+        float x = request.getFloat("x");
+        float y = request.getFloat("y");
+        float width = request.getFloat("width");
+        float height = request.getFloat("height");
+        float thickness = request.getFloat("thickness", 10.0f);
+
+        if (width <= 0) {
+            return Response.error("Parameter 'width' must be positive, got " + width);
+        }
+        if (height <= 0) {
+            return Response.error("Parameter 'height' must be positive, got " + height);
+        }
+
+        accessor.runOnEDT(() -> {
+            Home home = accessor.getHome();
+
+            // A(x,y) → B(x+w,y) → C(x+w,y+h) → D(x,y+h)
+            Wall w1 = new Wall(x, y, x + width, y, thickness);
+            Wall w2 = new Wall(x + width, y, x + width, y + height, thickness);
+            Wall w3 = new Wall(x + width, y + height, x, y + height, thickness);
+            Wall w4 = new Wall(x, y + height, x, y, thickness);
+
+            // Замкнутый контур: w1↔w2↔w3↔w4↔w1
+            w1.setWallAtEnd(w2);
+            w2.setWallAtStart(w1);
+            w2.setWallAtEnd(w3);
+            w3.setWallAtStart(w2);
+            w3.setWallAtEnd(w4);
+            w4.setWallAtStart(w3);
+            w4.setWallAtEnd(w1);
+            w1.setWallAtStart(w4);
+
+            home.addWall(w1);
+            home.addWall(w2);
+            home.addWall(w3);
+            home.addWall(w4);
+
+            return null;
+        });
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("wallsCreated", 4);
+        data.put("message", "Room " + (int) width + "x" + (int) height + " created");
+        return Response.ok(data);
     }
 }
