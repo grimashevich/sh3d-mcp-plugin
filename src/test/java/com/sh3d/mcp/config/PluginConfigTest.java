@@ -1,7 +1,8 @@
 package com.sh3d.mcp.config;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,14 +18,23 @@ class PluginConfigTest {
     }
 
     @Test
-    @Disabled("TODO: implement System property override test")
     void testSystemPropertyOverride() {
-        // System.setProperty("sh3d.mcp.port", "9999");
-        // try {
-        //     PluginConfig config = PluginConfig.load();
-        //     assertEquals(9999, config.getPort());
-        // } finally {
-        //     System.clearProperty("sh3d.mcp.port");
-        // }
+        System.setProperty("sh3d.mcp.port", "9999");
+        try {
+            PluginConfig config = PluginConfig.load();
+            assertEquals(9999, config.getPort());
+        } finally {
+            System.clearProperty("sh3d.mcp.port");
+        }
+    }
+
+    @Test
+    void testResolveConfigPathReturnsValidPath() {
+        Path path = PluginConfig.resolveConfigPath();
+        assertNotNull(path);
+        String pathStr = path.toString();
+        // На Windows будет APPDATA путь, на Linux/macOS — user.home путь
+        assertTrue(pathStr.endsWith("sh3d-mcp.properties"),
+                "Config path should end with sh3d-mcp.properties, got: " + pathStr);
     }
 }

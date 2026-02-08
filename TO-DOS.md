@@ -18,7 +18,7 @@
 
 ## 2026-02-08 — PluginConfig: кроссплатформенные пути
 
-- [ ] Добавить поддержку Linux/macOS путей для файла конфигурации
+- [x] Добавить поддержку Linux/macOS путей для файла конфигурации (DONE)
 
 **Problem:** `loadPropertiesFile()` ищет конфиг только через `%APPDATA%` (Windows). На Linux/macOS `APPDATA` не существует — конфиг никогда не найдётся.
 
@@ -146,7 +146,7 @@
 
 ## 2026-02-08 — Тесты: PluginConfigTest (System property override)
 
-- [ ] Реализовать тест переопределения через System property
+- [x] Реализовать тест переопределения через System property (DONE)
 
 **Problem:** `testSystemPropertyOverride` закомментирован. Приоритет конфигурации не протестирован.
 
