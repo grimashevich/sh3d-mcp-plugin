@@ -65,19 +65,27 @@ public class PluginConfig {
 
     private static Properties loadPropertiesFile() {
         Properties props = new Properties();
-        // TODO: определить путь к папке плагинов SH3D в зависимости от ОС
-        String appData = System.getenv("APPDATA");
-        if (appData != null) {
-            Path configPath = Paths.get(appData, "eTeks", "Sweet Home 3D", "plugins", "sh3d-mcp.properties");
-            if (Files.exists(configPath)) {
-                try (InputStream in = Files.newInputStream(configPath)) {
-                    props.load(in);
-                } catch (IOException e) {
-                    // Игнорируем — используем defaults
-                }
+        Path configPath = resolveConfigPath();
+        if (configPath != null && Files.exists(configPath)) {
+            try (InputStream in = Files.newInputStream(configPath)) {
+                props.load(in);
+            } catch (IOException e) {
+                // Игнорируем — используем defaults
             }
         }
         return props;
+    }
+
+    static Path resolveConfigPath() {
+        String appData = System.getenv("APPDATA");
+        if (appData != null) {
+            return Paths.get(appData, "eTeks", "Sweet Home 3D", "plugins", "sh3d-mcp.properties");
+        }
+        String home = System.getProperty("user.home");
+        if (home != null) {
+            return Paths.get(home, ".eteks", "sweethome3d", "plugins", "sh3d-mcp.properties");
+        }
+        return null;
     }
 
     private static int getInt(String key, Properties fileProps, int defaultValue) {
