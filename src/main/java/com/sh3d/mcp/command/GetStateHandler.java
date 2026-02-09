@@ -42,12 +42,12 @@ public class GetStateHandler implements CommandHandler {
             for (HomePieceOfFurniture piece : home.getFurniture()) {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("name", piece.getName());
-                item.put("x", (double) piece.getX());
-                item.put("y", (double) piece.getY());
-                item.put("angle", Math.toDegrees(piece.getAngle()));
-                item.put("width", (double) piece.getWidth());
-                item.put("depth", (double) piece.getDepth());
-                item.put("height", (double) piece.getHeight());
+                item.put("x", round2(piece.getX()));
+                item.put("y", round2(piece.getY()));
+                item.put("angle", round2(Math.toDegrees(piece.getAngle())));
+                item.put("width", round2(piece.getWidth()));
+                item.put("depth", round2(piece.getDepth()));
+                item.put("height", round2(piece.getHeight()));
                 furnitureList.add(item);
             }
             result.put("furniture", furnitureList);
@@ -64,10 +64,10 @@ public class GetStateHandler implements CommandHandler {
                     maxY = Math.max(maxY, Math.max(w.getYStart(), w.getYEnd()));
                 }
                 Map<String, Object> bb = new LinkedHashMap<>();
-                bb.put("minX", (double) minX);
-                bb.put("minY", (double) minY);
-                bb.put("maxX", (double) maxX);
-                bb.put("maxY", (double) maxY);
+                bb.put("minX", round2(minX));
+                bb.put("minY", round2(minY));
+                bb.put("maxX", round2(maxX));
+                bb.put("maxY", round2(maxY));
                 result.put("boundingBox", bb);
             } else {
                 result.put("boundingBox", null);
@@ -77,5 +77,9 @@ public class GetStateHandler implements CommandHandler {
         });
 
         return Response.ok(data);
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 }

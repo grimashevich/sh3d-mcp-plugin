@@ -78,11 +78,33 @@ class GetStateHandlerTest {
     }
 
     @Test
-    void testBoundingBoxNullWhenNoWalls() {
+    void testBoundingBoxNullWhenNoWallsButHasFurniture() {
+        HomePieceOfFurniture mockPiece = mock(HomePieceOfFurniture.class);
+        when(mockPiece.getName()).thenReturn("Chair");
+        home.addPieceOfFurniture(mockPiece);
+
         Request req = new Request("get_state", Collections.emptyMap());
         Response resp = handler.execute(req, accessor);
 
         assertNull(resp.getData().get("boundingBox"));
+        assertEquals(1, ((List<?>) resp.getData().get("furniture")).size());
+    }
+
+    @Test
+    void testBoundingBoxWithNegativeCoordinates() {
+        home.addWall(new Wall(-100, -200, 300, -200, 10));
+        home.addWall(new Wall(300, -200, 300, 100, 10));
+
+        Request req = new Request("get_state", Collections.emptyMap());
+        Response resp = handler.execute(req, accessor);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> bb = (Map<String, Object>) resp.getData().get("boundingBox");
+        assertNotNull(bb);
+        assertEquals(-100.0, (double) bb.get("minX"), 0.01);
+        assertEquals(-200.0, (double) bb.get("minY"), 0.01);
+        assertEquals(300.0, (double) bb.get("maxX"), 0.01);
+        assertEquals(100.0, (double) bb.get("maxY"), 0.01);
     }
 
     @Test
@@ -110,6 +132,7 @@ class GetStateHandlerTest {
         assertEquals("TestChair", item.get("name"));
         assertEquals(150.0, (double) item.get("x"), 0.01);
         assertEquals(250.0, (double) item.get("y"), 0.01);
+        assertEquals(90.0, (double) item.get("angle"), 0.01);
         assertEquals(50.0, (double) item.get("width"), 0.01);
         assertEquals(50.0, (double) item.get("depth"), 0.01);
         assertEquals(80.0, (double) item.get("height"), 0.01);
@@ -131,7 +154,7 @@ class GetStateHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> item = (Map<String, Object>) furnitureList.get(0);
 
-        assertEquals(45.0, (double) item.get("angle"), 0.1);
+        assertEquals(45.0, (double) item.get("angle"), 0.01);
     }
 
     @Test
