@@ -93,7 +93,7 @@
 
 ## 2026-02-08 — ListFurnitureCatalogHandler
 
-- [ ] Реализовать команду list_furniture_catalog
+- [x] Реализовать команду list_furniture_catalog (DONE: 12 тестов)
 
 **Problem:** Заглушка. Вспомогательная команда (P2) — нужна чтобы Claude знал, какую мебель можно разместить.
 
@@ -130,7 +130,7 @@
 
 ## 2026-02-08 — Тесты: CommandRegistryTest (dispatch-методы)
 
-- [ ] Реализовать тесты dispatch с mock HomeAccessor
+- [x] Реализовать тесты dispatch с mock HomeAccessor (DONE: 4 теста — ok/unknown/CommandException/RuntimeException)
 
 **Problem:** 2 теста закомментированы — `testRegisterAndDispatch`, `testDispatchUnknownAction`. Dispatch не тестируется.
 
