@@ -73,7 +73,7 @@
 
 ## 2026-02-08 — PlaceFurnitureHandler
 
-- [ ] Реализовать команду place_furniture
+- [x] Реализовать команду place_furniture (DONE: 14 тестов)
 
 **Problem:** Заглушка. Вторая ключевая команда MVP (P2) — размещение мебели из каталога.
 
