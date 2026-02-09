@@ -38,6 +38,13 @@ public class PlaceFurnitureHandler implements CommandHandler {
             return Response.error("Parameter 'name' is required and must not be empty");
         }
 
+        if (!request.getParams().containsKey("x")) {
+            return Response.error("Missing required parameter: x");
+        }
+        if (!request.getParams().containsKey("y")) {
+            return Response.error("Missing required parameter: y");
+        }
+
         float x = request.getFloat("x");
         float y = request.getFloat("y");
         float angle = request.getFloat("angle", 0f);

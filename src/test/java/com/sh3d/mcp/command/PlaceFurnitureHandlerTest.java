@@ -165,23 +165,31 @@ class PlaceFurnitureHandlerTest {
     }
 
     @Test
-    void testMissingXThrows() {
+    void testMissingXReturnsError() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Dining Table");
         params.put("y", 0.0);
 
         Request req = new Request("place_furniture", params);
-        assertThrows(IllegalArgumentException.class, () -> handler.execute(req, accessor));
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("x"));
+        assertEquals(0, home.getFurniture().size());
     }
 
     @Test
-    void testMissingYThrows() {
+    void testMissingYReturnsError() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Dining Table");
         params.put("x", 0.0);
 
         Request req = new Request("place_furniture", params);
-        assertThrows(IllegalArgumentException.class, () -> handler.execute(req, accessor));
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("y"));
+        assertEquals(0, home.getFurniture().size());
     }
 
     @Test
