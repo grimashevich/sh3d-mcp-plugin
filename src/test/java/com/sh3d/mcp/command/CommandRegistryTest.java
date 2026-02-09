@@ -71,6 +71,38 @@ class CommandRegistryTest {
     }
 
     @Test
+    void testRegisterNullAction() {
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.register(null, (req, acc) -> Response.ok(Collections.emptyMap())));
+    }
+
+    @Test
+    void testRegisterEmptyAction() {
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.register("", (req, acc) -> Response.ok(Collections.emptyMap())));
+    }
+
+    @Test
+    void testRegisterNullHandler() {
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.register("action", null));
+    }
+
+    @Test
+    void testDispatchMultipleHandlers() {
+        registry.register("echo", (request, accessor) ->
+                Response.ok(Collections.singletonMap("action", "echo")));
+
+        Response pingResp = registry.dispatch(new Request("ping", Collections.emptyMap()), mockAccessor);
+        Response echoResp = registry.dispatch(new Request("echo", Collections.emptyMap()), mockAccessor);
+
+        assertTrue(pingResp.isOk());
+        assertEquals("0.1.0", pingResp.getData().get("version"));
+        assertTrue(echoResp.isOk());
+        assertEquals("echo", echoResp.getData().get("action"));
+    }
+
+    @Test
     void testHasHandler() {
         assertTrue(registry.hasHandler("ping"));
         assertFalse(registry.hasHandler("nonexistent"));
