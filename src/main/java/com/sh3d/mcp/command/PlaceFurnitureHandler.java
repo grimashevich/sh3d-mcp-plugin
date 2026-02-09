@@ -1,8 +1,15 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.CatalogPieceOfFurniture;
+import com.eteks.sweethome3d.model.FurnitureCatalog;
+import com.eteks.sweethome3d.model.FurnitureCategory;
+import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Обработчик команды "place_furniture".
@@ -26,22 +33,62 @@ public class PlaceFurnitureHandler implements CommandHandler {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        // TODO: реализовать
-        // 1. String name = request.getString("name") — обязательный
-        // 2. float x = request.getFloat("x"), y = request.getFloat("y")
-        // 3. float angle = request.getFloat("angle", 0f)
-        // 4. Поиск в каталоге: accessor.getFurnitureCatalog()
-        //    for (FurnitureCategory cat : catalog.getCategories())
-        //      for (CatalogPieceOfFurniture piece : cat.getFurniture())
-        //        if (piece.getName().toLowerCase().contains(name.toLowerCase()))
-        // 5. accessor.runOnEDT(() -> {
-        //      HomePieceOfFurniture hpf = new HomePieceOfFurniture(catalogPiece);
-        //      hpf.setX(x); hpf.setY(y);
-        //      hpf.setAngle((float) Math.toRadians(angle));
-        //      accessor.getHome().addPieceOfFurniture(hpf);
-        //      return hpf;
-        //    });
-        // 6. Response.ok(Map.of("name", ..., "x", ..., "y", ..., ...))
-        throw new UnsupportedOperationException("TODO: implement place_furniture");
+        String name = request.getString("name");
+        if (name == null || name.trim().isEmpty()) {
+            return Response.error("Parameter 'name' is required and must not be empty");
+        }
+
+        if (!request.getParams().containsKey("x")) {
+            return Response.error("Missing required parameter: x");
+        }
+        if (!request.getParams().containsKey("y")) {
+            return Response.error("Missing required parameter: y");
+        }
+
+        float x = request.getFloat("x");
+        float y = request.getFloat("y");
+        float angle = request.getFloat("angle", 0f);
+
+        CatalogPieceOfFurniture found = findInCatalog(accessor.getFurnitureCatalog(), name);
+        if (found == null) {
+            return Response.error("Furniture not found: " + name);
+        }
+
+        float angleRad = (float) Math.toRadians(angle);
+
+        HomePieceOfFurniture placed = accessor.runOnEDT(() -> {
+            HomePieceOfFurniture piece = new HomePieceOfFurniture(found);
+            piece.setX(x);
+            piece.setY(y);
+            piece.setAngle(angleRad);
+            accessor.getHome().addPieceOfFurniture(piece);
+            return piece;
+        });
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("name", placed.getName());
+        data.put("x", round2(placed.getX()));
+        data.put("y", round2(placed.getY()));
+        data.put("angle", round2(Math.toDegrees(placed.getAngle())));
+        data.put("width", round2(placed.getWidth()));
+        data.put("depth", round2(placed.getDepth()));
+        data.put("height", round2(placed.getHeight()));
+        return Response.ok(data);
+    }
+
+    private CatalogPieceOfFurniture findInCatalog(FurnitureCatalog catalog, String query) {
+        String lowerQuery = query.toLowerCase();
+        for (FurnitureCategory category : catalog.getCategories()) {
+            for (CatalogPieceOfFurniture piece : category.getFurniture()) {
+                if (piece.getName().toLowerCase().contains(lowerQuery)) {
+                    return piece;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 }
