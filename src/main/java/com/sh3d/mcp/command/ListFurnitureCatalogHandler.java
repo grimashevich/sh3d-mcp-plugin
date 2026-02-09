@@ -1,8 +1,16 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.CatalogPieceOfFurniture;
+import com.eteks.sweethome3d.model.FurnitureCatalog;
+import com.eteks.sweethome3d.model.FurnitureCategory;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Обработчик команды "list_furniture_catalog".
@@ -23,27 +31,48 @@ public class ListFurnitureCatalogHandler implements CommandHandler {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        // TODO: реализовать
-        // 1. String query = request.getString("query")   — опционально
-        // 2. String category = request.getString("category") — опционально
-        // 3. FurnitureCatalog catalog = accessor.getFurnitureCatalog();
-        // 4. List<Object> results = new ArrayList<>();
-        //    for (FurnitureCategory cat : catalog.getCategories()) {
-        //      if (category != null && !cat.getName().toLowerCase().contains(category.toLowerCase()))
-        //        continue;
-        //      for (CatalogPieceOfFurniture piece : cat.getFurniture()) {
-        //        if (query != null && !piece.getName().toLowerCase().contains(query.toLowerCase()))
-        //          continue;
-        //        Map<String, Object> item = new LinkedHashMap<>();
-        //        item.put("name", piece.getName());
-        //        item.put("category", cat.getName());
-        //        item.put("width", piece.getWidth());
-        //        item.put("depth", piece.getDepth());
-        //        item.put("height", piece.getHeight());
-        //        results.add(item);
-        //      }
-        //    }
-        // 5. Response.ok(Map.of("furniture", results))
-        throw new UnsupportedOperationException("TODO: implement list_furniture_catalog");
+        String query = request.getString("query");
+        String categoryFilter = request.getString("category");
+        String lowerQuery = query != null ? query.toLowerCase() : null;
+        String lowerCategory = categoryFilter != null ? categoryFilter.toLowerCase() : null;
+
+        FurnitureCatalog catalog = accessor.getFurnitureCatalog();
+        List<Object> results = new ArrayList<>();
+
+        for (FurnitureCategory cat : catalog.getCategories()) {
+            String catName = cat.getName();
+            if (catName == null) {
+                continue;
+            }
+            if (lowerCategory != null
+                    && !catName.toLowerCase().contains(lowerCategory)) {
+                continue;
+            }
+            for (CatalogPieceOfFurniture piece : cat.getFurniture()) {
+                String pieceName = piece.getName();
+                if (pieceName == null) {
+                    continue;
+                }
+                if (lowerQuery != null
+                        && !pieceName.toLowerCase().contains(lowerQuery)) {
+                    continue;
+                }
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("name", pieceName);
+                item.put("category", catName);
+                item.put("width", round2(piece.getWidth()));
+                item.put("depth", round2(piece.getDepth()));
+                item.put("height", round2(piece.getHeight()));
+                results.add(item);
+            }
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("furniture", results);
+        return Response.ok(data);
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 }
