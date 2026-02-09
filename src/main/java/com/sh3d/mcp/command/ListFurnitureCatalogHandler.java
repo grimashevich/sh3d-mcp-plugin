@@ -33,18 +33,20 @@ public class ListFurnitureCatalogHandler implements CommandHandler {
     public Response execute(Request request, HomeAccessor accessor) {
         String query = request.getString("query");
         String categoryFilter = request.getString("category");
+        String lowerQuery = query != null ? query.toLowerCase() : null;
+        String lowerCategory = categoryFilter != null ? categoryFilter.toLowerCase() : null;
 
         FurnitureCatalog catalog = accessor.getFurnitureCatalog();
         List<Object> results = new ArrayList<>();
 
         for (FurnitureCategory cat : catalog.getCategories()) {
-            if (categoryFilter != null
-                    && !cat.getName().toLowerCase().contains(categoryFilter.toLowerCase())) {
+            if (lowerCategory != null
+                    && !cat.getName().toLowerCase().contains(lowerCategory)) {
                 continue;
             }
             for (CatalogPieceOfFurniture piece : cat.getFurniture()) {
-                if (query != null
-                        && !piece.getName().toLowerCase().contains(query.toLowerCase())) {
+                if (lowerQuery != null
+                        && !piece.getName().toLowerCase().contains(lowerQuery)) {
                     continue;
                 }
                 Map<String, Object> item = new LinkedHashMap<>();

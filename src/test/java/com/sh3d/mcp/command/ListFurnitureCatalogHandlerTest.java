@@ -220,4 +220,30 @@ class ListFurnitureCatalogHandlerTest {
         List<?> furniture = (List<?>) resp.getData().get("furniture");
         assertEquals(3, furniture.size());
     }
+
+    @Test
+    void testEmptyStringQueryReturnsAll() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("query", "");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(3, furniture.size());
+    }
+
+    @Test
+    void testEmptyStringCategoryReturnsAll() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("category", "");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(3, furniture.size());
+    }
 }
