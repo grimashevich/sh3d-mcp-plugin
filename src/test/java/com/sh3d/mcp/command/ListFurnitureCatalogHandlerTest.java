@@ -246,4 +246,44 @@ class ListFurnitureCatalogHandlerTest {
         List<?> furniture = (List<?>) resp.getData().get("furniture");
         assertEquals(3, furniture.size());
     }
+
+    @Test
+    void testNullNamesInCatalogAreSkipped() {
+        CatalogPieceOfFurniture normalPiece = mock(CatalogPieceOfFurniture.class);
+        when(normalPiece.getName()).thenReturn("Sink");
+        when(normalPiece.getWidth()).thenReturn(60f);
+        when(normalPiece.getDepth()).thenReturn(50f);
+        when(normalPiece.getHeight()).thenReturn(85f);
+
+        CatalogPieceOfFurniture nullNamePiece = mock(CatalogPieceOfFurniture.class);
+        when(nullNamePiece.getName()).thenReturn(null);
+
+        FurnitureCategory normalCat = mock(FurnitureCategory.class);
+        when(normalCat.getName()).thenReturn("Kitchen");
+        when(normalCat.getFurniture()).thenReturn(List.of(normalPiece, nullNamePiece));
+
+        FurnitureCategory nullCat = mock(FurnitureCategory.class);
+        when(nullCat.getName()).thenReturn(null);
+        CatalogPieceOfFurniture anotherPiece = mock(CatalogPieceOfFurniture.class);
+        when(anotherPiece.getName()).thenReturn("Oven");
+        when(nullCat.getFurniture()).thenReturn(List.of(anotherPiece));
+
+        FurnitureCatalog catalog = mock(FurnitureCatalog.class);
+        when(catalog.getCategories()).thenReturn(List.of(normalCat, nullCat));
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor testAccessor = new HomeAccessor(new Home(), prefs);
+
+        Request req = new Request("list_furniture_catalog", Collections.emptyMap());
+        Response resp = handler.execute(req, testAccessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertEquals("Sink", item.get("name"));
+        assertEquals("Kitchen", item.get("category"));
+    }
 }

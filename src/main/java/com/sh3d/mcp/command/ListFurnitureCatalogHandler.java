@@ -40,18 +40,26 @@ public class ListFurnitureCatalogHandler implements CommandHandler {
         List<Object> results = new ArrayList<>();
 
         for (FurnitureCategory cat : catalog.getCategories()) {
+            String catName = cat.getName();
+            if (catName == null) {
+                continue;
+            }
             if (lowerCategory != null
-                    && !cat.getName().toLowerCase().contains(lowerCategory)) {
+                    && !catName.toLowerCase().contains(lowerCategory)) {
                 continue;
             }
             for (CatalogPieceOfFurniture piece : cat.getFurniture()) {
+                String pieceName = piece.getName();
+                if (pieceName == null) {
+                    continue;
+                }
                 if (lowerQuery != null
-                        && !piece.getName().toLowerCase().contains(lowerQuery)) {
+                        && !pieceName.toLowerCase().contains(lowerQuery)) {
                     continue;
                 }
                 Map<String, Object> item = new LinkedHashMap<>();
-                item.put("name", piece.getName());
-                item.put("category", cat.getName());
+                item.put("name", pieceName);
+                item.put("category", catName);
                 item.put("width", round2(piece.getWidth()));
                 item.put("depth", round2(piece.getDepth()));
                 item.put("height", round2(piece.getHeight()));
