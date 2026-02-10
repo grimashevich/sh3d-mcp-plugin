@@ -1059,20 +1059,30 @@ sh3d-mcp-plugin/
                 </configuration>
             </plugin>
 
-            <!-- JAR: ApplicationPlugin.properties в корне -->
+            <!-- JAR: clean MANIFEST.MF (SH3D discovers plugin via ApplicationPlugin.properties) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.1</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Plugin-Class>
-                                com.eteks.sweethome3d.mcp.plugin.SH3DMcpPlugin
-                            </Plugin-Class>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
+            </plugin>
+
+            <!-- Copy .jar to .sh3p (Sweet Home 3D plugin format) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      tofile="${project.build.directory}/${project.build.finalName}.sh3p"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Тесты -->
@@ -1462,28 +1472,29 @@ TCP-сервер работает в отдельных потоках, а вс�
 
 ---
 
-### ADR-007: ApplicationPlugin.properties вместо MANIFEST.MF
+### ADR-007: ApplicationPlugin.properties как единственный механизм обнаружения
 
-**Статус:** Принято
+**Статус:** Обновлено (ранее: Принято)
 
 **Контекст:**
-Sweet Home 3D v4.0+ загружает плагины через файл `ApplicationPlugin.properties`
-в корне JAR, а не через `MANIFEST.MF`. Более старые версии использовали атрибут
-`Plugin-Class` в MANIFEST.MF.
+Sweet Home 3D загружает плагины через файл `ApplicationPlugin.properties`,
+который `PluginManager` находит сканированием ZIP-записей архива. Анализ
+декомпилированного `PluginManager` из SH3D 7.5 и реального плагина
+`PhotoVideoRendering.sh3p` подтвердил: `MANIFEST.MF` не используется для
+обнаружения плагинов. Атрибут `Plugin-Class` в манифесте избыточен.
 
-**Решение:** Использовать `ApplicationPlugin.properties` как основной механизм,
-дополнительно указать `Plugin-Class` в MANIFEST.MF для совместимости.
+**Решение:** Использовать только `ApplicationPlugin.properties`. Не дублировать
+`Plugin-Class` в MANIFEST.MF. Выходной файл -- `.sh3p` (стандартное расширение).
 
 **Обоснование:**
-- `ApplicationPlugin.properties` -- рекомендуемый подход для SH3D v6.0+
-- Позволяет указать `applicationMinimumVersion`, `javaMinimumVersion` и другие метаданные
-- Дублирование в MANIFEST.MF обеспечивает максимальную совместимость при минимальных затратах
+- `PluginManager.loadPlugins()` сканирует ZIP-записи по `lastIndexOf("ApplicationPlugin.properties")`
+- Реальные плагины SH3D (PhotoVideoRendering.sh3p) имеют чистый MANIFEST.MF без `Plugin-Class`
+- Наш `applicationMinimumVersion=6.0` делает совместимость со старыми версиями неактуальной
 
 **Последствия:**
-- (+) Совместимость с SH3D v4.0+ (applicationMinimumVersion=6.0)
-- (+) Богатые метаданные плагина (версия, лицензия, провайдер)
-- (-) Два места для поддержки (ApplicationPlugin.properties + MANIFEST.MF), но они
-  практически не меняются
+- (+) Единственный источник истины для метаданных плагина
+- (+) Соответствие реальным конвенциям экосистемы SH3D
+- (+) Формат `.sh3p` поддерживает установку двойным кликом (SH3D 1.6+)
 
 ---
 
