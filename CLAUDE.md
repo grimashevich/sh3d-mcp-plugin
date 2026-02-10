@@ -1,39 +1,92 @@
 # sh3d-mcp-plugin
 
-Плагин для Sweet Home 3D, который поднимает TCP-сервер внутри JVM приложения и принимает JSON-команды для управления сценой (создание стен, размещение мебели, чтение состояния). Внешний MCP-сервер подключается к плагину по TCP и транслирует команды от Claude.
+Плагин для Sweet Home 3D — TCP-сервер внутри JVM приложения, принимающий JSON-команды для управления сценой. Часть системы **Sweet Home 3D MCP**, позволяющей Claude управлять Sweet Home 3D.
+
+## Архитектура системы
+
+```
+Claude Desktop/Code CLI
+        | stdin/stdout (JSON-RPC 2.0, MCP protocol)
+        v
++---------------------------+
+|  mcp-server/ (Java 21)   |  -- внешний процесс, fat JAR
+|  MCP SDK 0.17.2 + Jackson |
++---------------------------+
+        | TCP localhost:9877 (newline-delimited JSON)
+        v
++---------------------------+
+|  plugin/ (Java 11)  <-- ТЫ ЗДЕСЬ
+|  Без внешних зависимостей |
++---------------------------+
+        | SH3D Plugin API (EDT)
+        v
+   Sweet Home 3D
+```
+
+Плагин -- центральный компонент. MCP-сервер -- тонкий прокси, автоматически регистрирующий tools через auto-discovery. **Вся разработка новых фич происходит здесь.**
+
+## MCP-сервер
+
+**Расположение:** `../mcp-server/` (отдельный git-репо: `grimashevich/sh3d-mcp-server`)
+
+MCP-сервер транслирует вызовы Claude в TCP-команды плагина. Благодаря auto-discovery он **не требует изменений** при добавлении новых команд -- при старте запрашивает `describe_commands` у плагина и динамически регистрирует MCP tools.
+
+### Сборка MCP-сервера
+
+```bash
+cd ../mcp-server && mvn clean package -DskipTests -q
+```
+
+Артефакт: `../mcp-server/target/sh3d-mcp-server-0.1.0-SNAPSHOT.jar`
+
+### Конфигурация MCP (Claude Code)
+
+Файл `.mcp.json` в этой директории:
+```json
+{
+  "mcpServers": {
+    "sweethome3d": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": ["/c", "java", "-jar", "C:\\Users\\kgrim\\projects\\SH3D\\mcp-server\\target\\sh3d-mcp-server-0.1.0-SNAPSHOT.jar"]
+    }
+  }
+}
+```
+
+### Проверка работы MCP-сервера
+
+MCP-сервер запускается Claude Code автоматически через `.mcp.json`. Если MCP tools не работают:
+
+1. Проверить, что SH3D запущена и плагин активен (TCP-порт 9877 отвечает)
+2. Проверить, что MCP-сервер собран: `ls ../mcp-server/target/sh3d-mcp-server-*.jar`
+3. Перезапустить Claude Code сессию (MCP-сервер перезапустится и получит дескрипторы)
 
 ## Стек
 
 - **Java 11** (совместимость с JVM Sweet Home 3D)
 - Без фреймворков, без внешних runtime-зависимостей
-- Sweet Home 3D Plugin API (`com.eteks.sweethome3d.plugin.Plugin`) -- scope `provided`/`system`
+- Sweet Home 3D Plugin API (`com.eteks.sweethome3d.plugin.Plugin`) -- scope `system`
 - JSON-парсер -- ручной, без библиотек
+- JUnit 5 + Mockito 5.21 (тесты)
 
-## Сборка
+## Сборка и деплой
 
 ```bash
+# Сборка
 mvn clean package
-```
 
-Артефакт: `target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p` -- файл плагина SH3D.
+# Быстрая сборка (без тестов)
+mvn clean package -DskipTests -q
 
-## Деплой
-
-Скопировать `.sh3p` в папку плагинов Sweet Home 3D (или установить двойным кликом):
-
-```bash
-# Windows
+# Деплой (Windows)
 copy target\sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "%APPDATA%\eTeks\Sweet Home 3D\plugins\"
 
-# Linux / macOS
-cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p ~/.eteks/sweethome3d/plugins/
+# Деплой (bash / Git Bash)
+cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plugins/"
 ```
 
-После перезапуска SH3D плагин появляется в меню.
-
-## Формат плагина
-
-Файл `.sh3p` -- это ZIP-архив (переименованный JAR). SH3D обнаруживает плагин через `ApplicationPlugin.properties` (поле `class=`), а НЕ через `MANIFEST.MF`. Манифест стандартный, без специальных атрибутов.
+Артефакт `.sh3p` -- ZIP-архив (переименованный JAR). SH3D обнаруживает плагин через `ApplicationPlugin.properties` (поле `class=`).
 
 ## Структура пакетов
 
@@ -44,15 +97,65 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p ~/.eteks/sweethome3d/plugins/
 | `plugin` | Точка входа (`SH3DMcpPlugin extends Plugin`), пункт меню (`ServerToggleAction`) |
 | `server` | TCP-сервер: `TcpServer` (accept loop), `ClientHandler` (обработка соединения), `ServerState` (enum) |
 | `protocol` | JSON-протокол: `JsonProtocol` (парсинг/форматирование), `Request`, `Response` (value objects) |
-| `command` | Обработчики команд: `CommandHandler` (интерфейс), `CommandRegistry` (реестр), `PingHandler`, `CreateWallsHandler`, `PlaceFurnitureHandler`, `GetStateHandler`, `ListFurnitureCatalogHandler` |
+| `command` | Обработчики: `CommandHandler` (интерфейс), `CommandDescriptor` (auto-discovery), `CommandRegistry` (реестр), handler-классы |
 | `bridge` | Мост к SH3D API: `HomeAccessor` -- потокобезопасная обёртка над `Home` через EDT |
 | `config` | `PluginConfig` -- настройки (порт, autoStart и др.) |
+
+## Реализованные команды
+
+| TCP-команда | MCP tool | Описание |
+|-------------|----------|----------|
+| `ping` | -- | Проверка связи (инфра, не видна Claude) |
+| `create_walls` | `create_room` | Прямоугольная комната из 4 стен |
+| `place_furniture` | `place_furniture` | Размещение мебели из каталога |
+| `get_state` | `get_state` | Состояние сцены (стены, мебель) |
+| `list_furniture_catalog` | `list_catalog` | Каталог мебели с фильтрацией |
+| `describe_commands` | -- | Auto-discovery: описания команд для MCP-сервера |
+
+## Добавление новой команды
+
+Один класс в plugin/ -- MCP-сервер подхватит автоматически:
+
+1. Создать класс, реализующий `CommandHandler` + `CommandDescriptor`:
+   ```java
+   public class MyHandler implements CommandHandler, CommandDescriptor {
+       @Override
+       public Response execute(Request request, HomeAccessor accessor) { ... }
+
+       @Override
+       public String getDescription() {
+           return "English description for Claude";
+       }
+
+       @Override
+       public Map<String, Object> getSchema() {
+           Map<String, Object> schema = new LinkedHashMap<>();
+           schema.put("type", "object");
+           Map<String, Object> props = new LinkedHashMap<>();
+           // ... добавить properties
+           schema.put("properties", props);
+           schema.put("required", Arrays.asList("param1", "param2"));
+           return schema;
+       }
+
+       // Опционально: если MCP-имя отличается от TCP-action
+       @Override
+       public String getToolName() { return "my_tool_name"; }
+   }
+   ```
+
+2. Зарегистрировать в `SH3DMcpPlugin.createCommandRegistry()`:
+   ```java
+   registry.register("my_command", new MyHandler());
+   ```
+
+3. Пересобрать и задеплоить плагин, перезапустить SH3D и MCP-сервер.
 
 ## Критические правила
 
 ### EDT (Event Dispatch Thread)
 
-Все мутации модели `Home` -- ТОЛЬКО через `HomeAccessor.runOnEDT()`. Этот метод использует `SwingUtilities.invokeAndWait()` для синхронного выполнения в EDT. Прямой вызов `home.addWall()`, `home.addPieceOfFurniture()` и т.п. из TCP-потоков запрещён -- приведёт к race conditions и крашам UI.
+Все мутации модели `Home` -- ТОЛЬКО через `HomeAccessor.runOnEDT()`. Используется `SwingUtilities.invokeAndWait()` для синхронного выполнения в EDT. Прямой вызов `home.addWall()` и т.п. из TCP-потоков запрещён.
 
 ```java
 // Правильно:
@@ -62,36 +165,88 @@ Object result = accessor.runOnEDT(() -> {
     return wall;
 });
 
-// НЕПРАВИЛЬНО -- вызов из TCP-потока без EDT:
-accessor.getHome().addWall(wall); // Race condition!
+// НЕПРАВИЛЬНО -- race condition:
+accessor.getHome().addWall(wall);
 ```
 
 ### Координатная система
 
-- Единицы измерения: **сантиметры** (500 = 5 метров)
+- Единицы: **сантиметры** (500 = 5 метров)
 - Ось X -- вправо, ось Y -- **вниз** (экранные координаты)
-- `(x, y)` в `create_walls` -- верхний левый угол прямоугольника
 
-### Нулевые внешние зависимости в runtime
+### Нулевые внешние зависимости
 
-SH3D JAR имеет scope `system` (provided) -- он уже в classpath при запуске. Итоговый JAR плагина не должен содержать никаких внешних библиотек. JSON парсится и форматируется вручную в `JsonProtocol`.
+Итоговый JAR не должен содержать внешних библиотек. JSON парсится вручную в `JsonProtocol`. **Не использовать** Gson, Jackson и любые другие JSON-библиотеки.
 
-### JSON-парсер
+### TCP-протокол
 
-Ручная реализация в `JsonProtocol`. Поддерживает: строки (с экранированием), числа, boolean, null, объекты, массивы. Не использовать Gson, Jackson, minimal-json и любые другие библиотеки.
+Построчный JSON (`\n` как разделитель). Порт: **9877**.
 
-### Добавление новой команды
+- Запрос: `{"action": "...", "params": {...}}\n`
+- Ответ OK: `{"status": "ok", "data": {...}}\n`
+- Ответ error: `{"status": "error", "message": "..."}\n`
 
-Два шага:
-1. Создать класс, реализующий `CommandHandler` (интерфейс с методом `Response execute(Request, HomeAccessor)`)
-2. Зарегистрировать в `SH3DMcpPlugin.createCommandRegistry()`:
-   ```java
-   registry.register("my_command", new MyHandler());
-   ```
+## Визуальный контроль и самотестирование
 
-### Протокол
+Агент может самостоятельно запускать SH3D, выполнять команды и видеть результат.
 
-TCP, построчный JSON (`\n` как разделитель). Запрос: `{"action": "...", "params": {...}}`. Ответ: `{"status": "ok", "data": {...}}` или `{"status": "error", "message": "..."}`. Порт по умолчанию: 9877.
+### Запуск и остановка SH3D
+
+```bash
+# Запустить (фоновый процесс)
+"/c/Program Files/Sweet Home 3D/SweetHome3D.exe" &
+sleep 3
+
+# Остановить
+cmd //c "taskkill /IM javaw.exe /F"
+```
+
+Плагин стартует TCP-сервер автоматически (`autoStart=true`).
+
+### Проверка TCP-порта плагина
+
+```bash
+py -c "import socket; s=socket.socket(); s.connect(('localhost',9877)); s.sendall(b'{\"action\":\"ping\"}\n'); print(s.recv(4096).decode()); s.close()"
+```
+
+### Скриншот окна SH3D
+
+```python
+import ctypes
+ctypes.windll.user32.SetProcessDPIAware()
+
+import win32gui
+from PIL import ImageGrab
+
+def find_sh3d():
+    result = []
+    def callback(hwnd, _):
+        title = win32gui.GetWindowText(hwnd)
+        if 'Sweet Home 3D' in title and win32gui.IsWindowVisible(hwnd):
+            result.append((hwnd, title))
+    win32gui.EnumWindows(callback, None)
+    return result
+
+windows = find_sh3d()
+hwnd = windows[0][0]
+rect = win32gui.GetWindowRect(hwnd)
+img = ImageGrab.grab(bbox=rect)
+img.save('screenshot.png')
+```
+
+Зависимости: `py -m pip install Pillow pywin32`
+
+### Цикл самотестирования новых фич
+
+1. Собрать плагин: `mvn clean package -DskipTests -q`
+2. Закрыть SH3D: `cmd //c "taskkill /IM javaw.exe /F"`
+3. Задеплоить: `cp target/*.sh3p "$APPDATA/eTeks/Sweet Home 3D/plugins/"`
+4. Запустить SH3D: `"/c/Program Files/Sweet Home 3D/SweetHome3D.exe" &` + `sleep 3`
+5. Проверить TCP: ping по TCP (см. выше)
+6. Проверить MCP: убедиться, что MCP-сервер собран и Claude Code сессия перезапущена
+7. Выполнить тестовые команды через MCP tools
+8. Визуально проверить результат (скриншот / get_state)
+9. Закрыть SH3D
 
 ## Тестирование
 
@@ -99,21 +254,31 @@ TCP, построчный JSON (`\n` как разделитель). Запро�
 mvn test
 ```
 
-- **JUnit 5** (`org.junit.jupiter:junit-jupiter:5.10.2`)
-- **Mockito** (`org.mockito:mockito-core:5.11.0`)
-- Тесты расположены в `src/test/java/com/sh3d/mcp/`
-- Покрыто: `JsonProtocol`, `Request`, `Response`, `CommandRegistry`, `PingHandler`, `TcpServer` (интеграционный), `PluginConfig`
+- JUnit 5 + Mockito 5.21.0
+- JDK 24: surefire argLine включает `EnableDynamicAgentLoading` + `--add-opens`
+- Тесты: `src/test/java/com/sh3d/mcp/`
 
 ## Git
 
-Conventional commits: `feat(scope): описание`, `fix(scope): ...`, `refactor(scope): ...`, `test(scope): ...`, `docs(scope): ...`
+- **Репозиторий:** `grimashevich/sh3d-mcp-plugin`
+- Conventional commits: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `docs(scope):`
+- Feature-ветки, merge в main
+- Ревью не требуется -- тестируем вживую через SH3D и визуальный контроль
 
-Работа только в feature-ветках (`feat/...`, `fix/...`), merge в main после ревью.
+## Документы
+
+| Файл | Описание |
+|------|----------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Архитектура плагина (5 слоёв, ADR, диаграммы) |
+| [PRD.md](PRD.md) | Бизнес-требования |
+| [sh3d-plugin-spec.md](sh3d-plugin-spec.md) | Спецификация плагина |
+| [TO-DOS.md](TO-DOS.md) | TODO-лист и roadmap |
+| `../mcp-server/CLAUDE.md` | Описание MCP-сервера |
+| `../mcp-server/sh3d-mcp-server-spec.md` | Спецификация MCP-сервера |
+| `../RESEARCH.md` | Исследование API SH3D, полный список фич |
 
 ## Ссылки
 
 - [Sweet Home 3D Javadoc](http://www.sweethome3d.com/javadoc/)
 - [Plugin API](http://www.sweethome3d.com/javadoc/com/eteks/sweethome3d/plugin/Plugin.html)
 - [PluginAction](http://www.sweethome3d.com/javadoc/com/eteks/sweethome3d/plugin/PluginAction.html)
-- [ARCHITECTURE.md](ARCHITECTURE.md) -- детальная архитектура, диаграммы, ADR
-- [sh3d-plugin-spec.md](sh3d-plugin-spec.md) -- спецификация (ТЗ)

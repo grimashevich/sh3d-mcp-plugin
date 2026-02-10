@@ -1,260 +1,170 @@
-# TO-DOS
+# TO-DOS -- Sweet Home 3D MCP Plugin
+
+Roadmap и текущие задачи. Вся разработка -- в plugin/, MCP-сервер трогать не нужно (auto-discovery).
+
+Детали API: [../RESEARCH.md](../RESEARCH.md)
 
 ---
 
-## 2026-02-10 — Файловое логирование для отладки плагина
+## Фаза 2 (v0.2) -- Visual Feedback + Core CRUD
 
-- [ ] Реализовать файловый лог для плагина
+### Визуальная обратная связь [P0, High]
 
-**Problem:** Плагин работает внутри SH3D JVM, stderr не виден при запуске через SweetHome3D.exe. `java.util.logging.Logger` по умолчанию пишет в ConsoleHandler (stderr), который бесполезен в production. Нет способа быстро посмотреть, что происходит при взаимодействии с плагином.
+Критично для тестирования всех последующих фич и для AI-агентов, выполняющих дизайн-проекты.
 
-**Требования:**
-1. Файл лога: `%APPDATA%/eTeks/Sweet Home 3D/plugins/sh3d-mcp.log` (рядом с конфигом)
-2. Формат: `[timestamp] [level] [class] message`
-3. Уровень логирования: настраиваемый через `sh3d-mcp.properties` (по умолчанию INFO)
-4. Ротация: максимум 2 файла по 1MB (чтобы не засорять диск)
-5. Инициализация: в `SH3DMcpPlugin.getActions()` до любой другой логики
-6. Кроссплатформенный путь (Windows/Linux/macOS)
+#### render_photo -- рендер 3D-сцены [P0, Medium-High]
 
-**Solution:**
-- Настроить `java.util.logging.FileHandler` на корневой logger пакета `com.sh3d.mcp`
-- Добавить в `PluginConfig` параметр `logLevel` (default: INFO)
-- Все существующие `LOG.info/warning/severe` автоматически пойдут в файл
-- При запуске логировать: версию плагина, порт, путь к конфигу, Java version, SH3D version
+- [ ] Новый `RenderPhotoHandler` (+ `CommandDescriptor`)
+- [ ] Параметры: `width`, `height`, `quality` (LOW/HIGH), опционально камера (x, y, z, yaw, pitch, fov)
+- [ ] Рендер через `PhotoRenderer(home, Quality)` -> `render(BufferedImage, Camera, null)`
+- [ ] Возврат: base64-encoded PNG
+- [ ] Если камера не указана -- использовать текущую (`home.getCamera()`)
+- [ ] Fallback при ошибке рендера -- вернуть ошибку с описанием
 
-**Files:**
-- `src/main/java/com/sh3d/mcp/plugin/SH3DMcpPlugin.java` (инициализация FileHandler)
-- `src/main/java/com/sh3d/mcp/config/PluginConfig.java` (logLevel параметр)
+**API:** `new PhotoRenderer(home, Quality.HIGH)`, `renderer.render(image, camera, observer)`, `ImageIO.write(image, "png", baos)`, `Base64.getEncoder().encodeToString(bytes)`
 
 ---
 
-## 2026-02-10 — execute() не меняет текст меню (race condition?)
+#### export_svg -- экспорт 2D-плана [P0, Medium]
 
-- [ ] Исследовать и исправить: при нажатии "MCP Server: Start" текст не меняется на "Stop"
+- [ ] Новый `ExportSvgHandler` (+ `CommandDescriptor`)
+- [ ] Экспорт через `PlanComponent.exportToSVG(OutputStream)`
+- [ ] Возврат: SVG-строка (или base64, если большой)
+- [ ] Нужен доступ к `PlanComponent` из контроллера
 
-**Problem:** `TcpServer.start()` запускает daemon-поток и возвращает управление сразу. Состояние = `STARTING`. `updateMenuText()` вызывает `isRunning()` который проверяет `state == RUNNING`, но `RUNNING` устанавливается только после `new ServerSocket(port)` в accept-потоке. Race condition: меню проверяет статус до того, как сервер реально запустился.
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/plugin/ServerToggleAction.java:26-35`
-- `src/main/java/com/sh3d/mcp/server/TcpServer.java:45-53`
-
----
-
-## 2026-02-08 — JsonProtocol.parseRequest() [BLOCKER]
-
-- [x] Реализовать минимальный JSON-парсер (DONE: recursive descent parser, 13 тестов)
-
-**Problem:** `JsonProtocol.parseRequest()` бросает `UnsupportedOperationException`. Это блокирует **весь pipeline**: ClientHandler вызывает parseRequest для каждой входящей строки. Без парсера ни одна команда не может быть обработана через TCP.
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/protocol/JsonProtocol.java:27-35`
-
-**Solution:**
-Реализовать минимальный токенизатор для плоского JSON. Поддержать типы: String (с экранированием `\"`, `\\`, `\n`, `\t`, `\uXXXX`), Number (int/float), Boolean, Null, Object (вложенность 1-2 уровня). Парсинг: найти `{` → читать пары `"key": value` → извлечь `"action"` (обязательное) и `"params"` (опциональный вложенный объект) → вернуть `new Request(action, paramsMap)`. При невалидном JSON бросать `IllegalArgumentException`. Без внешних библиотек.
+**API:** `PlanComponent implements ExportableView`, `exportData(OutputStream, FormatType.SVG, null)`
 
 ---
 
-## 2026-02-08 — PluginConfig: кроссплатформенные пути
+#### set_camera -- управление камерой [P0, Low-Medium]
 
-- [x] Добавить поддержку Linux/macOS путей для файла конфигурации (DONE)
+- [ ] Новый `SetCameraHandler` (+ `CommandDescriptor`)
+- [ ] Параметры: `mode` (top/observer), опционально x, y, z, yaw, pitch, fieldOfView
+- [ ] `home.setCamera(home.getTopCamera())` / `home.setCamera(home.getObserverCamera())`
+- [ ] Для custom: настроить `ObserverCamera` через setX/Y/Z/Yaw/Pitch/FieldOfView
 
-**Problem:** `loadPropertiesFile()` ищет конфиг только через `%APPDATA%` (Windows). На Linux/macOS `APPDATA` не существует — конфиг никогда не найдётся.
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/config/PluginConfig.java:62-75`
-
-**Solution:**
-Добавить fallback: если `APPDATA` == null, проверить `~/.eteks/sweethome3d/plugins/sh3d-mcp.properties` (стандартный путь SH3D на Unix). Определять ОС через `System.getProperty("os.name")`.
+**API:** `home.getTopCamera()`, `home.getObserverCamera()`, `home.setCamera()`, `camera.setX/Y/Z/Yaw/Pitch/FieldOfView()`
 
 ---
 
-## 2026-02-08 — CreateWallsHandler
+### get_state enhanced [P0, Medium]
 
-- [x] Реализовать команду create_walls (DONE: 9 тестов)
-
-**Problem:** Обработчик — заглушка с `UnsupportedOperationException`. Это ключевая команда MVP (P1) — создание прямоугольной комнаты из 4 стен.
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/command/CreateWallsHandler.java:28-46`
-
-**Solution:**
-1. Валидация параметров: `x`, `y` (обязательные), `width > 0`, `height > 0`, `thickness` (default 10.0)
-2. В `accessor.runOnEDT()`: создать 4 объекта `Wall(xStart, yStart, xEnd, yEnd)`, установить thickness
-3. Соединить стены замкнутым контуром: `w1.setWallAtEnd(w2); w2.setWallAtStart(w1)` и т.д. по кругу
-4. `home.addWall()` для каждой стены
-5. Вернуть `Response.ok(Map.of("wallsCreated", 4, "message", "Room WxH created"))`
-
-Зависит от: **JsonProtocol.parseRequest()** (без парсера запрос не дойдёт до обработчика)
+- [ ] Добавить ID для стен (индекс или UUID)
+- [ ] Добавить координаты стен (xStart, yStart, xEnd, yEnd), высоту, толщину
+- [ ] Добавить ID для мебели
+- [ ] Добавить elevation мебели
+- [ ] Отмечать двери/окна отдельно
+- [ ] Добавить данные Room (имя, площадь, цвет пола/потолка)
+- [ ] Добавить labels, dimension lines
+- [ ] Добавить текущую камеру и levels
 
 ---
 
-## 2026-02-08 — GetStateHandler
+### create_wall -- одиночная стена [P0, Low]
 
-- [x] Реализовать команду get_state (DONE: 7 тестов)
+- [ ] Новый `CreateWallHandler` (+ `CommandDescriptor`)
+- [ ] Параметры: xStart, yStart, xEnd, yEnd, thickness, wallHeight
+- [ ] Возвращать ID созданной стены
 
-**Problem:** Заглушка. Команда нужна для верификации результатов и обратной связи для Claude (P1).
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/command/GetStateHandler.java:24-50`
-
-**Solution:**
-В `accessor.runOnEDT()`:
-1. `home.getWalls().size()` → wallCount
-2. Итерация по `home.getFurniture()` → массив `{name, x, y, angle (в градусах), width, depth, height}`
-3. `home.getRooms().size()` → roomCount
-4. Расчёт bounding box по координатам всех стен (min/max по xStart, xEnd, yStart, yEnd)
-5. Вернуть `Response.ok(data)`
-
-Зависит от: **JsonProtocol.parseRequest()**
+**API:** `new Wall(xStart, yStart, xEnd, yEnd, thickness)`, `wall.setHeight()`, `home.addWall()`
 
 ---
 
-## 2026-02-08 — PlaceFurnitureHandler
+### delete_furniture [P0, Medium]
 
-- [x] Реализовать команду place_furniture (DONE: 14 тестов)
-
-**Problem:** Заглушка. Вторая ключевая команда MVP (P2) — размещение мебели из каталога.
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/command/PlaceFurnitureHandler.java:28-45`
-
-**Solution:**
-1. Валидация: `name` (обязательный, не пустой), `x`, `y` (обязательные), `angle` (default 0)
-2. Поиск в каталоге: `accessor.getFurnitureCatalog()` → итерация по категориям/элементам → `piece.getName().toLowerCase().contains(query.toLowerCase())`
-3. Если не найден → `Response.error("Furniture not found: " + name)`
-4. В EDT: `new HomePieceOfFurniture(catalogPiece)`, setX/Y, `setAngle((float) Math.toRadians(angle))`, `home.addPieceOfFurniture()`
-5. Вернуть данные размещённой мебели
-
-Зависит от: **JsonProtocol.parseRequest()**, **ListFurnitureCatalogHandler** (общая логика поиска)
+- [ ] Идентификация мебели по ID (из enhanced get_state)
+- [ ] `home.deletePieceOfFurniture(piece)`
 
 ---
 
-## 2026-02-08 — ListFurnitureCatalogHandler
+### modify_furniture [P0, Medium]
 
-- [x] Реализовать команду list_furniture_catalog (DONE: 12 тестов)
+- [ ] Изменение: x, y, angle, width, depth, height, color, elevation, visible, mirrored
+- [ ] Идентификация по ID
 
-**Problem:** Заглушка. Вспомогательная команда (P2) — нужна чтобы Claude знал, какую мебель можно разместить.
-
-**Files:**
-- `src/main/java/com/sh3d/mcp/command/ListFurnitureCatalogHandler.java:25-47`
-
-**Solution:**
-1. Опциональные параметры: `query`, `category`
-2. `accessor.getFurnitureCatalog()` → итерация по категориям
-3. Фильтр по category: `cat.getName().toLowerCase().contains(category.toLowerCase())`
-4. Фильтр по query: `piece.getName().toLowerCase().contains(query.toLowerCase())`
-5. Собрать массив `{name, category, width, depth, height}`
-6. EDT не требуется (каталог read-only, thread-safe)
-
-Зависит от: **JsonProtocol.parseRequest()**
+**API:** `piece.setX()`, `setY()`, `setAngle()`, `setWidth()`, `setColor()` и т.д.
 
 ---
 
-## 2026-02-08 — Тесты: JsonProtocolTest (parse-методы)
+### create_room_polygon [P0, Medium]
 
-- [x] Реализовать тесты парсинга JSON (DONE: 13 тестов в JsonProtocolTest)
+- [ ] Создание Room по массиву точек (полигон)
+- [ ] Установка видимости пола/потолка
+- [ ] Имя комнаты
 
-**Problem:** 3 теста закомментированы — `testParseValidRequest`, `testParseRequestWithoutParams`, `testParseInvalidJson`. Нет покрытия парсера.
-
-**Files:**
-- `src/test/java/com/sh3d/mcp/protocol/JsonProtocolTest.java:13-33`
-
-**Solution:**
-Раскомментировать и реализовать после готовности `JsonProtocol.parseRequest()`. Проверить: парсинг с params, без params, невалидный JSON (throws IAE), пограничные случаи (пустая строка, null, Unicode).
-
-Зависит от: **JsonProtocol.parseRequest()**
+**API:** `new Room(float[][] points)`, `room.setFloorVisible()`, `room.setCeilingVisible()`, `room.setName()`
 
 ---
 
-## 2026-02-08 — Тесты: CommandRegistryTest (dispatch-методы)
+### clear_scene [P1, Low]
 
-- [x] Реализовать тесты dispatch с mock HomeAccessor (DONE: 4 теста — ok/unknown/CommandException/RuntimeException)
-
-**Problem:** 2 теста закомментированы — `testRegisterAndDispatch`, `testDispatchUnknownAction`. Dispatch не тестируется.
-
-**Files:**
-- `src/test/java/com/sh3d/mcp/command/CommandRegistryTest.java:23-36`
-
-**Solution:**
-Создать mock HomeAccessor (Mockito) → вызвать `registry.dispatch(new Request("ping", ...), mockAccessor)` → проверить `resp.isOk()`. Для unknown: проверить `resp.isError()` и сообщение "Unknown action".
-
-Зависит от: **JsonProtocol.parseRequest()** (dispatch сам по себе не зависит, но полноценное тестирование через TCP — да)
+- [ ] Удаление всех стен, мебели, комнат, labels, dimension lines
+- [ ] Подтверждение в ответе (кол-во удалённых объектов)
 
 ---
 
-## 2026-02-08 — Тесты: PluginConfigTest (System property override)
+### connect_walls [P1, Medium]
 
-- [x] Реализовать тест переопределения через System property (DONE)
-
-**Problem:** `testSystemPropertyOverride` закомментирован. Приоритет конфигурации не протестирован.
-
-**Files:**
-- `src/test/java/com/sh3d/mcp/config/PluginConfigTest.java:19-26`
-
-**Solution:**
-Раскомментировать: `System.setProperty("sh3d.mcp.port", "9999")` → `PluginConfig.load()` → assert port == 9999 → `System.clearProperty()` в finally.
-
-Зависит от: ничего (можно реализовать сразу)
+- [ ] Соединение двух стен по ID (setWallAtStart/End)
+- [ ] Необходимо для корректного рендеринга при create_wall
 
 ---
 
-## 2026-02-08 — Тесты: TcpServerTest (интеграционные)
+### delete_wall [P1, Medium]
 
-- [ ] Реализовать интеграционные тесты TCP-сервера
-
-**Problem:** 2 теста — заглушки. Нет проверки start/stop и end-to-end ping через сокет.
-
-**Files:**
-- `src/test/java/com/sh3d/mcp/server/TcpServerTest.java:10-31`
-
-**Solution:**
-`testStartAndStop`: создать TcpServer с mock accessor → start → assertTrue(isRunning) → stop → assertFalse.
-`testPingOverSocket`: start server → `new Socket("localhost", port)` → отправить `{"action":"ping"}` → прочитать ответ → проверить `"status":"ok"` и version → stop.
-
-Зависит от: **JsonProtocol.parseRequest()** (для testPingOverSocket)
+- [ ] Удаление стены по ID
+- [ ] `home.deleteWall(wall)`
 
 ---
 
-## 2026-02-10 — Mockito + JDK 24: 41 тест не проходит
+## Фаза 3 (v0.3) -- Visual Design
 
-- [ ] Исправить несовместимость Mockito с JDK 24
-
-**Problem:** 41 тест (из 81) падает с `MockitoException: Could not modify all classes` при запуске на JDK 24. Затронутые тесты: `CommandRegistryTest` (9), `GetStateHandlerTest` (3), `ListFurnitureCatalogHandlerTest` (15), `PlaceFurnitureHandlerTest` (14) — все используют Mockito для мокирования concrete-классов (`UserPreferences`, `FurnitureCatalog`, `Home` и т.д.).
-
-**Причина:** JDK 24 заблокировал `sun.misc.Unsafe::objectFieldOffset` (terminally deprecated), который Mockito использует для инлайн-моков. Mockito 5.x через ByteBuddy не может модифицировать классы без `--add-opens`.
-
-**Рабочие тесты (35):** `JsonProtocolTest` (13), `RequestTest` (4), `ResponseTest` (2), `CreateWallsHandlerTest` (10), `PingHandlerTest` (1), `PluginConfigTest` (3), `TcpServerTest` (2 skipped — заглушки).
-
-**Варианты решения:**
-1. **Обновить Mockito до 5.14+** (может содержать фикс для JDK 24)
-2. **Добавить `--add-opens` в maven-surefire-plugin** (argLine с нужными opens)
-3. **Рефакторинг тестов**: заменить mock concrete-классов на реальные объекты (`new Home()`, `new HomeAccessor(home, null)`) — как уже сделано в `CreateWallsHandlerTest`
-4. **Комбинация**: обновить Mockito + рефакторинг наиболее проблемных тестов
-
-**Files:**
-- `pom.xml` (версия Mockito: 5.11.0, surefire argLine)
-- `src/test/java/com/sh3d/mcp/command/CommandRegistryTest.java`
-- `src/test/java/com/sh3d/mcp/command/GetStateHandlerTest.java`
-- `src/test/java/com/sh3d/mcp/command/ListFurnitureCatalogHandlerTest.java`
-- `src/test/java/com/sh3d/mcp/command/PlaceFurnitureHandlerTest.java`
+- [ ] modify_wall (цвет, текстура, shininess, высота)
+- [ ] modify_room (цвет/текстура пола и потолка, имя)
+- [ ] delete_room
+- [ ] list_textures_catalog
+- [ ] apply_texture (к стене/полу/потолку)
+- [ ] place_door_or_window (привязка к стене)
+- [ ] undo / redo
 
 ---
 
-## Граф зависимостей
+## Фаза 4 (v0.4) -- Annotations & Cameras
 
-```
-PluginConfigTest.testSystemPropertyOverride  (независимый, можно сразу)
-                    |
-                    v
-          JsonProtocol.parseRequest()  <-- BLOCKER, реализовать первым
-           /        |        |       \
-          v         v        v        v
-  CreateWalls  GetState  PlaceFurn  ListCatalog
-                                       |
-                                       v
-                                  PlaceFurniture (общая логика поиска)
+- [ ] store_camera / get_cameras
+- [ ] switch_camera_mode (top/observer)
+- [ ] add_label
+- [ ] add_dimension_line
+- [ ] set_environment (земля, небо, свет)
 
-          JsonProtocolTest (parse)
-          CommandRegistryTest (dispatch)
-          TcpServerTest.testPingOverSocket
-```
+---
+
+## Фаза 5 (v0.5) -- Multi-level & Export
+
+- [ ] add_level / list_levels / set_selected_level / delete_level
+- [ ] export_to_obj
+- [ ] save_home
+- [ ] batch_commands
+
+---
+
+## Технический долг
+
+- [ ] TcpServerTest: интеграционные тесты -- заглушки
+- [ ] Тесты для wall height fix (CreateWallsHandler)
+- [ ] Исследовать race condition: текст меню не обновляется при toggle
+
+---
+
+## Выполнено
+
+- [x] Auto-discovery команд (describe_commands, CommandDescriptor) -- v0.2
+- [x] Mockito 5.11 -> 5.21 + argLine для JDK 24
+- [x] JsonProtocol: recursive descent парсер (13 тестов)
+- [x] CreateWallsHandler (9 тестов)
+- [x] GetStateHandler (7 тестов)
+- [x] PlaceFurnitureHandler (14 тестов)
+- [x] ListFurnitureCatalogHandler (12 тестов)
+- [x] PluginConfig: кроссплатформенные пути
+- [x] CommandRegistryTest: dispatch с mock HomeAccessor
+- [x] PluginConfigTest: System property override
