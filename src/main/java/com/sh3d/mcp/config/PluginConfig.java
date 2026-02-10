@@ -85,8 +85,8 @@ public class PluginConfig {
     }
 
     static Path resolveConfigPath() {
-        return resolvePluginDir() == null ? null
-                : resolvePluginDir().resolve("sh3d-mcp.properties");
+        Path dir = resolvePluginDir();
+        return dir == null ? null : dir.resolve("sh3d-mcp.properties");
     }
 
     public static Path resolveLogPath() {

@@ -29,6 +29,7 @@ public class SH3DMcpPlugin extends Plugin {
 
     private TcpServer tcpServer;
     private PluginConfig config;
+    private FileHandler logFileHandler;
 
     @Override
     public PluginAction[] getActions() {
@@ -60,6 +61,11 @@ public class SH3DMcpPlugin extends Plugin {
             tcpServer.stop();
             LOG.info("SH3D MCP Plugin destroyed, server stopped");
         }
+        if (logFileHandler != null) {
+            Logger.getLogger("com.sh3d.mcp").removeHandler(logFileHandler);
+            logFileHandler.close();
+            logFileHandler = null;
+        }
     }
 
     private void setupFileLogging(PluginConfig cfg) {
@@ -73,7 +79,16 @@ public class SH3DMcpPlugin extends Plugin {
 
             Logger rootLogger = Logger.getLogger("com.sh3d.mcp");
             rootLogger.addHandler(fh);
-            rootLogger.setLevel(Level.parse(cfg.getLogLevel()));
+            logFileHandler = fh;
+
+            Level level;
+            try {
+                level = Level.parse(cfg.getLogLevel());
+            } catch (IllegalArgumentException e) {
+                LOG.warning("Invalid log level '" + cfg.getLogLevel() + "', falling back to INFO");
+                level = Level.INFO;
+            }
+            rootLogger.setLevel(level);
 
             LOG.info("SH3D MCP Plugin v0.1.0 | port=" + cfg.getPort()
                     + " | Java " + System.getProperty("java.version")
