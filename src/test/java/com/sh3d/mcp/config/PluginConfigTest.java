@@ -14,7 +14,7 @@ class PluginConfigTest {
         assertEquals(PluginConfig.DEFAULT_PORT, config.getPort());
         assertEquals(PluginConfig.DEFAULT_MAX_LINE_LENGTH, config.getMaxLineLength());
         assertEquals(PluginConfig.DEFAULT_EDT_TIMEOUT, config.getEdtTimeout());
-        assertFalse(config.isAutoStart());
+        assertTrue(config.isAutoStart());
     }
 
     @Test

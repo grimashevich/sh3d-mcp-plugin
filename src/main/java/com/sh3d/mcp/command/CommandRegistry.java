@@ -4,6 +4,7 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -52,5 +53,13 @@ public class CommandRegistry {
      */
     public boolean hasHandler(String action) {
         return handlers.containsKey(action);
+    }
+
+    /**
+     * Возвращает неизменяемое представление зарегистрированных обработчиков.
+     * Используется DescribeCommandsHandler для итерации.
+     */
+    public Map<String, CommandHandler> getHandlers() {
+        return Collections.unmodifiableMap(handlers);
     }
 }

@@ -8,6 +8,7 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ import java.util.Map;
  *   5. Вернуть данные размещённой мебели
  * </pre>
  */
-public class PlaceFurnitureHandler implements CommandHandler {
+public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
@@ -90,5 +91,41 @@ public class PlaceFurnitureHandler implements CommandHandler {
 
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
+    }
+
+    @Override
+    public String getDescription() {
+        return "Places a piece of furniture from the Sweet Home 3D catalog. "
+                + "Searches the catalog by name (case-insensitive, partial match). "
+                + "Coordinates are in centimeters. "
+                + "Angle is in degrees (0 = default orientation, 90 = rotated clockwise).";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("name", prop("string", "Furniture name to search in catalog (e.g., 'bed', 'sofa', 'table')"));
+        properties.put("x", prop("number", "X coordinate in cm"));
+        properties.put("y", prop("number", "Y coordinate in cm"));
+
+        Map<String, Object> angleProp = new LinkedHashMap<>();
+        angleProp.put("type", "number");
+        angleProp.put("description", "Rotation angle in degrees");
+        angleProp.put("default", 0);
+        properties.put("angle", angleProp);
+
+        schema.put("properties", properties);
+        schema.put("required", Arrays.asList("name", "x", "y"));
+        return schema;
+    }
+
+    private static Map<String, Object> prop(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", type);
+        p.put("description", description);
+        return p;
     }
 }

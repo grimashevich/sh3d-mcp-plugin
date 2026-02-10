@@ -27,7 +27,7 @@ import java.util.Map;
  * EDT: не требуется (каталог read-only, thread-safe)
  * </pre>
  */
-public class ListFurnitureCatalogHandler implements CommandHandler {
+public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
@@ -74,5 +74,38 @@ public class ListFurnitureCatalogHandler implements CommandHandler {
 
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
+    }
+
+    @Override
+    public String getToolName() {
+        return "list_catalog";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Lists available furniture in the Sweet Home 3D catalog. "
+                + "Can filter by name query and/or category. "
+                + "Returns furniture names, categories, and dimensions. "
+                + "Use this to find the correct furniture name before placing it.";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("query", prop("string", "Search query for furniture name"));
+        properties.put("category", prop("string", "Filter by category name"));
+        schema.put("properties", properties);
+
+        return schema;
+    }
+
+    private static Map<String, Object> prop(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", type);
+        p.put("description", description);
+        return p;
     }
 }

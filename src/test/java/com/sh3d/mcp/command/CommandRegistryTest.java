@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -106,5 +107,21 @@ class CommandRegistryTest {
     void testHasHandler() {
         assertTrue(registry.hasHandler("ping"));
         assertFalse(registry.hasHandler("nonexistent"));
+    }
+
+    @Test
+    void testGetHandlersReturnsAllRegistered() {
+        registry.register("echo", (req, acc) -> Response.ok(Collections.emptyMap()));
+        Map<String, CommandHandler> handlers = registry.getHandlers();
+        assertEquals(2, handlers.size());
+        assertTrue(handlers.containsKey("ping"));
+        assertTrue(handlers.containsKey("echo"));
+    }
+
+    @Test
+    void testGetHandlersIsUnmodifiable() {
+        Map<String, CommandHandler> handlers = registry.getHandlers();
+        assertThrows(UnsupportedOperationException.class,
+                () -> handlers.put("hack", (req, acc) -> Response.ok(Collections.emptyMap())));
     }
 }

@@ -6,6 +6,7 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import java.util.Map;
  *   4. home.addWall(w1..w4)
  * </pre>
  */
-public class CreateWallsHandler implements CommandHandler {
+public class CreateWallsHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
@@ -91,5 +92,48 @@ public class CreateWallsHandler implements CommandHandler {
         data.put("wallsCreated", 4);
         data.put("message", "Room " + (int) width + "x" + (int) height + " created");
         return Response.ok(data);
+    }
+
+    @Override
+    public String getToolName() {
+        return "create_room";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Creates a rectangular room by adding 4 connected walls in Sweet Home 3D. "
+                + "Coordinates and dimensions are in centimeters (e.g., 500 = 5 meters). "
+                + "The coordinate system has X pointing right and Y pointing down.";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("x", prop("number", "X coordinate of top-left corner in cm"));
+        properties.put("y", prop("number", "Y coordinate of top-left corner in cm"));
+        properties.put("width", prop("number", "Room width in cm (e.g., 500 = 5m)"));
+        properties.put("height", prop("number", "Room height/depth in cm (e.g., 400 = 4m)"));
+        properties.put("thickness", propWithDefault("number", "Wall thickness in cm", 10));
+        properties.put("wallHeight", propWithDefault("number", "Wall height in cm (0 = use default)", 0));
+        schema.put("properties", properties);
+
+        schema.put("required", Arrays.asList("x", "y", "width", "height"));
+        return schema;
+    }
+
+    private static Map<String, Object> prop(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", type);
+        p.put("description", description);
+        return p;
+    }
+
+    private static Map<String, Object> propWithDefault(String type, String description, Object defaultValue) {
+        Map<String, Object> p = prop(type, description);
+        p.put("default", defaultValue);
+        return p;
     }
 }

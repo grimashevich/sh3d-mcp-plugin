@@ -27,7 +27,7 @@ import java.util.Map;
  *   boundingBox — {minX, minY, maxX, maxY} или null (если нет стен)
  * </pre>
  */
-public class GetStateHandler implements CommandHandler {
+public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
@@ -81,5 +81,20 @@ public class GetStateHandler implements CommandHandler {
 
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
+    }
+
+    @Override
+    public String getDescription() {
+        return "Returns the current state of the Sweet Home 3D scene: number of walls, "
+                + "list of placed furniture with their positions, dimensions, and angles. "
+                + "Use this to understand what's already in the scene before making changes.";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", new LinkedHashMap<>());
+        return schema;
     }
 }
