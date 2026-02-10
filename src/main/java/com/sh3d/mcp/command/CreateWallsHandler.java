@@ -19,6 +19,7 @@ import java.util.Map;
  *   width      — ширина (float, см, > 0)
  *   height     — высота (float, см, > 0)
  *   thickness  — толщина стен (float, default 10.0)
+ *   wallHeight — высота стен (float, default from Home or 250.0)
  *
  * Логика (в EDT):
  *   1. Рассчитать 4 угла: A(x,y) B(x+w,y) C(x+w,y+h) D(x,y+h)
@@ -47,14 +48,26 @@ public class CreateWallsHandler implements CommandHandler {
             return Response.error("Parameter 'thickness' must be positive, got " + thickness);
         }
 
+        float wallHeight = request.getFloat("wallHeight", 0f);
+
         accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
+
+            // Высота: параметр > Home default > 250 см
+            float h = wallHeight > 0 ? wallHeight
+                    : home.getWallHeight() > 0 ? home.getWallHeight()
+                    : 250f;
 
             // A(x,y) → B(x+w,y) → C(x+w,y+h) → D(x,y+h)
             Wall w1 = new Wall(x, y, x + width, y, thickness);
             Wall w2 = new Wall(x + width, y, x + width, y + height, thickness);
             Wall w3 = new Wall(x + width, y + height, x, y + height, thickness);
             Wall w4 = new Wall(x, y + height, x, y, thickness);
+
+            w1.setHeight(h);
+            w2.setHeight(h);
+            w3.setHeight(h);
+            w4.setHeight(h);
 
             // Замкнутый контур: w1↔w2↔w3↔w4↔w1
             w1.setWallAtEnd(w2);
