@@ -20,6 +20,7 @@ public class ServerToggleAction extends PluginAction {
         super();
         this.tcpServer = tcpServer;
         putPropertyValue(Property.MENU, "Tools");
+        setEnabled(true);
         updateMenuText();
     }
 
