@@ -29,15 +29,18 @@ Sweet Home 3D загружает плагины из папки:
 - Windows: `%APPDATA%\eTeks\Sweet Home 3D\plugins\`
 - Альтернативно: `~/.eteks/sweethome3d/plugins/` (если домашняя директория не Windows-стандартная, путь зависит от конфигурации)
 
-Плагин — это JAR-файл со специальной структурой:
+Плагин — это ZIP-архив с расширением `.sh3p` (может быть и `.jar`):
 
 ```
+ApplicationPlugin.properties  → дескриптор плагина (id, name, class, version...)
 META-INF/
-  MANIFEST.MF          → обязательный атрибут: Plugin-Class
+  MANIFEST.MF                 → стандартный (без специальных атрибутов)
 com/example/sh3dmcp/
-  SH3DMcpPlugin.java   → extends com.eteks.sweethome3d.plugin.Plugin
+  SH3DMcpPlugin.class         → extends com.eteks.sweethome3d.plugin.Plugin
   ...
 ```
+
+SH3D обнаруживает плагин через `ApplicationPlugin.properties`, читая поле `class=`. Файл `MANIFEST.MF` не используется для обнаружения плагина.
 
 Документация по плагинной системе:
 - **Javadoc Plugin API**: http://www.sweethome3d.com/javadoc/com/eteks/sweethome3d/plugin/Plugin.html
@@ -141,7 +144,7 @@ Sweet Home 3D использует сантиметры. Ось X — вправ
 
 ## Сборка и деплой
 
-Результат сборки — один JAR-файл (например `sh3d-mcp-plugin-0.1.0.jar`), который копируется в папку плагинов Sweet Home 3D. После перезапуска Sweet Home 3D плагин появляется в меню.
+Результат сборки — файл `.sh3p` (например `sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p`), который копируется в папку плагинов Sweet Home 3D или устанавливается двойным кликом. После перезапуска Sweet Home 3D плагин появляется в меню.
 
 ## Документация для изучения
 

@@ -58,18 +58,30 @@
                 </configuration>
             </plugin>
 
-            <!-- JAR: MANIFEST.MF with Plugin-Class -->
+            <!-- JAR: clean MANIFEST.MF (SH3D discovers plugin via ApplicationPlugin.properties) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.1</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Plugin-Class>com.sh3d.mcp.plugin.SH3DMcpPlugin</Plugin-Class>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
+            </plugin>
+
+            <!-- Copy .jar to .sh3p (Sweet Home 3D plugin format) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      tofile="${project.build.directory}/${project.build.finalName}.sh3p"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Surefire: JUnit 5 -->

@@ -15,21 +15,25 @@
 mvn clean package
 ```
 
-Артефакт: `target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.jar` -- один JAR-файл.
+Артефакт: `target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p` -- файл плагина SH3D.
 
 ## Деплой
 
-Скопировать JAR в папку плагинов Sweet Home 3D:
+Скопировать `.sh3p` в папку плагинов Sweet Home 3D (или установить двойным кликом):
 
 ```bash
 # Windows
-copy target\sh3d-mcp-plugin-0.1.0-SNAPSHOT.jar "%APPDATA%\eTeks\Sweet Home 3D\plugins\"
+copy target\sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "%APPDATA%\eTeks\Sweet Home 3D\plugins\"
 
 # Linux / macOS
-cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.jar ~/.eteks/sweethome3d/plugins/
+cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p ~/.eteks/sweethome3d/plugins/
 ```
 
 После перезапуска SH3D плагин появляется в меню.
+
+## Формат плагина
+
+Файл `.sh3p` -- это ZIP-архив (переименованный JAR). SH3D обнаруживает плагин через `ApplicationPlugin.properties` (поле `class=`), а НЕ через `MANIFEST.MF`. Манифест стандартный, без специальных атрибутов.
 
 ## Структура пакетов
 
