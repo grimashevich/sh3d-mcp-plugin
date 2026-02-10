@@ -177,6 +177,31 @@
 
 ---
 
+## 2026-02-10 — Mockito + JDK 24: 41 тест не проходит
+
+- [ ] Исправить несовместимость Mockito с JDK 24
+
+**Problem:** 41 тест (из 81) падает с `MockitoException: Could not modify all classes` при запуске на JDK 24. Затронутые тесты: `CommandRegistryTest` (9), `GetStateHandlerTest` (3), `ListFurnitureCatalogHandlerTest` (15), `PlaceFurnitureHandlerTest` (14) — все используют Mockito для мокирования concrete-классов (`UserPreferences`, `FurnitureCatalog`, `Home` и т.д.).
+
+**Причина:** JDK 24 заблокировал `sun.misc.Unsafe::objectFieldOffset` (terminally deprecated), который Mockito использует для инлайн-моков. Mockito 5.x через ByteBuddy не может модифицировать классы без `--add-opens`.
+
+**Рабочие тесты (35):** `JsonProtocolTest` (13), `RequestTest` (4), `ResponseTest` (2), `CreateWallsHandlerTest` (10), `PingHandlerTest` (1), `PluginConfigTest` (3), `TcpServerTest` (2 skipped — заглушки).
+
+**Варианты решения:**
+1. **Обновить Mockito до 5.14+** (может содержать фикс для JDK 24)
+2. **Добавить `--add-opens` в maven-surefire-plugin** (argLine с нужными opens)
+3. **Рефакторинг тестов**: заменить mock concrete-классов на реальные объекты (`new Home()`, `new HomeAccessor(home, null)`) — как уже сделано в `CreateWallsHandlerTest`
+4. **Комбинация**: обновить Mockito + рефакторинг наиболее проблемных тестов
+
+**Files:**
+- `pom.xml` (версия Mockito: 5.11.0, surefire argLine)
+- `src/test/java/com/sh3d/mcp/command/CommandRegistryTest.java`
+- `src/test/java/com/sh3d/mcp/command/GetStateHandlerTest.java`
+- `src/test/java/com/sh3d/mcp/command/ListFurnitureCatalogHandlerTest.java`
+- `src/test/java/com/sh3d/mcp/command/PlaceFurnitureHandlerTest.java`
+
+---
+
 ## Граф зависимостей
 
 ```
