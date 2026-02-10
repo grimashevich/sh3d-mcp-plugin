@@ -18,17 +18,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### get_state enhanced [P0, Medium]
-
-- [ ] Добавить ID для стен (индекс или UUID)
-- [ ] Добавить координаты стен (xStart, yStart, xEnd, yEnd), высоту, толщину
-- [ ] Добавить ID для мебели
-- [ ] Добавить elevation мебели
-- [ ] Отмечать двери/окна отдельно
-- [ ] Добавить данные Room (имя, площадь, цвет пола/потолка)
-- [ ] Добавить labels, dimension lines
-- [ ] Добавить текущую камеру и levels
-
 ---
 
 ### create_wall -- одиночная стена [P0, Low]
@@ -133,7 +122,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] Mockito 5.11 -> 5.21 + argLine для JDK 24
 - [x] JsonProtocol: recursive descent парсер (13 тестов)
 - [x] CreateWallsHandler (9 тестов)
-- [x] GetStateHandler (7 тестов)
+- [x] GetStateHandler enhanced -- стены с координатами, мебель с catalogId/elevation/isDoorOrWindow, комнаты с полигонами, labels, dimension lines, камера, levels (15 тестов, живой тест OK)
 - [x] PlaceFurnitureHandler (14 тестов)
 - [x] ListFurnitureCatalogHandler (12 тестов)
 - [x] RenderPhotoHandler -- рендер 3D через Sunflow (12 тестов, живой тест OK)
