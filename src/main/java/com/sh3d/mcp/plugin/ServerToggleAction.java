@@ -20,7 +20,8 @@ public class ServerToggleAction extends PluginAction {
         super();
         this.tcpServer = tcpServer;
         putPropertyValue(Property.MENU, "Tools");
-        putPropertyValue(Property.NAME, tcpServer.isRunning() ? "MCP Server: Stop" : "MCP Server: Start");
+        boolean started = tcpServer.getState() != com.sh3d.mcp.server.ServerState.STOPPED;
+        putPropertyValue(Property.NAME, started ? "MCP Server: Stop" : "MCP Server: Start");
         setEnabled(true);
     }
 

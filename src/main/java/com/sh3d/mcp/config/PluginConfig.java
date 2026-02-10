@@ -15,7 +15,7 @@ public class PluginConfig {
     public static final int DEFAULT_PORT = 9877;
     public static final int DEFAULT_MAX_LINE_LENGTH = 65536;
     public static final int DEFAULT_EDT_TIMEOUT = 10000;
-    public static final boolean DEFAULT_AUTO_START = false;
+    public static final boolean DEFAULT_AUTO_START = true;
     public static final String DEFAULT_LOG_LEVEL = "INFO";
 
     private final int port;
