@@ -16,17 +16,20 @@ public class PluginConfig {
     public static final int DEFAULT_MAX_LINE_LENGTH = 65536;
     public static final int DEFAULT_EDT_TIMEOUT = 10000;
     public static final boolean DEFAULT_AUTO_START = false;
+    public static final String DEFAULT_LOG_LEVEL = "INFO";
 
     private final int port;
     private final int maxLineLength;
     private final int edtTimeout;
     private final boolean autoStart;
+    private final String logLevel;
 
-    private PluginConfig(int port, int maxLineLength, int edtTimeout, boolean autoStart) {
+    private PluginConfig(int port, int maxLineLength, int edtTimeout, boolean autoStart, String logLevel) {
         this.port = port;
         this.maxLineLength = maxLineLength;
         this.edtTimeout = edtTimeout;
         this.autoStart = autoStart;
+        this.logLevel = logLevel;
     }
 
     /**
@@ -43,8 +46,9 @@ public class PluginConfig {
         int maxLine = getInt("sh3d.mcp.maxLineLength", fileProps, DEFAULT_MAX_LINE_LENGTH);
         int edtTimeout = getInt("sh3d.mcp.edtTimeout", fileProps, DEFAULT_EDT_TIMEOUT);
         boolean autoStart = getBoolean("sh3d.mcp.autoStart", fileProps, DEFAULT_AUTO_START);
+        String logLevel = getString("sh3d.mcp.logLevel", fileProps, DEFAULT_LOG_LEVEL);
 
-        return new PluginConfig(port, maxLine, edtTimeout, autoStart);
+        return new PluginConfig(port, maxLine, edtTimeout, autoStart, logLevel);
     }
 
     public int getPort() {
@@ -63,6 +67,10 @@ public class PluginConfig {
         return autoStart;
     }
 
+    public String getLogLevel() {
+        return logLevel;
+    }
+
     private static Properties loadPropertiesFile() {
         Properties props = new Properties();
         Path configPath = resolveConfigPath();
@@ -77,9 +85,19 @@ public class PluginConfig {
     }
 
     static Path resolveConfigPath() {
+        Path dir = resolvePluginDir();
+        return dir == null ? null : dir.resolve("sh3d-mcp.properties");
+    }
+
+    public static Path resolveLogPath() {
+        Path dir = resolvePluginDir();
+        return dir == null ? null : dir.resolve("sh3d-mcp.log");
+    }
+
+    private static Path resolvePluginDir() {
         String appData = System.getenv("APPDATA");
         if (appData != null && !appData.isEmpty()) {
-            return Paths.get(appData, "eTeks", "Sweet Home 3D", "plugins", "sh3d-mcp.properties");
+            return Paths.get(appData, "eTeks", "Sweet Home 3D", "plugins");
         }
         String home = System.getProperty("user.home");
         if (home == null || home.isEmpty()) {
@@ -88,9 +106,9 @@ public class PluginConfig {
         String osName = System.getProperty("os.name", "").toLowerCase();
         if (osName.startsWith("mac")) {
             return Paths.get(home, "Library", "Application Support",
-                    "eTeks", "Sweet Home 3D", "plugins", "sh3d-mcp.properties");
+                    "eTeks", "Sweet Home 3D", "plugins");
         }
-        return Paths.get(home, ".eteks", "sweethome3d", "plugins", "sh3d-mcp.properties");
+        return Paths.get(home, ".eteks", "sweethome3d", "plugins");
     }
 
     private static int getInt(String key, Properties fileProps, int defaultValue) {
@@ -109,6 +127,18 @@ public class PluginConfig {
             } catch (NumberFormatException e) {
                 // fallthrough
             }
+        }
+        return defaultValue;
+    }
+
+    private static String getString(String key, Properties fileProps, String defaultValue) {
+        String sysVal = System.getProperty(key);
+        if (sysVal != null) {
+            return sysVal;
+        }
+        String fileVal = fileProps.getProperty(key);
+        if (fileVal != null) {
+            return fileVal;
         }
         return defaultValue;
     }

@@ -37,4 +37,30 @@ class PluginConfigTest {
         assertTrue(pathStr.endsWith("sh3d-mcp.properties"),
                 "Config path should end with sh3d-mcp.properties, got: " + pathStr);
     }
+
+    @Test
+    void testDefaultLogLevel() {
+        PluginConfig config = PluginConfig.load();
+        assertEquals("INFO", config.getLogLevel());
+    }
+
+    @Test
+    void testLogLevelSystemPropertyOverride() {
+        System.setProperty("sh3d.mcp.logLevel", "FINE");
+        try {
+            PluginConfig config = PluginConfig.load();
+            assertEquals("FINE", config.getLogLevel());
+        } finally {
+            System.clearProperty("sh3d.mcp.logLevel");
+        }
+    }
+
+    @Test
+    void testResolveLogPath() {
+        Path path = PluginConfig.resolveLogPath();
+        assertNotNull(path);
+        String pathStr = path.toString();
+        assertTrue(pathStr.endsWith("sh3d-mcp.log"),
+                "Log path should end with sh3d-mcp.log, got: " + pathStr);
+    }
 }

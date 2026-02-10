@@ -20,23 +20,22 @@ public class ServerToggleAction extends PluginAction {
         super();
         this.tcpServer = tcpServer;
         putPropertyValue(Property.MENU, "Tools");
+        putPropertyValue(Property.NAME, tcpServer.isRunning() ? "MCP Server: Stop" : "MCP Server: Start");
         setEnabled(true);
-        updateMenuText();
     }
 
     @Override
     public void execute() {
-        if (tcpServer.isRunning()) {
+        boolean running = tcpServer.isRunning();
+        if (running) {
             tcpServer.stop();
             LOG.info("MCP Server stopped by user");
         } else {
             tcpServer.start();
             LOG.info("MCP Server started by user");
         }
-        updateMenuText();
-    }
-
-    private void updateMenuText() {
-        putPropertyValue(Property.NAME, tcpServer.isRunning() ? "MCP Server: Stop" : "MCP Server: Start");
+        // Текст основан на действии, а не на isRunning() — start() возвращается
+        // до перехода в RUNNING (race condition), поэтому инвертируем напрямую.
+        putPropertyValue(Property.NAME, running ? "MCP Server: Start" : "MCP Server: Stop");
     }
 }
