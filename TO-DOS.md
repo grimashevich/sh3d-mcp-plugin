@@ -16,15 +16,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-#### set_camera -- управление камерой [P0, Low-Medium]
-
-- [ ] Новый `SetCameraHandler` (+ `CommandDescriptor`)
-- [ ] Параметры: `mode` (top/observer), опционально x, y, z, yaw, pitch, fieldOfView
-- [ ] `home.setCamera(home.getTopCamera())` / `home.setCamera(home.getObserverCamera())`
-- [ ] Для custom: настроить `ObserverCamera` через setX/Y/Z/Yaw/Pitch/FieldOfView
-
-**API:** `home.getTopCamera()`, `home.getObserverCamera()`, `home.setCamera()`, `camera.setX/Y/Z/Yaw/Pitch/FieldOfView()`
-
 ---
 
 ### get_state enhanced [P0, Medium]
@@ -147,6 +138,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] ListFurnitureCatalogHandler (12 тестов)
 - [x] RenderPhotoHandler -- рендер 3D через Sunflow (12 тестов, живой тест OK)
 - [x] ExportSvgHandler -- экспорт 2D-плана в SVG через ExportableView (6 тестов, живой тест OK)
+- [x] SetCameraHandler -- управление камерой top/observer с позицией (14 тестов, живой тест OK)
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override
