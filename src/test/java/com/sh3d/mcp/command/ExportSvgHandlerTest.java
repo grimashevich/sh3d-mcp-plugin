@@ -1,0 +1,78 @@
+package com.sh3d.mcp.command;
+
+import com.sh3d.mcp.protocol.Request;
+import com.sh3d.mcp.protocol.Response;
+import com.sh3d.mcp.bridge.HomeAccessor;
+import com.eteks.sweethome3d.model.Home;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ExportSvgHandlerTest {
+
+    private ExportSvgHandler handler;
+    private HomeAccessor accessor;
+
+    @BeforeEach
+    void setUp() {
+        // null ExportableView — для тестов без Swing UI
+        handler = new ExportSvgHandler(null);
+        accessor = new HomeAccessor(new Home(), null);
+    }
+
+    // --- Null PlanView ---
+
+    @Test
+    void testExecuteWithNullPlanView() {
+        Response resp = handler.execute(
+                new Request("export_svg", Collections.emptyMap()), accessor);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("PlanView"));
+    }
+
+    // --- Descriptor tests ---
+
+    @Test
+    void testToolName() {
+        assertEquals("export_svg", handler.getToolName());
+    }
+
+    @Test
+    void testDescriptionNotEmpty() {
+        String desc = handler.getDescription();
+        assertNotNull(desc);
+        assertFalse(desc.isEmpty());
+        assertTrue(desc.contains("SVG") || desc.contains("svg") || desc.contains("plan"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaStructure() {
+        Map<String, Object> schema = handler.getSchema();
+        assertEquals("object", schema.get("type"));
+
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertNotNull(properties);
+        assertTrue(properties.isEmpty(), "export_svg has no input parameters");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaNoRequiredParams() {
+        Map<String, Object> schema = handler.getSchema();
+        List<String> required = (List<String>) schema.get("required");
+        assertNotNull(required);
+        assertTrue(required.isEmpty());
+    }
+
+    @Test
+    void testImplementsInterfaces() {
+        assertTrue(handler instanceof CommandDescriptor);
+        assertTrue(handler instanceof CommandHandler);
+    }
+}

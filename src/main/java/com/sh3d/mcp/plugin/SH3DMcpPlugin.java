@@ -5,6 +5,7 @@ import com.eteks.sweethome3d.plugin.PluginAction;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.command.CommandRegistry;
 import com.sh3d.mcp.command.CreateWallsHandler;
+import com.sh3d.mcp.command.ExportSvgHandler;
 import com.sh3d.mcp.command.GetStateHandler;
 import com.sh3d.mcp.command.ListFurnitureCatalogHandler;
 import com.sh3d.mcp.command.DescribeCommandsHandler;
@@ -13,6 +14,8 @@ import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
 import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.server.TcpServer;
+import com.eteks.sweethome3d.viewcontroller.ExportableView;
+import com.eteks.sweethome3d.viewcontroller.PlanView;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -43,7 +46,8 @@ public class SH3DMcpPlugin extends Plugin {
                 getUserPreferences()
         );
 
-        CommandRegistry registry = createCommandRegistry();
+        ExportableView planView = resolvePlanView();
+        CommandRegistry registry = createCommandRegistry(planView);
         tcpServer = new TcpServer(config, registry, accessor);
 
         LOG.info("SH3D MCP Plugin initialized (port: " + config.getPort() + ")");
@@ -101,7 +105,21 @@ public class SH3DMcpPlugin extends Plugin {
         }
     }
 
-    private CommandRegistry createCommandRegistry() {
+    private ExportableView resolvePlanView() {
+        try {
+            PlanView planView = getHomeController().getPlanController().getView();
+            if (planView instanceof ExportableView) {
+                LOG.info("Resolved PlanView for SVG export: " + planView.getClass().getSimpleName());
+                return (ExportableView) planView;
+            }
+            LOG.warning("PlanView does not implement ExportableView: " + planView.getClass().getName());
+        } catch (Exception e) {
+            LOG.warning("Could not resolve PlanView: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private CommandRegistry createCommandRegistry(ExportableView planView) {
         CommandRegistry registry = new CommandRegistry();
         registry.register("ping", new PingHandler());
         registry.register("create_walls", new CreateWallsHandler());
@@ -109,6 +127,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("get_state", new GetStateHandler());
         registry.register("list_furniture_catalog", new ListFurnitureCatalogHandler());
         registry.register("render_photo", new RenderPhotoHandler());
+        registry.register("export_svg", new ExportSvgHandler(planView));
         registry.register("describe_commands", new DescribeCommandsHandler(registry));
         return registry;
     }

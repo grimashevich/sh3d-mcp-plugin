@@ -14,15 +14,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-#### export_svg -- экспорт 2D-плана [P0, Medium]
-
-- [ ] Новый `ExportSvgHandler` (+ `CommandDescriptor`)
-- [ ] Экспорт через `PlanComponent.exportToSVG(OutputStream)`
-- [ ] Возврат: SVG-строка (или base64, если большой)
-- [ ] Нужен доступ к `PlanComponent` из контроллера
-
-**API:** `PlanComponent implements ExportableView`, `exportData(OutputStream, FormatType.SVG, null)`
-
 ---
 
 #### set_camera -- управление камерой [P0, Low-Medium]
@@ -155,6 +146,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] PlaceFurnitureHandler (14 тестов)
 - [x] ListFurnitureCatalogHandler (12 тестов)
 - [x] RenderPhotoHandler -- рендер 3D через Sunflow (12 тестов, живой тест OK)
+- [x] ExportSvgHandler -- экспорт 2D-плана в SVG через ExportableView (6 тестов, живой тест OK)
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override
