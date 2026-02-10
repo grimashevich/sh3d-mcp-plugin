@@ -2,6 +2,44 @@
 
 ---
 
+## 2026-02-10 — Файловое логирование для отладки плагина
+
+- [ ] Реализовать файловый лог для плагина
+
+**Problem:** Плагин работает внутри SH3D JVM, stderr не виден при запуске через SweetHome3D.exe. `java.util.logging.Logger` по умолчанию пишет в ConsoleHandler (stderr), который бесполезен в production. Нет способа быстро посмотреть, что происходит при взаимодействии с плагином.
+
+**Требования:**
+1. Файл лога: `%APPDATA%/eTeks/Sweet Home 3D/plugins/sh3d-mcp.log` (рядом с конфигом)
+2. Формат: `[timestamp] [level] [class] message`
+3. Уровень логирования: настраиваемый через `sh3d-mcp.properties` (по умолчанию INFO)
+4. Ротация: максимум 2 файла по 1MB (чтобы не засорять диск)
+5. Инициализация: в `SH3DMcpPlugin.getActions()` до любой другой логики
+6. Кроссплатформенный путь (Windows/Linux/macOS)
+
+**Solution:**
+- Настроить `java.util.logging.FileHandler` на корневой logger пакета `com.sh3d.mcp`
+- Добавить в `PluginConfig` параметр `logLevel` (default: INFO)
+- Все существующие `LOG.info/warning/severe` автоматически пойдут в файл
+- При запуске логировать: версию плагина, порт, путь к конфигу, Java version, SH3D version
+
+**Files:**
+- `src/main/java/com/sh3d/mcp/plugin/SH3DMcpPlugin.java` (инициализация FileHandler)
+- `src/main/java/com/sh3d/mcp/config/PluginConfig.java` (logLevel параметр)
+
+---
+
+## 2026-02-10 — execute() не меняет текст меню (race condition?)
+
+- [ ] Исследовать и исправить: при нажатии "MCP Server: Start" текст не меняется на "Stop"
+
+**Problem:** `TcpServer.start()` запускает daemon-поток и возвращает управление сразу. Состояние = `STARTING`. `updateMenuText()` вызывает `isRunning()` который проверяет `state == RUNNING`, но `RUNNING` устанавливается только после `new ServerSocket(port)` в accept-потоке. Race condition: меню проверяет статус до того, как сервер реально запустился.
+
+**Files:**
+- `src/main/java/com/sh3d/mcp/plugin/ServerToggleAction.java:26-35`
+- `src/main/java/com/sh3d/mcp/server/TcpServer.java:45-53`
+
+---
+
 ## 2026-02-08 — JsonProtocol.parseRequest() [BLOCKER]
 
 - [x] Реализовать минимальный JSON-парсер (DONE: recursive descent parser, 13 тестов)

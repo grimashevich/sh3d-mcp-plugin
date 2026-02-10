@@ -12,7 +12,12 @@ import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.server.TcpServer;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  * Главный класс плагина Sweet Home 3D MCP.
@@ -28,6 +33,7 @@ public class SH3DMcpPlugin extends Plugin {
     @Override
     public PluginAction[] getActions() {
         config = PluginConfig.load();
+        setupFileLogging(config);
 
         HomeAccessor accessor = new HomeAccessor(
                 getHome(),
@@ -53,6 +59,28 @@ public class SH3DMcpPlugin extends Plugin {
         if (tcpServer != null && tcpServer.isRunning()) {
             tcpServer.stop();
             LOG.info("SH3D MCP Plugin destroyed, server stopped");
+        }
+    }
+
+    private void setupFileLogging(PluginConfig cfg) {
+        Path logPath = PluginConfig.resolveLogPath();
+        if (logPath == null) {
+            return;
+        }
+        try {
+            FileHandler fh = new FileHandler(logPath.toString(), 1_048_576, 2, true);
+            fh.setFormatter(new SimpleFormatter());
+
+            Logger rootLogger = Logger.getLogger("com.sh3d.mcp");
+            rootLogger.addHandler(fh);
+            rootLogger.setLevel(Level.parse(cfg.getLogLevel()));
+
+            LOG.info("SH3D MCP Plugin v0.1.0 | port=" + cfg.getPort()
+                    + " | Java " + System.getProperty("java.version")
+                    + " | " + System.getProperty("os.name") + " " + System.getProperty("os.arch")
+                    + " | log=" + logPath);
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "Failed to setup file logging at " + logPath, e);
         }
     }
 
