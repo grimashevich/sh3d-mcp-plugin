@@ -12,17 +12,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 Критично для тестирования всех последующих фич и для AI-агентов, выполняющих дизайн-проекты.
 
-#### render_photo -- рендер 3D-сцены [P0, Medium-High]
-
-- [ ] Новый `RenderPhotoHandler` (+ `CommandDescriptor`)
-- [ ] Параметры: `width`, `height`, `quality` (LOW/HIGH), опционально камера (x, y, z, yaw, pitch, fov)
-- [ ] Рендер через `PhotoRenderer(home, Quality)` -> `render(BufferedImage, Camera, null)`
-- [ ] Возврат: base64-encoded PNG
-- [ ] Если камера не указана -- использовать текущую (`home.getCamera()`)
-- [ ] Fallback при ошибке рендера -- вернуть ошибку с описанием
-
-**API:** `new PhotoRenderer(home, Quality.HIGH)`, `renderer.render(image, camera, observer)`, `ImageIO.write(image, "png", baos)`, `Base64.getEncoder().encodeToString(bytes)`
-
 ---
 
 #### export_svg -- экспорт 2D-плана [P0, Medium]
@@ -165,6 +154,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] GetStateHandler (7 тестов)
 - [x] PlaceFurnitureHandler (14 тестов)
 - [x] ListFurnitureCatalogHandler (12 тестов)
+- [x] RenderPhotoHandler -- рендер 3D через Sunflow (12 тестов, живой тест OK)
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override
