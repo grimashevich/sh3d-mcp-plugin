@@ -111,6 +111,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `place_furniture` | `place_furniture` | Размещение мебели из каталога |
 | `get_state` | `get_state` | Состояние сцены (стены, мебель) |
 | `list_furniture_catalog` | `list_catalog` | Каталог мебели с фильтрацией |
+| `modify_furniture` | `modify_furniture` | Изменение свойств мебели по ID |
 | `describe_commands` | -- | Auto-discovery: описания команд для MCP-сервера |
 
 ## Добавление новой команды

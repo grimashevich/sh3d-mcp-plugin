@@ -22,13 +22,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### modify_furniture [P0, Medium]
-
-- [ ] Изменение: x, y, angle, width, depth, height, color, elevation, visible, mirrored
-- [ ] Идентификация по ID
-
-**API:** `piece.setX()`, `setY()`, `setAngle()`, `setWidth()`, `setColor()` и т.д.
-
 ---
 
 ### create_room_polygon [P0, Medium]
@@ -157,6 +150,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] SetCameraHandler -- управление камерой top/observer с позицией (14 тестов, живой тест OK). Включает switch_camera_mode из Фазы 4
 - [x] CreateWallHandler -- одиночная стена по двум точкам (15 тестов)
 - [x] DeleteFurnitureHandler -- удаление мебели по ID (9 тестов, живой тест OK)
+- [x] ModifyFurnitureHandler -- изменение свойств мебели по ID: x, y, angle, elevation, width, depth, height, color, visible, mirrored, name (18 тестов, живой тест OK)
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override

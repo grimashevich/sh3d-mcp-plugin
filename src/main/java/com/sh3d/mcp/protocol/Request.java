@@ -52,6 +52,21 @@ public class Request {
     }
 
     /**
+     * Возвращает Boolean-параметр или null, если отсутствует.
+     */
+    public Boolean getBoolean(String key) {
+        Object val = params.get(key);
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Boolean) {
+            return (Boolean) val;
+        }
+        throw new IllegalArgumentException(
+                "Invalid parameter '" + key + "': expected boolean, got '" + val + "'");
+    }
+
+    /**
      * Возвращает float-параметр или defaultValue, если отсутствует.
      */
     public float getFloat(String key, float defaultValue) {
