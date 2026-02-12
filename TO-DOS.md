@@ -117,8 +117,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ## Фаза 4 (v0.4) -- Annotations & Cameras
 
-- [ ] store_camera / get_cameras
-- [ ] switch_camera_mode (top/observer)
+- [ ] store_camera / get_cameras (сохранение именованных точек обзора)
 - [ ] add_label
 - [ ] add_dimension_line
 - [ ] set_environment (земля, небо, свет)
@@ -140,6 +139,23 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [ ] Тесты для wall height fix (CreateWallsHandler)
 - [ ] Исследовать race condition: текст меню не обновляется при toggle
 
+### set_camera — улучшить описание для AI-агентов [P0, Low]
+
+Текущее описание `set_camera` в `CommandDescriptor` недостаточно для AI — агент не понимает координатную систему камеры и выставляет некорректные углы.
+
+- [ ] Добавить в `getDescription()` / `getSchema()` подробное описание:
+  - Координатная система: X вправо, Y **вниз** (экранные), Z — высота (вверх)
+  - Yaw: 0° = взгляд на юг (+Y), 90° = на запад (-X), 180° = на север (-Y), 270° = на восток (+X)
+  - Pitch: 0° = горизонтально, положительные = взгляд вниз
+  - Типичные значения: z=170 (рост человека), pitch=10-20° (лёгкий наклон вниз)
+  - Пример: камера в углу комнаты (50,50,170), yaw=135° смотрит по диагонали
+- [ ] Проверить соответствие yaw-конвенции (эмпирически через рендер)
+
+### render_photo — сохранение в файл таймаутит [P1, Medium]
+
+- [ ] Параметр `filePath` вызывает таймаут TCP-соединения — разобраться с причиной
+- [ ] Возможно проблема с синхронностью: запись в файл происходит после ответа, или блокирует ответ
+
 ---
 
 ## Выполнено
@@ -153,7 +169,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] ListFurnitureCatalogHandler (12 тестов)
 - [x] RenderPhotoHandler -- рендер 3D через Sunflow (12 тестов, живой тест OK)
 - [x] ExportSvgHandler -- экспорт 2D-плана в SVG через ExportableView (6 тестов, живой тест OK)
-- [x] SetCameraHandler -- управление камерой top/observer с позицией (14 тестов, живой тест OK)
+- [x] SetCameraHandler -- управление камерой top/observer с позицией (14 тестов, живой тест OK). Включает switch_camera_mode из Фазы 4
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override
