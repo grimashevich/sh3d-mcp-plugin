@@ -22,13 +22,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### delete_furniture [P0, Medium]
-
-- [ ] Идентификация мебели по ID (из enhanced get_state)
-- [ ] `home.deletePieceOfFurniture(piece)`
-
----
-
 ### modify_furniture [P0, Medium]
 
 - [ ] Изменение: x, y, angle, width, depth, height, color, elevation, visible, mirrored
@@ -163,6 +156,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] ExportSvgHandler -- экспорт 2D-плана в SVG через ExportableView (6 тестов, живой тест OK)
 - [x] SetCameraHandler -- управление камерой top/observer с позицией (14 тестов, живой тест OK). Включает switch_camera_mode из Фазы 4
 - [x] CreateWallHandler -- одиночная стена по двум точкам (15 тестов)
+- [x] DeleteFurnitureHandler -- удаление мебели по ID (9 тестов, живой тест OK)
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override

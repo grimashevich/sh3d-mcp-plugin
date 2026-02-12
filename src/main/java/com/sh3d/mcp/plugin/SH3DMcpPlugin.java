@@ -5,6 +5,7 @@ import com.eteks.sweethome3d.plugin.PluginAction;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.command.CommandRegistry;
 import com.sh3d.mcp.command.CreateWallHandler;
+import com.sh3d.mcp.command.DeleteFurnitureHandler;
 import com.sh3d.mcp.command.CreateWallsHandler;
 import com.sh3d.mcp.command.ExportSvgHandler;
 import com.sh3d.mcp.command.GetStateHandler;
@@ -126,6 +127,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("ping", new PingHandler());
         registry.register("create_wall", new CreateWallHandler());
         registry.register("create_walls", new CreateWallsHandler());
+        registry.register("delete_furniture", new DeleteFurnitureHandler());
         registry.register("place_furniture", new PlaceFurnitureHandler());
         registry.register("get_state", new GetStateHandler());
         registry.register("list_furniture_catalog", new ListFurnitureCatalogHandler());
