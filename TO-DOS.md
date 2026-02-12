@@ -20,14 +20,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### create_wall -- одиночная стена [P0, Low]
-
-- [ ] Новый `CreateWallHandler` (+ `CommandDescriptor`)
-- [ ] Параметры: xStart, yStart, xEnd, yEnd, thickness, wallHeight
-- [ ] Возвращать ID созданной стены
-
-**API:** `new Wall(xStart, yStart, xEnd, yEnd, thickness)`, `wall.setHeight()`, `home.addWall()`
-
 ---
 
 ### delete_furniture [P0, Medium]
@@ -170,6 +162,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] RenderPhotoHandler -- рендер 3D через Sunflow (12 тестов, живой тест OK)
 - [x] ExportSvgHandler -- экспорт 2D-плана в SVG через ExportableView (6 тестов, живой тест OK)
 - [x] SetCameraHandler -- управление камерой top/observer с позицией (14 тестов, живой тест OK). Включает switch_camera_mode из Фазы 4
+- [x] CreateWallHandler -- одиночная стена по двум точкам (15 тестов)
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override
