@@ -3,6 +3,7 @@ package com.sh3d.mcp.plugin;
 import com.eteks.sweethome3d.plugin.Plugin;
 import com.eteks.sweethome3d.plugin.PluginAction;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.command.ClearSceneHandler;
 import com.sh3d.mcp.command.CommandRegistry;
 import com.sh3d.mcp.command.CreateRoomPolygonHandler;
 import com.sh3d.mcp.command.CreateWallHandler;
@@ -127,6 +128,7 @@ public class SH3DMcpPlugin extends Plugin {
     private CommandRegistry createCommandRegistry(ExportableView planView) {
         CommandRegistry registry = new CommandRegistry();
         registry.register("ping", new PingHandler());
+        registry.register("clear_scene", new ClearSceneHandler());
         registry.register("create_room_polygon", new CreateRoomPolygonHandler());
         registry.register("create_wall", new CreateWallHandler());
         registry.register("create_walls", new CreateWallsHandler());

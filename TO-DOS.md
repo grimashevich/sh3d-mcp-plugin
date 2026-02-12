@@ -24,11 +24,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### clear_scene [P1, Low]
-
-- [ ] Удаление всех стен, мебели, комнат, labels, dimension lines
-- [ ] Подтверждение в ответе (кол-во удалённых объектов)
-
 ---
 
 ### connect_walls [P1, Medium]
@@ -146,3 +141,4 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] PluginConfigTest: System property override
 - [x] CreateRoomPolygonHandler -- создание комнаты по полигону точек: name, floorVisible, ceilingVisible, floorColor, ceilingColor, areaVisible (18 тестов)
 - [x] Убран getToolName() override из CreateWallsHandler -- TCP/MCP имена теперь прозрачны
+- [x] ClearSceneHandler -- удаление всех объектов из сцены с подсчётом (13 тестов)
