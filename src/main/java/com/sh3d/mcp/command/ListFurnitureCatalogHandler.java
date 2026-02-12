@@ -77,11 +77,6 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
     }
 
     @Override
-    public String getToolName() {
-        return "list_catalog";
-    }
-
-    @Override
     public String getDescription() {
         return "Lists available furniture in the Sweet Home 3D catalog. "
                 + "Can filter by name query and/or category. "

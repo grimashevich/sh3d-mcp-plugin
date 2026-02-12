@@ -75,7 +75,7 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testToolName() {
-        assertEquals("render_photo", handler.getToolName());
+        assertNull(handler.getToolName());
     }
 
     @Test

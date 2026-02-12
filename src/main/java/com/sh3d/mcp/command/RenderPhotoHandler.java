@@ -155,11 +155,6 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
-    public String getToolName() {
-        return "render_photo";
-    }
-
-    @Override
     public String getDescription() {
         return "Renders a 3D photo of the current scene using ray-tracing (Sunflow). "
                 + "Returns the image as base64-encoded PNG. Use quality 'low' for quick preview "

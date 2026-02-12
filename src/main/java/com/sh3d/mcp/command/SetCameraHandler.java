@@ -89,11 +89,6 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
-    public String getToolName() {
-        return "set_camera";
-    }
-
-    @Override
     public String getDescription() {
         return "Sets the camera mode and optionally adjusts position. "
                 + "Use mode 'top' for a top-down 2D view, or 'observer' for a 3D perspective view. "

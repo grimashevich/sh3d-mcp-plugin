@@ -24,16 +24,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### create_room_polygon [P0, Medium]
-
-- [ ] Создание Room по массиву точек (полигон)
-- [ ] Установка видимости пола/потолка
-- [ ] Имя комнаты
-
-**API:** `new Room(float[][] points)`, `room.setFloorVisible()`, `room.setCeilingVisible()`, `room.setName()`
-
----
-
 ### clear_scene [P1, Low]
 
 - [ ] Удаление всех стен, мебели, комнат, labels, dimension lines
@@ -154,3 +144,5 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] PluginConfig: кроссплатформенные пути
 - [x] CommandRegistryTest: dispatch с mock HomeAccessor
 - [x] PluginConfigTest: System property override
+- [x] CreateRoomPolygonHandler -- создание комнаты по полигону точек: name, floorVisible, ceilingVisible, floorColor, ceilingColor, areaVisible (18 тестов)
+- [x] Убран getToolName() override из CreateWallsHandler -- TCP/MCP имена теперь прозрачны

@@ -95,11 +95,6 @@ public class CreateWallsHandler implements CommandHandler, CommandDescriptor {
     }
 
     @Override
-    public String getToolName() {
-        return "create_room";
-    }
-
-    @Override
     public String getDescription() {
         return "Creates a rectangular room by adding 4 connected walls in Sweet Home 3D. "
                 + "Coordinates and dimensions are in centimeters (e.g., 500 = 5 meters). "

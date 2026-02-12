@@ -39,7 +39,7 @@ class ExportSvgHandlerTest {
 
     @Test
     void testToolName() {
-        assertEquals("export_svg", handler.getToolName());
+        assertNull(handler.getToolName());
     }
 
     @Test

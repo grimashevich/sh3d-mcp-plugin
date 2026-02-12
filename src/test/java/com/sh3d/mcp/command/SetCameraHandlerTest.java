@@ -116,7 +116,7 @@ class SetCameraHandlerTest {
 
     @Test
     void testToolName() {
-        assertEquals("set_camera", handler.getToolName());
+        assertNull(handler.getToolName());
     }
 
     @Test

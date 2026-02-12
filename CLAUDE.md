@@ -104,15 +104,21 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 
 ## Реализованные команды
 
-| TCP-команда | MCP tool | Описание |
-|-------------|----------|----------|
-| `ping` | -- | Проверка связи (инфра, не видна Claude) |
-| `create_walls` | `create_room` | Прямоугольная комната из 4 стен |
-| `place_furniture` | `place_furniture` | Размещение мебели из каталога |
-| `get_state` | `get_state` | Состояние сцены (стены, мебель) |
-| `list_furniture_catalog` | `list_catalog` | Каталог мебели с фильтрацией |
-| `modify_furniture` | `modify_furniture` | Изменение свойств мебели по ID |
-| `describe_commands` | -- | Auto-discovery: описания команд для MCP-сервера |
+| Команда (TCP = MCP) | Описание |
+|---------------------|----------|
+| `ping` | Проверка связи (инфра, не видна Claude) |
+| `create_room_polygon` | Создание комнаты по полигону точек |
+| `create_wall` | Одиночная стена по двум точкам |
+| `create_walls` | Прямоугольная комната из 4 стен |
+| `delete_furniture` | Удаление мебели по ID |
+| `modify_furniture` | Изменение свойств мебели по ID |
+| `place_furniture` | Размещение мебели из каталога |
+| `get_state` | Состояние сцены (стены, мебель, комнаты, камера) |
+| `list_furniture_catalog` | Каталог мебели с фильтрацией |
+| `render_photo` | 3D-рендер сцены (Sunflow) |
+| `export_svg` | Экспорт 2D-плана в SVG |
+| `set_camera` | Управление камерой (top/observer) |
+| `describe_commands` | Auto-discovery: описания команд для MCP-сервера |
 
 ## Добавление новой команды
 
