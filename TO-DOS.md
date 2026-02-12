@@ -77,6 +77,32 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
+### generate_shape -- произвольная 3D-фигура [P1, High]
+
+Позволить нейросети создавать произвольные 3D-объекты из координат вершин, аналогично плагину ShapeGenerator.
+
+- [ ] Новый `GenerateShapeHandler` (+ `CommandDescriptor`)
+- [ ] Параметры: `points` (массив из 8 точек [x,y,z]), `name` (опционально), `transparency` (0.0-1.0, опционально)
+- [ ] Генерация OBJ-модели из 8 вершин (гексаэдр, 6 граней по 2 треугольника)
+- [ ] Добавление в сцену как `HomePieceOfFurniture`
+- [ ] Возвращать ID созданного объекта и его размеры
+
+**Реф. имплементация:** плагин `ShapeGenerator-1.2.1` (автор Space Mushrooms):
+- `GeometryInfo(TRIANGLE_ARRAY)` + `NormalGenerator` для построения геометрии
+- `OBJWriter.writeNodeInZIPFile()` для экспорта в OBJ
+- `TemporaryURLContent` для упаковки модели
+- `ModelManager.getInstance().loadModel()` + `CatalogPieceOfFurniture` для добавления в сцену
+
+**Особенности (из форума SH3D):**
+- 6 граней = 6 отдельных материалов (цвет/текстура/видимость каждой грани отдельно)
+- Текстуры маппятся на 100x100 см, масштабируются пропорционально
+- Порядок вершин критичен — неправильный порядок создаёт открытые/полые фигуры
+- Можно создавать: террейн, крыши, пирамиды, балки, наклонные поверхности
+
+**API:** `javax.media.j3d.*`, `com.sun.j3d.utils.geometry.GeometryInfo`, `com.eteks.sweethome3d.j3d.OBJWriter`, `com.eteks.sweethome3d.tools.TemporaryURLContent`
+
+---
+
 ## Фаза 3 (v0.3) -- Visual Design
 
 - [ ] modify_wall (цвет, текстура, shininess, высота)
