@@ -108,6 +108,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 |---------------------|----------|
 | `ping` | Проверка связи (инфра, не видна Claude) |
 | `clear_scene` | Удаление всех объектов из сцены |
+| `connect_walls` | Соединение двух стен по ID для корректного рендеринга углов |
 | `create_room_polygon` | Создание комнаты по полигону точек |
 | `create_wall` | Одиночная стена по двум точкам |
 | `create_walls` | Прямоугольная комната из 4 стен |

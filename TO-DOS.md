@@ -26,13 +26,6 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### connect_walls [P1, Medium]
-
-- [ ] Соединение двух стен по ID (setWallAtStart/End)
-- [ ] Необходимо для корректного рендеринга при create_wall
-
----
-
 ### delete_wall [P1, Medium]
 
 - [ ] Удаление стены по ID
@@ -142,3 +135,4 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] CreateRoomPolygonHandler -- создание комнаты по полигону точек: name, floorVisible, ceilingVisible, floorColor, ceilingColor, areaVisible (18 тестов)
 - [x] Убран getToolName() override из CreateWallsHandler -- TCP/MCP имена теперь прозрачны
 - [x] ClearSceneHandler -- удаление всех объектов из сцены с подсчётом (13 тестов)
+- [x] ConnectWallsHandler -- соединение двух стен по ID с автоопределением ближайших концов (18 тестов)
