@@ -7,6 +7,7 @@ import com.sh3d.mcp.command.ClearSceneHandler;
 import com.sh3d.mcp.command.CommandRegistry;
 import com.sh3d.mcp.command.CreateRoomPolygonHandler;
 import com.sh3d.mcp.command.ConnectWallsHandler;
+import com.sh3d.mcp.command.DeleteWallHandler;
 import com.sh3d.mcp.command.CreateWallHandler;
 import com.sh3d.mcp.command.DeleteFurnitureHandler;
 import com.sh3d.mcp.command.CreateWallsHandler;
@@ -135,6 +136,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("create_wall", new CreateWallHandler());
         registry.register("create_walls", new CreateWallsHandler());
         registry.register("delete_furniture", new DeleteFurnitureHandler());
+        registry.register("delete_wall", new DeleteWallHandler());
         registry.register("modify_furniture", new ModifyFurnitureHandler());
         registry.register("place_furniture", new PlaceFurnitureHandler());
         registry.register("get_state", new GetStateHandler());

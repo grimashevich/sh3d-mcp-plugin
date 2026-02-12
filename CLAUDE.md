@@ -113,6 +113,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `create_wall` | Одиночная стена по двум точкам |
 | `create_walls` | Прямоугольная комната из 4 стен |
 | `delete_furniture` | Удаление мебели по ID |
+| `delete_wall` | Удаление стены по ID |
 | `modify_furniture` | Изменение свойств мебели по ID |
 | `place_furniture` | Размещение мебели из каталога |
 | `get_state` | Состояние сцены (стены, мебель, комнаты, камера) |

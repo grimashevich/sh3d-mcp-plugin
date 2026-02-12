@@ -26,10 +26,10 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### delete_wall [P1, Medium]
+### ~~delete_wall~~ [P1, Medium] -- DONE
 
-- [ ] Удаление стены по ID
-- [ ] `home.deleteWall(wall)`
+- [x] Удаление стены по ID
+- [x] `home.deleteWall(wall)`
 
 ---
 
@@ -136,3 +136,4 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] Убран getToolName() override из CreateWallsHandler -- TCP/MCP имена теперь прозрачны
 - [x] ClearSceneHandler -- удаление всех объектов из сцены с подсчётом (13 тестов)
 - [x] ConnectWallsHandler -- соединение двух стен по ID с автоопределением ближайших концов (18 тестов)
+- [x] DeleteWallHandler -- удаление стены по ID (9 тестов)
