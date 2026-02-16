@@ -13,7 +13,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] delete_room
 - [x] list_textures_catalog
 - [x] apply_texture (к стене/полу/потолку)
-- [ ] place_door_or_window (привязка к стене)
+- [x] place_door_or_window (привязка к стене) -- 26 тестов
 - [ ] undo / redo
 
 ---
@@ -90,4 +90,5 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] DeleteRoomHandler -- удаление комнаты по ID
 - [x] ListTexturesCatalogHandler -- каталог текстур с фильтрацией
 - [x] ApplyTextureHandler -- применение текстуры из каталога к стене (left/right/both) или комнате (floor/ceiling/both), поиск по имени + категории, angle/scale, сброс через null (29 тестов). GetStateHandler расширен полями текстур
+- [x] PlaceDoorOrWindowHandler -- размещение двери/окна из каталога в стену по wallId + position (0-1), автовычисление координат и угла, elevation, mirrored (26 тестов)
 - [x] ExportPlanImageHandler -- быстрый экспорт 2D-плана в PNG

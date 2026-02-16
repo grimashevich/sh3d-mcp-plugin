@@ -24,6 +24,7 @@ import com.sh3d.mcp.command.ListFurnitureCatalogHandler;
 import com.sh3d.mcp.command.ListTexturesCatalogHandler;
 import com.sh3d.mcp.command.DescribeCommandsHandler;
 import com.sh3d.mcp.command.PingHandler;
+import com.sh3d.mcp.command.PlaceDoorOrWindowHandler;
 import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
 import com.sh3d.mcp.command.SetCameraHandler;
@@ -150,6 +151,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("modify_furniture", new ModifyFurnitureHandler());
         registry.register("modify_room", new ModifyRoomHandler());
         registry.register("modify_wall", new ModifyWallHandler());
+        registry.register("place_door_or_window", new PlaceDoorOrWindowHandler());
         registry.register("place_furniture", new PlaceFurnitureHandler());
         registry.register("get_state", new GetStateHandler());
         registry.register("list_furniture_catalog", new ListFurnitureCatalogHandler());
