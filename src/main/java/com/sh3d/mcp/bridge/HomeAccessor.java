@@ -2,6 +2,7 @@ package com.sh3d.mcp.bridge;
 
 import com.eteks.sweethome3d.model.FurnitureCatalog;
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.TexturesCatalog;
 import com.eteks.sweethome3d.model.UserPreferences;
 import com.sh3d.mcp.command.CommandException;
 
@@ -34,6 +35,10 @@ public class HomeAccessor {
 
     public FurnitureCatalog getFurnitureCatalog() {
         return userPreferences.getFurnitureCatalog();
+    }
+
+    public TexturesCatalog getTexturesCatalog() {
+        return userPreferences.getTexturesCatalog();
     }
 
     /**
