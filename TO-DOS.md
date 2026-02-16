@@ -51,7 +51,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 - [x] modify_wall (цвет, shininess, высота, толщина, дуга) -- 30 тестов
 - [x] modify_room (имя, цвет пола/потолка, shininess, видимость) -- 23 теста
-- [ ] delete_room
+- [x] delete_room
 - [ ] list_textures_catalog
 - [ ] apply_texture (к стене/полу/потолку)
 - [ ] place_door_or_window (привязка к стене)

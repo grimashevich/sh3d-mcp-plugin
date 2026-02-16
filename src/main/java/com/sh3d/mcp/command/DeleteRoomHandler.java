@@ -1,0 +1,99 @@
+package com.sh3d.mcp.command;
+
+import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.Room;
+import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.protocol.Request;
+import com.sh3d.mcp.protocol.Response;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Обработчик команды "delete_room".
+ * Удаляет комнату из сцены по ID (индексу из get_state).
+ */
+public class DeleteRoomHandler implements CommandHandler, CommandDescriptor {
+
+    @Override
+    public Response execute(Request request, HomeAccessor accessor) {
+        int id = (int) request.getFloat("id");
+
+        if (id < 0) {
+            return Response.error("Parameter 'id' must be non-negative, got " + id);
+        }
+
+        Map<String, Object> data = accessor.runOnEDT(() -> {
+            Home home = accessor.getHome();
+            List<Room> rooms = home.getRooms();
+
+            if (id >= rooms.size()) {
+                return null;
+            }
+
+            Room room = rooms.get(id);
+
+            Map<String, Object> info = new LinkedHashMap<>();
+            info.put("name", room.getName());
+            info.put("area", round2(room.getArea()));
+            info.put("xCenter", round2(room.getXCenter()));
+            info.put("yCenter", round2(room.getYCenter()));
+
+            float[][] points = room.getPoints();
+            List<Object> pointList = new ArrayList<>();
+            for (float[] pt : points) {
+                Map<String, Object> p = new LinkedHashMap<>();
+                p.put("x", round2(pt[0]));
+                p.put("y", round2(pt[1]));
+                pointList.add(p);
+            }
+            info.put("points", pointList);
+
+            home.deleteRoom(room);
+            return info;
+        });
+
+        if (data == null) {
+            return Response.error("Room not found: id " + id + " is out of range");
+        }
+
+        String name = data.get("name") != null ? "'" + data.get("name") + "'" : "(unnamed)";
+        data.put("message", "Room " + name + " deleted (id " + id + ")");
+        return Response.ok(data);
+    }
+
+    @Override
+    public String getDescription() {
+        return "Deletes a room from the scene by its ID. "
+                + "Use get_state to find room IDs before deleting. "
+                + "Note: after deletion, remaining room IDs may shift. "
+                + "Walls are NOT deleted — only the room polygon is removed.";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("id", prop("integer", "Room ID from get_state"));
+        schema.put("properties", properties);
+
+        schema.put("required", Arrays.asList("id"));
+        return schema;
+    }
+
+    private static float round2(float v) {
+        return Math.round(v * 100f) / 100f;
+    }
+
+    private static Map<String, Object> prop(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", type);
+        p.put("description", description);
+        return p;
+    }
+}
