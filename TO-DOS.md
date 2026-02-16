@@ -6,54 +6,13 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-## Фаза 2 (v0.2) -- Visual Feedback + Core CRUD
-
-### Визуальная обратная связь [P0, High]
-
-Критично для тестирования всех последующих фич и для AI-агентов, выполняющих дизайн-проекты.
-
----
-
----
-
----
-
----
-
----
-
----
-
----
-
-### ~~delete_wall~~ [P1, Medium] -- DONE
-
-- [x] Удаление стены по ID
-- [x] `home.deleteWall(wall)`
-
----
-
-### ~~generate_shape~~ -- произвольная 3D-фигура [P1, High] -- DONE
-
-Два режима: `extrude` (2D-полигон + высота) и `mesh` (вершины + треугольники). Логика адаптирована из ShapeGenerator plugin (GPL v2+). 24 теста, живой тест OK.
-
-- [x] `GenerateShapeHandler` (+ `CommandDescriptor`)
-- [x] Режим `extrude`: произвольный 2D-полигон + высота (стены, балки, столешницы)
-- [x] Режим `mesh`: вершины [x,y,z] + индексы треугольников (крыши, пирамиды, лестницы)
-- [x] Параметры: `name`, `transparency`, `elevation`, `color`
-- [x] Генерация OBJ через Java3D `GeometryInfo` + `OBJWriter.writeNodeInZIPFile()`
-- [x] Добавление в сцену как `HomePieceOfFurniture`
-- [x] Возвращает ID, размеры, позицию
-
----
-
 ## Фаза 3 (v0.3) -- Visual Design
 
 - [x] modify_wall (цвет, shininess, высота, толщина, дуга) -- 30 тестов
 - [x] modify_room (имя, цвет пола/потолка, shininess, видимость) -- 23 теста
 - [x] delete_room
-- [ ] list_textures_catalog
-- [ ] apply_texture (к стене/полу/потолку)
+- [x] list_textures_catalog
+- [x] apply_texture (к стене/полу/потолку)
 - [ ] place_door_or_window (привязка к стене)
 - [ ] undo / redo
 
@@ -128,3 +87,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] GenerateShapeHandler -- произвольные 3D-фигуры: extrude (2D-полигон + высота) и mesh (вершины + треугольники), адаптировано из ShapeGenerator GPL v2+ (24 теста, живой тест OK)
 - [x] ModifyWallHandler -- изменение свойств стены: height, heightAtEnd, thickness, arcExtent, цвет (left/right/top + shortcut), shininess (left/right + shortcut). GetStateHandler расширен визуальными свойствами стен (30 тестов)
 - [x] ModifyRoomHandler -- изменение свойств комнаты: name, floorVisible, ceilingVisible, areaVisible, floorColor, ceilingColor, floorShininess, ceilingShininess. GetStateHandler расширен shininess полей комнат (23 теста)
+- [x] DeleteRoomHandler -- удаление комнаты по ID
+- [x] ListTexturesCatalogHandler -- каталог текстур с фильтрацией
+- [x] ApplyTextureHandler -- применение текстуры из каталога к стене (left/right/both) или комнате (floor/ceiling/both), поиск по имени + категории, angle/scale, сброс через null (29 тестов). GetStateHandler расширен полями текстур
+- [x] ExportPlanImageHandler -- быстрый экспорт 2D-плана в PNG
