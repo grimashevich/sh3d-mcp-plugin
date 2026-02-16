@@ -49,7 +49,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ## Фаза 3 (v0.3) -- Visual Design
 
-- [ ] modify_wall (цвет, текстура, shininess, высота)
+- [x] modify_wall (цвет, shininess, высота, толщина, дуга) -- 30 тестов
 - [ ] modify_room (цвет/текстура пола и потолка, имя)
 - [ ] delete_room
 - [ ] list_textures_catalog
@@ -126,3 +126,4 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] ConnectWallsHandler -- соединение двух стен по ID с автоопределением ближайших концов (18 тестов)
 - [x] DeleteWallHandler -- удаление стены по ID (9 тестов)
 - [x] GenerateShapeHandler -- произвольные 3D-фигуры: extrude (2D-полигон + высота) и mesh (вершины + треугольники), адаптировано из ShapeGenerator GPL v2+ (24 теста, живой тест OK)
+- [x] ModifyWallHandler -- изменение свойств стены: height, heightAtEnd, thickness, arcExtent, цвет (left/right/top + shortcut), shininess (left/right + shortcut). GetStateHandler расширен визуальными свойствами стен (30 тестов)
