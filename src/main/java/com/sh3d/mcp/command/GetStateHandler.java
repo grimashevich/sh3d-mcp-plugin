@@ -92,7 +92,15 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             item.put("yEnd", round2(w.getYEnd()));
             item.put("thickness", round2(w.getThickness()));
             item.put("height", w.getHeight() != null ? round2(w.getHeight()) : null);
+            item.put("heightAtEnd", w.getHeightAtEnd() != null ? round2(w.getHeightAtEnd()) : null);
             item.put("length", round2(w.getLength()));
+            item.put("arcExtent", w.getArcExtent() != null
+                    ? round2(Math.toDegrees(w.getArcExtent())) : null);
+            item.put("leftSideColor", colorToHex(w.getLeftSideColor()));
+            item.put("rightSideColor", colorToHex(w.getRightSideColor()));
+            item.put("topColor", colorToHex(w.getTopColor()));
+            item.put("leftSideShininess", round2(w.getLeftSideShininess()));
+            item.put("rightSideShininess", round2(w.getRightSideShininess()));
             Level level = w.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
