@@ -33,29 +33,17 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ---
 
-### generate_shape -- произвольная 3D-фигура [P1, High]
+### ~~generate_shape~~ -- произвольная 3D-фигура [P1, High] -- DONE
 
-Позволить нейросети создавать произвольные 3D-объекты из координат вершин, аналогично плагину ShapeGenerator.
+Два режима: `extrude` (2D-полигон + высота) и `mesh` (вершины + треугольники). Логика адаптирована из ShapeGenerator plugin (GPL v2+). 24 теста, живой тест OK.
 
-- [ ] Новый `GenerateShapeHandler` (+ `CommandDescriptor`)
-- [ ] Параметры: `points` (массив из 8 точек [x,y,z]), `name` (опционально), `transparency` (0.0-1.0, опционально)
-- [ ] Генерация OBJ-модели из 8 вершин (гексаэдр, 6 граней по 2 треугольника)
-- [ ] Добавление в сцену как `HomePieceOfFurniture`
-- [ ] Возвращать ID созданного объекта и его размеры
-
-**Реф. имплементация:** плагин `ShapeGenerator-1.2.1` (автор Space Mushrooms):
-- `GeometryInfo(TRIANGLE_ARRAY)` + `NormalGenerator` для построения геометрии
-- `OBJWriter.writeNodeInZIPFile()` для экспорта в OBJ
-- `TemporaryURLContent` для упаковки модели
-- `ModelManager.getInstance().loadModel()` + `CatalogPieceOfFurniture` для добавления в сцену
-
-**Особенности (из форума SH3D):**
-- 6 граней = 6 отдельных материалов (цвет/текстура/видимость каждой грани отдельно)
-- Текстуры маппятся на 100x100 см, масштабируются пропорционально
-- Порядок вершин критичен — неправильный порядок создаёт открытые/полые фигуры
-- Можно создавать: террейн, крыши, пирамиды, балки, наклонные поверхности
-
-**API:** `javax.media.j3d.*`, `com.sun.j3d.utils.geometry.GeometryInfo`, `com.eteks.sweethome3d.j3d.OBJWriter`, `com.eteks.sweethome3d.tools.TemporaryURLContent`
+- [x] `GenerateShapeHandler` (+ `CommandDescriptor`)
+- [x] Режим `extrude`: произвольный 2D-полигон + высота (стены, балки, столешницы)
+- [x] Режим `mesh`: вершины [x,y,z] + индексы треугольников (крыши, пирамиды, лестницы)
+- [x] Параметры: `name`, `transparency`, `elevation`, `color`
+- [x] Генерация OBJ через Java3D `GeometryInfo` + `OBJWriter.writeNodeInZIPFile()`
+- [x] Добавление в сцену как `HomePieceOfFurniture`
+- [x] Возвращает ID, размеры, позицию
 
 ---
 
@@ -137,3 +125,4 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] ClearSceneHandler -- удаление всех объектов из сцены с подсчётом (13 тестов)
 - [x] ConnectWallsHandler -- соединение двух стен по ID с автоопределением ближайших концов (18 тестов)
 - [x] DeleteWallHandler -- удаление стены по ID (9 тестов)
+- [x] GenerateShapeHandler -- произвольные 3D-фигуры: extrude (2D-полигон + высота) и mesh (вершины + треугольники), адаптировано из ShapeGenerator GPL v2+ (24 теста, живой тест OK)
