@@ -107,6 +107,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | Команда (TCP = MCP) | Описание |
 |---------------------|----------|
 | `ping` | Проверка связи (инфра, не видна Claude) |
+| `apply_texture` | Применение текстуры из каталога к стене или комнате |
 | `clear_scene` | Удаление всех объектов из сцены |
 | `connect_walls` | Соединение двух стен по ID для корректного рендеринга углов |
 | `create_room_polygon` | Создание комнаты по полигону точек |
@@ -119,7 +120,9 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `place_furniture` | Размещение мебели из каталога |
 | `get_state` | Состояние сцены (стены, мебель, комнаты, камера) |
 | `list_furniture_catalog` | Каталог мебели с фильтрацией |
+| `list_textures_catalog` | Каталог текстур с фильтрацией |
 | `render_photo` | 3D-рендер сцены (Sunflow) |
+| `export_plan_image` | Быстрый экспорт 2D-плана в PNG |
 | `export_svg` | Экспорт 2D-плана в SVG |
 | `set_camera` | Управление камерой (top/observer) |
 | `describe_commands` | Auto-discovery: описания команд для MCP-сервера |

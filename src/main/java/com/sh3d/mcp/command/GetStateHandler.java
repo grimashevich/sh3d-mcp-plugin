@@ -4,6 +4,7 @@ import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.HomeTexture;
 import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
 import com.eteks.sweethome3d.model.ObserverCamera;
@@ -101,6 +102,8 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             item.put("topColor", colorToHex(w.getTopColor()));
             item.put("leftSideShininess", round2(w.getLeftSideShininess()));
             item.put("rightSideShininess", round2(w.getRightSideShininess()));
+            item.put("leftSideTexture", textureName(w.getLeftSideTexture()));
+            item.put("rightSideTexture", textureName(w.getRightSideTexture()));
             Level level = w.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
@@ -153,6 +156,8 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             item.put("ceilingColor", colorToHex(room.getCeilingColor()));
             item.put("floorShininess", round2(room.getFloorShininess()));
             item.put("ceilingShininess", round2(room.getCeilingShininess()));
+            item.put("floorTexture", textureName(room.getFloorTexture()));
+            item.put("ceilingTexture", textureName(room.getCeilingTexture()));
             item.put("xCenter", round2(room.getXCenter()));
             item.put("yCenter", round2(room.getYCenter()));
 
@@ -279,6 +284,10 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
+    }
+
+    private static String textureName(HomeTexture texture) {
+        return texture != null ? texture.getName() : null;
     }
 
     private static String colorToHex(Integer color) {
