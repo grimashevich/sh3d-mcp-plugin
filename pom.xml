@@ -13,6 +13,14 @@
     <name>Sweet Home 3D MCP Plugin</name>
     <description>TCP server plugin for MCP integration with Sweet Home 3D</description>
 
+    <licenses>
+        <license>
+            <name>GNU General Public License v2.0</name>
+            <url>https://www.gnu.org/licenses/old-licenses/gpl-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
@@ -27,6 +35,29 @@
             <version>7.5</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/SweetHome3D.jar</systemPath>
+        </dependency>
+
+        <!-- Java 3D (provided — already in SH3D classpath at runtime, needed for compile only) -->
+        <dependency>
+            <groupId>javax.media</groupId>
+            <artifactId>j3dcore</artifactId>
+            <version>1.6</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/j3dcore.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>javax.media</groupId>
+            <artifactId>j3dutils</artifactId>
+            <version>1.6</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/j3dutils.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>javax.vecmath</groupId>
+            <artifactId>vecmath</artifactId>
+            <version>1.6</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/vecmath.jar</systemPath>
         </dependency>
 
         <!-- Tests -->
