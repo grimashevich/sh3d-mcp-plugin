@@ -11,6 +11,7 @@ import com.sh3d.mcp.command.DeleteWallHandler;
 import com.sh3d.mcp.command.CreateWallHandler;
 import com.sh3d.mcp.command.DeleteFurnitureHandler;
 import com.sh3d.mcp.command.CreateWallsHandler;
+import com.sh3d.mcp.command.ExportPlanImageHandler;
 import com.sh3d.mcp.command.ExportSvgHandler;
 import com.sh3d.mcp.command.GenerateShapeHandler;
 import com.sh3d.mcp.command.ModifyFurnitureHandler;
@@ -148,6 +149,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("get_state", new GetStateHandler());
         registry.register("list_furniture_catalog", new ListFurnitureCatalogHandler());
         registry.register("render_photo", new RenderPhotoHandler());
+        registry.register("export_plan_image", new ExportPlanImageHandler(planView));
         registry.register("export_svg", new ExportSvgHandler(planView));
         registry.register("set_camera", new SetCameraHandler());
         registry.register("describe_commands", new DescribeCommandsHandler(registry));
