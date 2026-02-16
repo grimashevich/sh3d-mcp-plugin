@@ -151,6 +151,8 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             item.put("ceilingVisible", room.isCeilingVisible());
             item.put("floorColor", colorToHex(room.getFloorColor()));
             item.put("ceilingColor", colorToHex(room.getCeilingColor()));
+            item.put("floorShininess", round2(room.getFloorShininess()));
+            item.put("ceilingShininess", round2(room.getCeilingShininess()));
             item.put("xCenter", round2(room.getXCenter()));
             item.put("yCenter", round2(room.getYCenter()));
 
