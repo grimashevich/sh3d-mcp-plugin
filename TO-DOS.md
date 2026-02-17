@@ -14,7 +14,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] list_textures_catalog
 - [x] apply_texture (к стене/полу/потолку)
 - [x] place_door_or_window (привязка к стене) -- 26 тестов
-- [ ] undo / redo
+- ~~undo / redo~~ — убрано: агент имеет точные инструменты (delete_*, modify_*, clear_scene), undo-стек ненадёжен при смешанном использовании UI + MCP
 
 ---
 
