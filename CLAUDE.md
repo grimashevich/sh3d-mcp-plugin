@@ -282,6 +282,7 @@ mvn test
 - **Репозиторий:** `grimashevich/sh3d-mcp-plugin`
 - Conventional commits: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `docs(scope):`
 - Feature-ветки, merge в main
+- После merge в main — удалять feature-ветку (локально и на remote)
 - **Ревью не проводится.** Вместо code review изменения проверяются вживую: собираем плагин, деплоим в Sweet Home 3D, выполняем команды через MCP/TCP и оцениваем результат визуально (скриншот) и программно (get_state). Работоспособность подтверждается реальным поведением приложения, а не ревью кода. После подтверждения -- merge в main
 
 ## Документы
