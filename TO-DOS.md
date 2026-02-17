@@ -22,7 +22,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 - [x] store_camera / get_cameras (сохранение именованных точек обзора) -- 36 тестов, живой тест OK
 - [x] add_label
-- [ ] add_dimension_line
+- [x] add_dimension_line
 - [ ] set_environment (земля, небо, свет)
 
 ---
