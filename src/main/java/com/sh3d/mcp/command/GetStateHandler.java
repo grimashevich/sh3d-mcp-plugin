@@ -3,6 +3,7 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.HomeEnvironment;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.HomeTexture;
 import com.eteks.sweethome3d.model.Label;
@@ -83,6 +84,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             List<Object> levelList = buildLevels(home.getLevels(), home.getSelectedLevel());
             result.put("levelCount", levelList.size());
             result.put("levels", levelList);
+
+            // --- Environment ---
+            result.put("environment", buildEnvironment(home.getEnvironment()));
 
             // --- Bounding box ---
             result.put("boundingBox", buildBoundingBox(home.getWalls()));
@@ -272,6 +276,22 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
         return list;
     }
 
+    // --- Environment builder ---
+
+    private Map<String, Object> buildEnvironment(HomeEnvironment env) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("groundColor", colorToHex(env.getGroundColor()));
+        info.put("groundTexture", textureName(env.getGroundTexture()));
+        info.put("skyColor", colorToHex(env.getSkyColor()));
+        info.put("skyTexture", textureName(env.getSkyTexture()));
+        info.put("lightColor", colorToHex(env.getLightColor()));
+        info.put("ceilingLightColor", colorToHex(env.getCeillingLightColor()));
+        info.put("wallsAlpha", round2(env.getWallsAlpha()));
+        info.put("drawingMode", env.getDrawingMode().name());
+        info.put("allLevelsVisible", env.isAllLevelsVisible());
+        return info;
+    }
+
     // --- Bounding box ---
 
     private Map<String, Object> buildBoundingBox(Collection<Wall> walls) {
@@ -317,7 +337,8 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
     public String getDescription() {
         return "Returns the full state of the Sweet Home 3D scene: walls with coordinates, "
                 + "furniture with positions and IDs, rooms with polygons, labels, dimension lines, "
-                + "camera settings, and levels. Each object has a numeric 'id' field that can be "
+                + "camera settings, environment (ground, sky, light, wallsAlpha, drawingMode), "
+                + "and levels. Each object has a numeric 'id' field that can be "
                 + "used in subsequent commands (delete, modify, etc.). "
                 + "Always call this before making changes to understand the current scene.";
     }

@@ -31,6 +31,7 @@ import com.sh3d.mcp.command.PlaceDoorOrWindowHandler;
 import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
 import com.sh3d.mcp.command.SetCameraHandler;
+import com.sh3d.mcp.command.SetEnvironmentHandler;
 import com.sh3d.mcp.command.StoreCameraHandler;
 import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.server.TcpServer;
@@ -166,6 +167,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("export_plan_image", new ExportPlanImageHandler(planView));
         registry.register("export_svg", new ExportSvgHandler(planView));
         registry.register("set_camera", new SetCameraHandler());
+        registry.register("set_environment", new SetEnvironmentHandler());
         registry.register("store_camera", new StoreCameraHandler());
         registry.register("get_cameras", new GetCamerasHandler());
         registry.register("describe_commands", new DescribeCommandsHandler(registry));

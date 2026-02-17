@@ -128,6 +128,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `export_plan_image` | Быстрый экспорт 2D-плана в PNG |
 | `export_svg` | Экспорт 2D-плана в SVG |
 | `set_camera` | Управление камерой (top/observer) |
+| `set_environment` | Настройка окружения: земля, небо, свет, прозрачность стен, режим рисования |
 | `describe_commands` | Auto-discovery: описания команд для MCP-сервера |
 
 ## Добавление новой команды

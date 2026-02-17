@@ -1,0 +1,354 @@
+package com.sh3d.mcp.command;
+
+import com.eteks.sweethome3d.model.CatalogTexture;
+import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.HomeEnvironment;
+import com.eteks.sweethome3d.model.HomeTexture;
+import com.eteks.sweethome3d.model.TexturesCatalog;
+import com.eteks.sweethome3d.model.TexturesCategory;
+import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.protocol.Request;
+import com.sh3d.mcp.protocol.Response;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Обработчик команды "set_environment".
+ * Настраивает окружение 3D-сцены: земля, небо, освещение, прозрачность стен, режим рисования.
+ *
+ * <pre>
+ * Все параметры опциональные — изменяются только указанные.
+ * Цвета: '#RRGGBB' (не nullable, т.к. API принимает int).
+ * Текстуры: имя из каталога или null для удаления.
+ * EDT: мутации через runOnEDT().
+ * </pre>
+ */
+public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor {
+
+    private static final List<String> MODIFIABLE_KEYS = Arrays.asList(
+            "groundColor", "groundTexture", "skyColor", "skyTexture",
+            "lightColor", "ceilingLightColor",
+            "wallsAlpha", "drawingMode", "allLevelsVisible"
+    );
+
+    @Override
+    public Response execute(Request request, HomeAccessor accessor) {
+        Map<String, Object> params = request.getParams();
+
+        boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);
+        if (!hasModifiable) {
+            return Response.error("No modifiable properties provided. Supported: "
+                    + "groundColor, groundTexture, skyColor, skyTexture, "
+                    + "lightColor, ceilingLightColor, wallsAlpha, drawingMode, allLevelsVisible");
+        }
+
+        // --- Parse colors outside EDT ---
+        Integer groundColor = null;
+        boolean hasGroundColor = params.containsKey("groundColor");
+        if (hasGroundColor) {
+            Object val = params.get("groundColor");
+            if (val == null) {
+                return Response.error("groundColor cannot be null. Use '#RRGGBB' format");
+            }
+            groundColor = parseHexColor(val.toString());
+            if (groundColor == null) {
+                return Response.error("Invalid groundColor format: '" + val + "'. Expected '#RRGGBB'");
+            }
+        }
+
+        Integer skyColor = null;
+        boolean hasSkyColor = params.containsKey("skyColor");
+        if (hasSkyColor) {
+            Object val = params.get("skyColor");
+            if (val == null) {
+                return Response.error("skyColor cannot be null. Use '#RRGGBB' format");
+            }
+            skyColor = parseHexColor(val.toString());
+            if (skyColor == null) {
+                return Response.error("Invalid skyColor format: '" + val + "'. Expected '#RRGGBB'");
+            }
+        }
+
+        Integer lightColor = null;
+        boolean hasLightColor = params.containsKey("lightColor");
+        if (hasLightColor) {
+            Object val = params.get("lightColor");
+            if (val == null) {
+                return Response.error("lightColor cannot be null. Use '#RRGGBB' format");
+            }
+            lightColor = parseHexColor(val.toString());
+            if (lightColor == null) {
+                return Response.error("Invalid lightColor format: '" + val + "'. Expected '#RRGGBB'");
+            }
+        }
+
+        Integer ceilingLightColor = null;
+        boolean hasCeilingLightColor = params.containsKey("ceilingLightColor");
+        if (hasCeilingLightColor) {
+            Object val = params.get("ceilingLightColor");
+            if (val == null) {
+                return Response.error("ceilingLightColor cannot be null. Use '#RRGGBB' format");
+            }
+            ceilingLightColor = parseHexColor(val.toString());
+            if (ceilingLightColor == null) {
+                return Response.error("Invalid ceilingLightColor format: '" + val + "'. Expected '#RRGGBB'");
+            }
+        }
+
+        // --- Parse wallsAlpha ---
+        Float wallsAlpha = null;
+        boolean hasWallsAlpha = params.containsKey("wallsAlpha");
+        if (hasWallsAlpha) {
+            wallsAlpha = request.getFloat("wallsAlpha");
+            if (wallsAlpha < 0f || wallsAlpha > 1f) {
+                return Response.error("wallsAlpha must be between 0.0 and 1.0, got " + wallsAlpha);
+            }
+        }
+
+        // --- Parse drawingMode ---
+        HomeEnvironment.DrawingMode drawingMode = null;
+        boolean hasDrawingMode = params.containsKey("drawingMode");
+        if (hasDrawingMode) {
+            String modeStr = request.getString("drawingMode");
+            if (modeStr == null) {
+                return Response.error("drawingMode cannot be null. Expected: FILL, OUTLINE, FILL_AND_OUTLINE");
+            }
+            try {
+                drawingMode = HomeEnvironment.DrawingMode.valueOf(modeStr);
+            } catch (IllegalArgumentException e) {
+                return Response.error("Invalid drawingMode: '" + modeStr
+                        + "'. Expected: FILL, OUTLINE, FILL_AND_OUTLINE");
+            }
+        }
+
+        // --- Parse allLevelsVisible ---
+        Boolean allLevelsVisible = request.getBoolean("allLevelsVisible");
+        boolean hasAllLevelsVisible = params.containsKey("allLevelsVisible");
+
+        // --- Find textures in catalog (outside EDT) ---
+        HomeTexture groundTexture = null;
+        boolean hasGroundTexture = params.containsKey("groundTexture");
+        boolean clearGroundTexture = false;
+        if (hasGroundTexture) {
+            String texName = request.getString("groundTexture");
+            if (texName == null) {
+                clearGroundTexture = true;
+            } else {
+                if (accessor.getUserPreferences() == null) {
+                    return Response.error("Texture catalog is not available");
+                }
+                TexturesCatalog catalog = accessor.getTexturesCatalog();
+                String category = request.getString("groundTextureCategory");
+                CatalogTexture found = findTexture(catalog, texName, category);
+                if (found == null) {
+                    return Response.error("Ground texture not found: '" + texName + "'"
+                            + (category != null ? " in category '" + category + "'" : "")
+                            + ". Use list_textures_catalog to browse available textures");
+                }
+                groundTexture = new HomeTexture(found);
+            }
+        }
+
+        HomeTexture skyTexture = null;
+        boolean hasSkyTexture = params.containsKey("skyTexture");
+        boolean clearSkyTexture = false;
+        if (hasSkyTexture) {
+            String texName = request.getString("skyTexture");
+            if (texName == null) {
+                clearSkyTexture = true;
+            } else {
+                if (accessor.getUserPreferences() == null) {
+                    return Response.error("Texture catalog is not available");
+                }
+                TexturesCatalog catalog = accessor.getTexturesCatalog();
+                String category = request.getString("skyTextureCategory");
+                CatalogTexture found = findTexture(catalog, texName, category);
+                if (found == null) {
+                    return Response.error("Sky texture not found: '" + texName + "'"
+                            + (category != null ? " in category '" + category + "'" : "")
+                            + ". Use list_textures_catalog to browse available textures");
+                }
+                skyTexture = new HomeTexture(found);
+            }
+        }
+
+        // --- Capture for lambda ---
+        final int finalGroundColor = hasGroundColor ? groundColor : 0;
+        final int finalSkyColor = hasSkyColor ? skyColor : 0;
+        final int finalLightColor = hasLightColor ? lightColor : 0;
+        final int finalCeilingLightColor = hasCeilingLightColor ? ceilingLightColor : 0;
+        final float finalWallsAlpha = hasWallsAlpha ? wallsAlpha : 0f;
+        final HomeEnvironment.DrawingMode finalDrawingMode = drawingMode;
+        final boolean finalAllLevelsVisible = allLevelsVisible != null && allLevelsVisible;
+        final HomeTexture finalGroundTexture = groundTexture;
+        final boolean doClearGroundTexture = clearGroundTexture;
+        final HomeTexture finalSkyTexture = skyTexture;
+        final boolean doClearSkyTexture = clearSkyTexture;
+
+        // --- EDT mutations ---
+        Map<String, Object> data = accessor.runOnEDT(() -> {
+            Home home = accessor.getHome();
+            HomeEnvironment env = home.getEnvironment();
+
+            if (hasGroundColor) {
+                env.setGroundColor(finalGroundColor);
+            }
+            if (hasGroundTexture) {
+                env.setGroundTexture(doClearGroundTexture ? null : finalGroundTexture);
+            }
+            if (hasSkyColor) {
+                env.setSkyColor(finalSkyColor);
+            }
+            if (hasSkyTexture) {
+                env.setSkyTexture(doClearSkyTexture ? null : finalSkyTexture);
+            }
+            if (hasLightColor) {
+                env.setLightColor(finalLightColor);
+            }
+            if (hasCeilingLightColor) {
+                env.setCeillingLightColor(finalCeilingLightColor);
+            }
+            if (hasWallsAlpha) {
+                env.setWallsAlpha(finalWallsAlpha);
+            }
+            if (hasDrawingMode) {
+                env.setDrawingMode(finalDrawingMode);
+            }
+            if (hasAllLevelsVisible) {
+                env.setAllLevelsVisible(finalAllLevelsVisible);
+            }
+
+            return buildResponse(env);
+        });
+
+        return Response.ok(data);
+    }
+
+    private static Map<String, Object> buildResponse(HomeEnvironment env) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("groundColor", colorToHex(env.getGroundColor()));
+        result.put("groundTexture", textureName(env.getGroundTexture()));
+        result.put("skyColor", colorToHex(env.getSkyColor()));
+        result.put("skyTexture", textureName(env.getSkyTexture()));
+        result.put("lightColor", colorToHex(env.getLightColor()));
+        result.put("ceilingLightColor", colorToHex(env.getCeillingLightColor()));
+        result.put("wallsAlpha", round2(env.getWallsAlpha()));
+        result.put("drawingMode", env.getDrawingMode().name());
+        result.put("allLevelsVisible", env.isAllLevelsVisible());
+        return result;
+    }
+
+    // --- Texture lookup ---
+
+    static CatalogTexture findTexture(TexturesCatalog catalog, String name, String category) {
+        String lowerCategory = category != null ? category.toLowerCase() : null;
+
+        for (TexturesCategory cat : catalog.getCategories()) {
+            String catName = cat.getName();
+            if (catName == null) continue;
+            if (lowerCategory != null && !catName.toLowerCase().contains(lowerCategory)) continue;
+
+            for (CatalogTexture texture : cat.getTextures()) {
+                if (name.equals(texture.getName())) {
+                    return texture;
+                }
+            }
+        }
+        return null;
+    }
+
+    // --- Utilities ---
+
+    private static Integer parseHexColor(String hex) {
+        if (!hex.matches("^#[0-9A-Fa-f]{6}$")) return null;
+        return Integer.parseInt(hex.substring(1), 16);
+    }
+
+    private static String colorToHex(int color) {
+        return String.format("#%06X", color & 0xFFFFFF);
+    }
+
+    private static String textureName(HomeTexture texture) {
+        return texture != null ? texture.getName() : null;
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
+    // --- Descriptor ---
+
+    @Override
+    public String getDescription() {
+        return "Configures the 3D scene environment: ground/sky colors and textures, "
+                + "lighting, wall transparency, and drawing mode. All parameters are optional — "
+                + "only provided settings are changed. Use get_state to see current environment values. "
+                + "Ground and sky can have either a solid color or a texture from list_textures_catalog "
+                + "(texture overrides color in 3D view). "
+                + "Set groundTexture/skyTexture to null to remove the texture and revert to solid color. "
+                + "wallsAlpha controls wall transparency in 3D: 0.0 = fully opaque (default), "
+                + "1.0 = fully transparent (useful for seeing inside rooms). "
+                + "Default ground color is '#D0CC9B' (beige), default sky is '#CCE4FC' (light blue).";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("groundColor", prop("string",
+                "Ground color as '#RRGGBB' (default '#D0CC9B' beige)"));
+        properties.put("groundTexture", nullableProp("string",
+                "Ground texture name from list_textures_catalog, or null to remove texture"));
+        properties.put("groundTextureCategory", prop("string",
+                "Category to disambiguate ground texture name"));
+        properties.put("skyColor", prop("string",
+                "Sky color as '#RRGGBB' (default '#CCE4FC' light blue)"));
+        properties.put("skyTexture", nullableProp("string",
+                "Sky texture name from list_textures_catalog, or null to remove texture"));
+        properties.put("skyTextureCategory", prop("string",
+                "Category to disambiguate sky texture name"));
+        properties.put("lightColor", prop("string",
+                "Main light color as '#RRGGBB'. Affects 3D rendering brightness and tone"));
+        properties.put("ceilingLightColor", prop("string",
+                "Ceiling light color as '#RRGGBB'. Affects ceiling illumination in 3D"));
+        properties.put("wallsAlpha", prop("number",
+                "Wall transparency: 0.0 (fully opaque, default) to 1.0 (fully transparent)"));
+        properties.put("drawingMode", enumProp(
+                "2D plan drawing mode: how surfaces are rendered on the plan",
+                Arrays.asList("FILL", "OUTLINE", "FILL_AND_OUTLINE")));
+        properties.put("allLevelsVisible", prop("boolean",
+                "Whether all levels/floors are visible simultaneously in the plan"));
+
+        schema.put("properties", properties);
+        schema.put("required", Collections.emptyList());
+        return schema;
+    }
+
+    private static Map<String, Object> prop(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", type);
+        p.put("description", description);
+        return p;
+    }
+
+    private static Map<String, Object> nullableProp(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", Arrays.asList(type, "null"));
+        p.put("description", description);
+        return p;
+    }
+
+    private static Map<String, Object> enumProp(String description, List<String> values) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", "string");
+        p.put("description", description);
+        p.put("enum", values);
+        return p;
+    }
+}
