@@ -1,0 +1,72 @@
+package com.sh3d.mcp.command;
+
+import com.eteks.sweethome3d.model.Camera;
+import com.eteks.sweethome3d.model.Home;
+import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.protocol.Request;
+import com.sh3d.mcp.protocol.Response;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Обработчик команды "get_cameras".
+ * Возвращает список всех сохранённых точек обзора (stored cameras).
+ */
+public class GetCamerasHandler implements CommandHandler, CommandDescriptor {
+
+    @Override
+    public Response execute(Request request, HomeAccessor accessor) {
+        Map<String, Object> data = accessor.runOnEDT(() -> {
+            Home home = accessor.getHome();
+            List<Camera> storedCameras = home.getStoredCameras();
+
+            List<Object> cameraList = new ArrayList<>();
+            int index = 0;
+            for (Camera cam : storedCameras) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("id", index);
+                item.put("name", cam.getName());
+                item.put("x", round2(cam.getX()));
+                item.put("y", round2(cam.getY()));
+                item.put("z", round2(cam.getZ()));
+                item.put("yaw_degrees", round2(Math.toDegrees(cam.getYaw())));
+                item.put("pitch_degrees", round2(Math.toDegrees(cam.getPitch())));
+                item.put("fov_degrees", round2(Math.toDegrees(cam.getFieldOfView())));
+                cameraList.add(item);
+                index++;
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("storedCameraCount", cameraList.size());
+            result.put("storedCameras", cameraList);
+            return result;
+        });
+
+        return Response.ok(data);
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
+    @Override
+    public String getDescription() {
+        return "Returns all stored camera viewpoints (bookmarked views). "
+                + "Each camera has an id, name, position (x, y, z in cm), "
+                + "and orientation (yaw, pitch, fov in degrees). "
+                + "Use store_camera to save viewpoints, and set_camera with name parameter to restore one.";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", new LinkedHashMap<>());
+        schema.put("required", Collections.emptyList());
+        return schema;
+    }
+}

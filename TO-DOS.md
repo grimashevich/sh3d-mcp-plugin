@@ -20,7 +20,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 ## Фаза 4 (v0.4) -- Annotations & Cameras
 
-- [ ] store_camera / get_cameras (сохранение именованных точек обзора)
+- [x] store_camera / get_cameras (сохранение именованных точек обзора) -- 36 тестов, живой тест OK
 - [ ] add_label
 - [ ] add_dimension_line
 - [ ] set_environment (земля, небо, свет)

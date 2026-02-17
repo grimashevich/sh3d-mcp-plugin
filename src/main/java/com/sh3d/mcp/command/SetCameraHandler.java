@@ -8,7 +8,9 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -31,9 +33,16 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
+        String name = request.getString("name");
+
+        // Restore from stored camera by name
+        if (name != null && !name.isEmpty()) {
+            return restoreStoredCamera(name.trim(), accessor);
+        }
+
         String mode = request.getString("mode");
         if (mode == null || mode.isEmpty()) {
-            return Response.error("Parameter 'mode' is required (top or observer)");
+            return Response.error("Parameter 'mode' is required (top or observer), or use 'name' to restore a stored camera");
         }
         mode = mode.toLowerCase();
         if (!"top".equals(mode) && !"observer".equals(mode)) {
@@ -72,20 +81,62 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
                 home.setCamera(observer);
             }
 
-            Camera cam = home.getCamera();
-            Map<String, Object> info = new LinkedHashMap<>();
-            info.put("mode", finalMode);
-            info.put("x", cam.getX());
-            info.put("y", cam.getY());
-            info.put("z", cam.getZ());
-            info.put("yaw_degrees", Math.toDegrees(cam.getYaw()));
-            info.put("pitch_degrees", Math.toDegrees(cam.getPitch()));
-            info.put("fov_degrees", Math.toDegrees(cam.getFieldOfView()));
-            return info;
+            return buildCameraInfo(home.getCamera(), finalMode);
         });
 
         LOG.info("Camera set to " + finalMode);
         return Response.ok(camInfo);
+    }
+
+    private Response restoreStoredCamera(String name, HomeAccessor accessor) {
+        Map<String, Object> result = accessor.runOnEDT(() -> {
+            Home home = accessor.getHome();
+            List<Camera> stored = home.getStoredCameras();
+
+            Camera found = null;
+            for (Camera c : stored) {
+                if (name.equals(c.getName())) {
+                    found = c;
+                    break;
+                }
+            }
+            if (found == null) {
+                return null; // signal not found
+            }
+
+            // Apply stored camera position to observer camera
+            ObserverCamera observer = home.getObserverCamera();
+            observer.setX(found.getX());
+            observer.setY(found.getY());
+            observer.setZ(found.getZ());
+            observer.setYaw(found.getYaw());
+            observer.setPitch(found.getPitch());
+            observer.setFieldOfView(found.getFieldOfView());
+            home.setCamera(observer);
+
+            Map<String, Object> info = buildCameraInfo(observer, "observer");
+            info.put("restoredFrom", name);
+            return info;
+        });
+
+        if (result == null) {
+            return Response.error("Stored camera '" + name + "' not found");
+        }
+
+        LOG.info("Camera restored from stored '" + name + "'");
+        return Response.ok(result);
+    }
+
+    private static Map<String, Object> buildCameraInfo(Camera cam, String mode) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("mode", mode);
+        info.put("x", cam.getX());
+        info.put("y", cam.getY());
+        info.put("z", cam.getZ());
+        info.put("yaw_degrees", Math.toDegrees(cam.getYaw()));
+        info.put("pitch_degrees", Math.toDegrees(cam.getPitch()));
+        info.put("fov_degrees", Math.toDegrees(cam.getFieldOfView()));
+        return info;
     }
 
     @Override
@@ -93,7 +144,9 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
         return "Sets the camera mode and optionally adjusts position. "
                 + "Use mode 'top' for a top-down 2D view, or 'observer' for a 3D perspective view. "
                 + "When using 'observer', you can set x, y, z position (in cm), "
-                + "yaw/pitch rotation (in degrees), and field of view.";
+                + "yaw/pitch rotation (in degrees), and field of view. "
+                + "Alternatively, use 'name' to restore a previously stored camera viewpoint "
+                + "(saved via store_camera). When 'name' is provided, 'mode' is not required.";
     }
 
     @Override
@@ -102,7 +155,8 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("mode", enumProp("Camera mode: 'top' (2D plan view) or 'observer' (3D perspective)", "observer", "top"));
+        properties.put("mode", enumProp("Camera mode: 'top' (2D plan view) or 'observer' (3D perspective). Not required if 'name' is provided.", "observer", "top"));
+        properties.put("name", prop("string", "Name of a stored camera viewpoint to restore (saved via store_camera). When provided, mode is not required."));
         properties.put("x", prop("number", "Camera X position in cm (observer mode only)"));
         properties.put("y", prop("number", "Camera Y position in cm (observer mode only)"));
         properties.put("z", prop("number", "Camera Z (height) position in cm (observer mode only)"));
@@ -111,7 +165,8 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
         properties.put("fov", prop("number", "Camera field of view in degrees (observer mode only, default ~63)"));
 
         schema.put("properties", properties);
-        schema.put("required", Arrays.asList("mode"));
+        // Neither mode nor name is strictly required — one of them must be provided
+        schema.put("required", Collections.emptyList());
         return schema;
     }
 
