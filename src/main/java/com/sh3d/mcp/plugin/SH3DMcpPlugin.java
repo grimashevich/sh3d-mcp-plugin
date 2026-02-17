@@ -3,6 +3,7 @@ package com.sh3d.mcp.plugin;
 import com.eteks.sweethome3d.plugin.Plugin;
 import com.eteks.sweethome3d.plugin.PluginAction;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.command.AddDimensionLineHandler;
 import com.sh3d.mcp.command.AddLabelHandler;
 import com.sh3d.mcp.command.ApplyTextureHandler;
 import com.sh3d.mcp.command.ClearSceneHandler;
@@ -141,6 +142,7 @@ public class SH3DMcpPlugin extends Plugin {
     private CommandRegistry createCommandRegistry(ExportableView planView) {
         CommandRegistry registry = new CommandRegistry();
         registry.register("ping", new PingHandler());
+        registry.register("add_dimension_line", new AddDimensionLineHandler());
         registry.register("add_label", new AddLabelHandler());
         registry.register("apply_texture", new ApplyTextureHandler());
         registry.register("clear_scene", new ClearSceneHandler());
