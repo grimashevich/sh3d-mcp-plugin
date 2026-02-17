@@ -65,6 +65,20 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             // --- Camera ---
             result.put("camera", buildCamera(home));
 
+            // --- Stored cameras ---
+            List<Camera> storedCameras = home.getStoredCameras();
+            List<Object> storedCamList = new ArrayList<>();
+            int camIdx = 0;
+            for (Camera sc : storedCameras) {
+                Map<String, Object> cam = new LinkedHashMap<>();
+                cam.put("id", camIdx);
+                cam.put("name", sc.getName());
+                storedCamList.add(cam);
+                camIdx++;
+            }
+            result.put("storedCameraCount", storedCamList.size());
+            result.put("storedCameras", storedCamList);
+
             // --- Levels ---
             List<Object> levelList = buildLevels(home.getLevels(), home.getSelectedLevel());
             result.put("levelCount", levelList.size());

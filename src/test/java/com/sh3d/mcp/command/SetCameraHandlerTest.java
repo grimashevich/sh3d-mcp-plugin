@@ -3,10 +3,13 @@ package com.sh3d.mcp.command;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.ObserverCamera;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,7 +33,7 @@ class SetCameraHandlerTest {
     // --- Validation ---
 
     @Test
-    void testMissingMode() {
+    void testMissingModeAndName() {
         Response resp = execute();
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("mode"));
@@ -129,12 +132,12 @@ class SetCameraHandlerTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void testSchemaHasModeRequired() {
+    void testSchemaNoRequired() {
         Map<String, Object> schema = handler.getSchema();
         assertEquals("object", schema.get("type"));
 
         List<String> required = (List<String>) schema.get("required");
-        assertTrue(required.contains("mode"));
+        assertTrue(required.isEmpty(), "Neither mode nor name should be strictly required");
     }
 
     @Test
@@ -143,6 +146,7 @@ class SetCameraHandlerTest {
         Map<String, Object> schema = handler.getSchema();
         Map<String, Object> props = (Map<String, Object>) schema.get("properties");
         assertTrue(props.containsKey("mode"));
+        assertTrue(props.containsKey("name"));
         assertTrue(props.containsKey("x"));
         assertTrue(props.containsKey("y"));
         assertTrue(props.containsKey("z"));
@@ -155,6 +159,57 @@ class SetCameraHandlerTest {
     void testImplementsInterfaces() {
         assertTrue(handler instanceof CommandDescriptor);
         assertTrue(handler instanceof CommandHandler);
+    }
+
+    // --- Restore stored camera ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testRestoreStoredCamera() {
+        // Store a camera first
+        Camera stored = new Camera(100f, 200f, 170f,
+                (float) Math.toRadians(45), (float) Math.toRadians(10),
+                (float) Math.toRadians(60));
+        stored.setName("Kitchen");
+        List<Camera> cameras = new ArrayList<>();
+        cameras.add(stored);
+        home.setStoredCameras(cameras);
+
+        Response resp = execute("name", "Kitchen");
+        assertFalse(resp.isError());
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        assertEquals("observer", data.get("mode"));
+        assertEquals("Kitchen", data.get("restoredFrom"));
+        assertEquals(100.0f, ((Number) data.get("x")).floatValue(), 0.1f);
+        assertEquals(200.0f, ((Number) data.get("y")).floatValue(), 0.1f);
+        assertEquals(170.0f, ((Number) data.get("z")).floatValue(), 0.1f);
+    }
+
+    @Test
+    void testRestoreNonexistentCamera() {
+        Response resp = execute("name", "NonExistent");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("NonExistent"));
+        assertTrue(resp.getMessage().contains("not found"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testRestoreAppliesYawPitchFov() {
+        Camera stored = new Camera(50f, 50f, 170f,
+                (float) Math.toRadians(90), (float) Math.toRadians(-15),
+                (float) Math.toRadians(75));
+        stored.setName("Wide Angle");
+        List<Camera> cameras = new ArrayList<>();
+        cameras.add(stored);
+        home.setStoredCameras(cameras);
+
+        Response resp = execute("name", "Wide Angle");
+        assertFalse(resp.isError());
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        assertEquals(90.0, ((Number) data.get("yaw_degrees")).doubleValue(), 0.5);
+        assertEquals(-15.0, ((Number) data.get("pitch_degrees")).doubleValue(), 0.5);
+        assertEquals(75.0, ((Number) data.get("fov_degrees")).doubleValue(), 0.5);
     }
 
     // --- Helper ---

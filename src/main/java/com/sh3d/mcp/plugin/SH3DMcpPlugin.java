@@ -16,6 +16,7 @@ import com.sh3d.mcp.command.CreateWallsHandler;
 import com.sh3d.mcp.command.ExportPlanImageHandler;
 import com.sh3d.mcp.command.ExportSvgHandler;
 import com.sh3d.mcp.command.GenerateShapeHandler;
+import com.sh3d.mcp.command.GetCamerasHandler;
 import com.sh3d.mcp.command.ModifyFurnitureHandler;
 import com.sh3d.mcp.command.ModifyRoomHandler;
 import com.sh3d.mcp.command.ModifyWallHandler;
@@ -28,6 +29,7 @@ import com.sh3d.mcp.command.PlaceDoorOrWindowHandler;
 import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
 import com.sh3d.mcp.command.SetCameraHandler;
+import com.sh3d.mcp.command.StoreCameraHandler;
 import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.server.TcpServer;
 import com.eteks.sweethome3d.viewcontroller.ExportableView;
@@ -160,6 +162,8 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("export_plan_image", new ExportPlanImageHandler(planView));
         registry.register("export_svg", new ExportSvgHandler(planView));
         registry.register("set_camera", new SetCameraHandler());
+        registry.register("store_camera", new StoreCameraHandler());
+        registry.register("get_cameras", new GetCamerasHandler());
         registry.register("describe_commands", new DescribeCommandsHandler(registry));
         return registry;
     }
