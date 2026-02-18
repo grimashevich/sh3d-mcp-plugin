@@ -32,13 +32,13 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] add_level / list_levels / set_selected_level / delete_level -- 53 теста
 - [x] export_to_obj (6 тестов, живой тест OK)
 - [x] save_home (7 тестов)
-- [ ] batch_commands
+- [x] batch_commands (21 тест, живой тест OK)
 
 ---
 
 ## Технический долг
 
-- [ ] TcpServerTest: интеграционные тесты -- заглушки
+- [x] TcpServerTest: интеграционные тесты (10 тестов: lifecycle, ping, ошибки, multi-client, etc.)
 - [ ] Тесты для wall height fix (CreateWallsHandler)
 - [ ] Исследовать race condition: текст меню не обновляется при toggle
 

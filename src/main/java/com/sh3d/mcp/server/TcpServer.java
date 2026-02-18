@@ -100,6 +100,17 @@ public class TcpServer {
         return state.get();
     }
 
+    /**
+     * Возвращает фактический порт, на котором слушает сервер.
+     * Полезно при запуске с портом 0 (ephemeral port).
+     *
+     * @return локальный порт или -1, если сервер не запущен
+     */
+    int getActualPort() {
+        ServerSocket ss = serverSocket;
+        return (ss != null && !ss.isClosed()) ? ss.getLocalPort() : -1;
+    }
+
     private void acceptLoop() {
         try {
             serverSocket = new ServerSocket(port);
