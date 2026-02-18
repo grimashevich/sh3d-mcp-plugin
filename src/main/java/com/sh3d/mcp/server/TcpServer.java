@@ -29,6 +29,7 @@ public class TcpServer {
     private final HomeAccessor accessor;
 
     private volatile ServerSocket serverSocket;
+    private volatile Exception lastStartupError;
     private Thread acceptThread;
     private final List<ClientHandler> activeClients = Collections.synchronizedList(new ArrayList<>());
     private final AtomicReference<ServerState> state = new AtomicReference<>(ServerState.STOPPED);
@@ -49,6 +50,8 @@ public class TcpServer {
             LOG.warning("Server is not in STOPPED state, cannot start");
             return;
         }
+
+        lastStartupError = null;
 
         acceptThread = new Thread(this::acceptLoop, "sh3d-mcp-accept");
         acceptThread.setDaemon(true);
@@ -100,6 +103,18 @@ public class TcpServer {
 
     public ServerState getState() {
         return state.get();
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    /**
+     * Returns the exception that caused the last startup failure, or null if
+     * the server started successfully or hasn't been started yet.
+     */
+    public Exception getLastStartupError() {
+        return lastStartupError;
     }
 
     public void addStateListener(ServerStateListener listener) {
@@ -175,6 +190,7 @@ public class TcpServer {
         } catch (IOException e) {
             ServerState current = state.get();
             if (current == ServerState.RUNNING || current == ServerState.STARTING) {
+                lastStartupError = e;
                 LOG.log(Level.SEVERE, "Accept loop error", e);
             }
             // Если STOPPING — это нормальное завершение через close()

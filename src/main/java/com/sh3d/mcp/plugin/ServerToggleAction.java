@@ -5,6 +5,8 @@ import com.eteks.sweethome3d.plugin.PluginAction;
 import com.sh3d.mcp.server.ServerState;
 import com.sh3d.mcp.server.TcpServer;
 
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import java.util.logging.Logger;
 
 /**
@@ -25,7 +27,15 @@ public class ServerToggleAction extends PluginAction {
         updateMenuText(tcpServer.getState());
         setEnabled(true);
 
-        tcpServer.addStateListener((oldState, newState) -> updateMenuText(newState));
+        tcpServer.addStateListener((oldState, newState) -> {
+            updateMenuText(newState);
+            if (oldState == ServerState.STARTING && newState == ServerState.STOPPED) {
+                Exception error = tcpServer.getLastStartupError();
+                if (error != null) {
+                    showStartupError(tcpServer.getPort(), error);
+                }
+            }
+        });
     }
 
     @Override
@@ -44,5 +54,14 @@ public class ServerToggleAction extends PluginAction {
                 ? "MCP Server: Start"
                 : "MCP Server: Stop";
         putPropertyValue(Property.NAME, text);
+    }
+
+    private void showStartupError(int port, Exception error) {
+        String message = "Failed to start MCP server on port " + port + ".\n"
+                + error.getMessage();
+        LOG.warning(message);
+        SwingUtilities.invokeLater(() ->
+                JOptionPane.showMessageDialog(null, message,
+                        "MCP Server Error", JOptionPane.ERROR_MESSAGE));
     }
 }

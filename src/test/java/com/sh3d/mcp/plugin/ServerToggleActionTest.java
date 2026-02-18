@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.net.BindException;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -119,5 +121,58 @@ class ServerToggleActionTest {
         new ServerToggleAction(mockPlugin, mockServer);
 
         verify(mockServer).addStateListener(any(ServerStateListener.class));
+    }
+
+    @Test
+    void testStartupFailureQueriesError() {
+        when(mockServer.getState()).thenReturn(ServerState.STOPPED);
+        when(mockServer.getPort()).thenReturn(9877);
+        when(mockServer.getLastStartupError())
+                .thenReturn(new BindException("Address already in use"));
+
+        new ServerToggleAction(mockPlugin, mockServer);
+
+        verify(mockServer).addStateListener(listenerCaptor.capture());
+        ServerStateListener listener = listenerCaptor.getValue();
+
+        // Simulate startup failure: STARTING -> STOPPED
+        listener.onStateChanged(ServerState.STARTING, ServerState.STOPPED);
+
+        // Should query the error
+        verify(mockServer).getLastStartupError();
+        verify(mockServer).getPort();
+    }
+
+    @Test
+    void testNormalStopDoesNotQueryError() {
+        when(mockServer.getState()).thenReturn(ServerState.STOPPED);
+
+        new ServerToggleAction(mockPlugin, mockServer);
+
+        verify(mockServer).addStateListener(listenerCaptor.capture());
+        ServerStateListener listener = listenerCaptor.getValue();
+
+        // Normal shutdown: STOPPING -> STOPPED (not STARTING -> STOPPED)
+        listener.onStateChanged(ServerState.STOPPING, ServerState.STOPPED);
+
+        // Should NOT query error — this is a normal stop
+        verify(mockServer, never()).getLastStartupError();
+    }
+
+    @Test
+    void testStartupFailureWithNoErrorDoesNotQueryPort() {
+        when(mockServer.getState()).thenReturn(ServerState.STOPPED);
+        when(mockServer.getLastStartupError()).thenReturn(null);
+
+        new ServerToggleAction(mockPlugin, mockServer);
+
+        verify(mockServer).addStateListener(listenerCaptor.capture());
+        ServerStateListener listener = listenerCaptor.getValue();
+
+        // STARTING -> STOPPED but no error (e.g., stop() called during startup)
+        listener.onStateChanged(ServerState.STARTING, ServerState.STOPPED);
+
+        verify(mockServer).getLastStartupError();
+        verify(mockServer, never()).getPort();
     }
 }
