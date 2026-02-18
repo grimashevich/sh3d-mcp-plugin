@@ -109,6 +109,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `ping` | Проверка связи (инфра, не видна Claude) |
 | `add_dimension_line` | Размерная линия (аннотация измерения) на 2D-плане |
 | `add_label` | Текстовая метка (аннотация) на 2D-плане |
+| `add_level` | Создание нового уровня (этажа) с высотой и толщиной перекрытия |
 | `apply_texture` | Применение текстуры из каталога к стене или комнате |
 | `clear_scene` | Удаление всех объектов из сцены |
 | `connect_walls` | Соединение двух стен по ID для корректного рендеринга углов |
@@ -116,6 +117,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `create_wall` | Одиночная стена по двум точкам |
 | `create_walls` | Прямоугольная комната из 4 стен |
 | `delete_furniture` | Удаление мебели по ID |
+| `delete_level` | Удаление уровня по ID с каскадным удалением всех объектов на нём |
 | `delete_wall` | Удаление стены по ID |
 | `modify_furniture` | Изменение свойств мебели по ID |
 | `modify_room` | Изменение свойств комнаты по ID |
@@ -123,12 +125,14 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `place_furniture` | Размещение мебели из каталога |
 | `get_state` | Состояние сцены (стены, мебель, комнаты, камера) |
 | `list_furniture_catalog` | Каталог мебели с фильтрацией |
+| `list_levels` | Список всех уровней с указанием выбранного |
 | `list_textures_catalog` | Каталог текстур с фильтрацией |
 | `render_photo` | 3D-рендер сцены (Sunflow) |
 | `export_plan_image` | Быстрый экспорт 2D-плана в PNG |
 | `export_svg` | Экспорт 2D-плана в SVG |
 | `set_camera` | Управление камерой (top/observer) |
 | `set_environment` | Настройка окружения: земля, небо, свет, прозрачность стен, режим рисования |
+| `set_selected_level` | Переключение активного уровня по ID |
 | `describe_commands` | Auto-discovery: описания команд для MCP-сервера |
 
 ## Добавление новой команды
