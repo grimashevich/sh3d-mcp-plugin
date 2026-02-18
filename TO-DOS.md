@@ -31,7 +31,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 
 - [x] add_level / list_levels / set_selected_level / delete_level -- 53 теста
 - [x] export_to_obj (6 тестов, живой тест OK)
-- [ ] save_home
+- [x] save_home (7 тестов)
 - [ ] batch_commands
 
 ---

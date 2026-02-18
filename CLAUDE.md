@@ -131,6 +131,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `export_plan_image` | Быстрый экспорт 2D-плана в PNG |
 | `export_svg` | Экспорт 2D-плана в SVG |
 | `export_to_obj` | Экспорт 3D-сцены в Wavefront OBJ (ZIP: OBJ + MTL + текстуры) |
+| `save_home` | Сохранение сцены в .sh3d файл |
 | `set_camera` | Управление камерой (top/observer) |
 | `set_environment` | Настройка окружения: земля, небо, свет, прозрачность стен, режим рисования |
 | `set_selected_level` | Переключение активного уровня по ID |
