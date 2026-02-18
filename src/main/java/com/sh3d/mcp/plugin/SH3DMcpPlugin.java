@@ -19,6 +19,7 @@ import com.sh3d.mcp.command.DeleteRoomHandler;
 import com.sh3d.mcp.command.CreateWallsHandler;
 import com.sh3d.mcp.command.ExportPlanImageHandler;
 import com.sh3d.mcp.command.ExportSvgHandler;
+import com.sh3d.mcp.command.ExportToObjHandler;
 import com.sh3d.mcp.command.GenerateShapeHandler;
 import com.sh3d.mcp.command.GetCamerasHandler;
 import com.sh3d.mcp.command.ModifyFurnitureHandler;
@@ -173,6 +174,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("render_photo", new RenderPhotoHandler());
         registry.register("export_plan_image", new ExportPlanImageHandler(planView));
         registry.register("export_svg", new ExportSvgHandler(planView));
+        registry.register("export_to_obj", new ExportToObjHandler());
         registry.register("set_camera", new SetCameraHandler());
         registry.register("set_environment", new SetEnvironmentHandler());
         registry.register("set_selected_level", new SetSelectedLevelHandler());
