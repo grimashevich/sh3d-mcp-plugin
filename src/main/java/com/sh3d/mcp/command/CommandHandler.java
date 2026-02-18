@@ -7,7 +7,7 @@ import com.sh3d.mcp.protocol.Response;
 /**
  * Интерфейс обработчика команды.
  * <p>
- * Метод вызывается в потоке ClientHandler (не в EDT).
+ * Метод вызывается в рабочем потоке (не в EDT).
  * Для взаимодействия с Home используйте accessor.runOnEDT().
  */
 public interface CommandHandler {

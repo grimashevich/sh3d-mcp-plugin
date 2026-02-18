@@ -30,8 +30,6 @@ import com.sh3d.mcp.command.GetStateHandler;
 import com.sh3d.mcp.command.ListFurnitureCatalogHandler;
 import com.sh3d.mcp.command.ListLevelsHandler;
 import com.sh3d.mcp.command.ListTexturesCatalogHandler;
-import com.sh3d.mcp.command.DescribeCommandsHandler;
-import com.sh3d.mcp.command.PingHandler;
 import com.sh3d.mcp.command.PlaceDoorOrWindowHandler;
 import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
@@ -41,7 +39,7 @@ import com.sh3d.mcp.command.SetEnvironmentHandler;
 import com.sh3d.mcp.command.SetSelectedLevelHandler;
 import com.sh3d.mcp.command.StoreCameraHandler;
 import com.sh3d.mcp.config.PluginConfig;
-import com.sh3d.mcp.server.TcpServer;
+import com.sh3d.mcp.http.HttpMcpServer;
 import com.eteks.sweethome3d.viewcontroller.ExportableView;
 import com.eteks.sweethome3d.viewcontroller.PlanView;
 
@@ -60,7 +58,7 @@ public class SH3DMcpPlugin extends Plugin {
 
     private static final Logger LOG = Logger.getLogger(SH3DMcpPlugin.class.getName());
 
-    private TcpServer tcpServer;
+    private HttpMcpServer httpServer;
     private PluginConfig config;
     private FileHandler logFileHandler;
 
@@ -76,23 +74,23 @@ public class SH3DMcpPlugin extends Plugin {
 
         ExportableView planView = resolvePlanView();
         CommandRegistry registry = createCommandRegistry(planView);
-        tcpServer = new TcpServer(config, registry, accessor);
+        httpServer = new HttpMcpServer(config, registry, accessor);
 
         LOG.info("SH3D MCP Plugin initialized (port: " + config.getPort() + ")");
 
         if (config.isAutoStart()) {
-            tcpServer.start();
+            httpServer.start();
         }
 
         return new PluginAction[]{
-                new ServerToggleAction(this, tcpServer)
+                new ServerToggleAction(this, httpServer)
         };
     }
 
     @Override
     public void destroy() {
-        if (tcpServer != null && tcpServer.isRunning()) {
-            tcpServer.stop();
+        if (httpServer != null && httpServer.isRunning()) {
+            httpServer.stop();
             LOG.info("SH3D MCP Plugin destroyed, server stopped");
         }
         if (logFileHandler != null) {
@@ -149,7 +147,6 @@ public class SH3DMcpPlugin extends Plugin {
 
     private CommandRegistry createCommandRegistry(ExportableView planView) {
         CommandRegistry registry = new CommandRegistry();
-        registry.register("ping", new PingHandler());
         registry.register("add_dimension_line", new AddDimensionLineHandler());
         registry.register("add_label", new AddLabelHandler());
         registry.register("add_level", new AddLevelHandler());
@@ -184,7 +181,6 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("store_camera", new StoreCameraHandler());
         registry.register("get_cameras", new GetCamerasHandler());
         registry.register("batch_commands", new BatchCommandsHandler(registry));
-        registry.register("describe_commands", new DescribeCommandsHandler(registry));
         return registry;
     }
 }
