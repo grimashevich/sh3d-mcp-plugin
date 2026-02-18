@@ -1,0 +1,86 @@
+package com.sh3d.mcp.command;
+
+import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.Level;
+import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.protocol.Request;
+import com.sh3d.mcp.protocol.Response;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Обработчик команды "set_selected_level".
+ * Переключает активный уровень по ID.
+ */
+public class SetSelectedLevelHandler implements CommandHandler, CommandDescriptor {
+
+    @Override
+    public Response execute(Request request, HomeAccessor accessor) {
+        int id = (int) request.getFloat("id");
+
+        if (id < 0) {
+            return Response.error("Parameter 'id' must be non-negative, got " + id);
+        }
+
+        Map<String, Object> data = accessor.runOnEDT(() -> {
+            Home home = accessor.getHome();
+            List<Level> levels = home.getLevels();
+
+            if (id >= levels.size()) {
+                return null;
+            }
+
+            Level level = levels.get(id);
+            home.setSelectedLevel(level);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("id", id);
+            result.put("name", level.getName());
+            result.put("elevation", round2(level.getElevation()));
+            result.put("height", round2(level.getHeight()));
+            result.put("floorThickness", round2(level.getFloorThickness()));
+            result.put("viewable", level.isViewable());
+            return result;
+        });
+
+        if (data == null) {
+            return Response.error("Level not found: id " + id + " is out of range");
+        }
+
+        return Response.ok(data);
+    }
+
+    @Override
+    public String getDescription() {
+        return "Sets the active (selected) level by its ID. "
+                + "All subsequent create commands (walls, rooms, furniture) will be placed on the selected level. "
+                + "Use list_levels or get_state to find level IDs.";
+    }
+
+    @Override
+    public Map<String, Object> getSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("id", prop("integer", "Level ID (index) from list_levels or get_state"));
+        schema.put("properties", properties);
+
+        schema.put("required", Arrays.asList("id"));
+        return schema;
+    }
+
+    private static float round2(float v) {
+        return Math.round(v * 100f) / 100f;
+    }
+
+    private static Map<String, Object> prop(String type, String description) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("type", type);
+        p.put("description", description);
+        return p;
+    }
+}
