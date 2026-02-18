@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,6 +32,7 @@ public class TcpServer {
     private Thread acceptThread;
     private final List<ClientHandler> activeClients = Collections.synchronizedList(new ArrayList<>());
     private final AtomicReference<ServerState> state = new AtomicReference<>(ServerState.STOPPED);
+    private final List<ServerStateListener> stateListeners = new CopyOnWriteArrayList<>();
 
     public TcpServer(PluginConfig config, CommandRegistry commandRegistry, HomeAccessor accessor) {
         this.port = config.getPort();
@@ -43,7 +45,7 @@ public class TcpServer {
      * Запускает TCP-сервер в daemon-потоке.
      */
     public void start() {
-        if (!state.compareAndSet(ServerState.STOPPED, ServerState.STARTING)) {
+        if (!transitionState(ServerState.STOPPED, ServerState.STARTING)) {
             LOG.warning("Server is not in STOPPED state, cannot start");
             return;
         }
@@ -57,9 +59,9 @@ public class TcpServer {
      * Останавливает TCP-сервер: закрывает ServerSocket и все активные соединения.
      */
     public void stop() {
-        if (!state.compareAndSet(ServerState.RUNNING, ServerState.STOPPING)) {
+        if (!transitionState(ServerState.RUNNING, ServerState.STOPPING)) {
             // Может быть STARTING — попробуем и его остановить
-            state.set(ServerState.STOPPING);
+            forceState(ServerState.STOPPING);
         }
 
         // Закрыть ServerSocket — прерывает accept()
@@ -88,7 +90,7 @@ public class TcpServer {
             }
         }
 
-        state.set(ServerState.STOPPED);
+        forceState(ServerState.STOPPED);
         LOG.info("MCP TCP server stopped");
     }
 
@@ -98,6 +100,39 @@ public class TcpServer {
 
     public ServerState getState() {
         return state.get();
+    }
+
+    public void addStateListener(ServerStateListener listener) {
+        stateListeners.add(listener);
+    }
+
+    public void removeStateListener(ServerStateListener listener) {
+        stateListeners.remove(listener);
+    }
+
+    private boolean transitionState(ServerState expected, ServerState newState) {
+        if (state.compareAndSet(expected, newState)) {
+            fireStateChanged(expected, newState);
+            return true;
+        }
+        return false;
+    }
+
+    private void forceState(ServerState newState) {
+        ServerState old = state.getAndSet(newState);
+        if (old != newState) {
+            fireStateChanged(old, newState);
+        }
+    }
+
+    private void fireStateChanged(ServerState oldState, ServerState newState) {
+        for (ServerStateListener listener : stateListeners) {
+            try {
+                listener.onStateChanged(oldState, newState);
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "State listener error", e);
+            }
+        }
     }
 
     /**
@@ -114,7 +149,7 @@ public class TcpServer {
     private void acceptLoop() {
         try {
             serverSocket = new ServerSocket(port);
-            if (!state.compareAndSet(ServerState.STARTING, ServerState.RUNNING)) {
+            if (!transitionState(ServerState.STARTING, ServerState.RUNNING)) {
                 // stop() was called while we were starting — abort
                 serverSocket.close();
                 return;
@@ -145,7 +180,7 @@ public class TcpServer {
             // Если STOPPING — это нормальное завершение через close()
         } finally {
             if (state.get() != ServerState.STOPPED) {
-                state.set(ServerState.STOPPED);
+                forceState(ServerState.STOPPED);
             }
         }
     }
