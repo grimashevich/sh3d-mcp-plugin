@@ -654,11 +654,11 @@ class RenderPhotoHandlerTest {
     // ==========================================================
 
     @Test
-    void testOverheadWallsAlphaConstant() {
-        assertTrue(RenderPhotoHandler.OVERHEAD_WALLS_ALPHA > 0,
-                "Walls alpha should be positive");
-        assertTrue(RenderPhotoHandler.OVERHEAD_WALLS_ALPHA < 1,
-                "Walls alpha should be less than 1 (not fully transparent)");
+    void testOverheadWallHeightConstant() {
+        assertTrue(RenderPhotoHandler.OVERHEAD_WALL_HEIGHT > 0,
+                "Wall height should be positive");
+        assertTrue(RenderPhotoHandler.OVERHEAD_WALL_HEIGHT <= 5,
+                "Wall height should be very small (<=5 cm) to be invisible from overhead");
     }
 
     @Test
@@ -698,6 +698,39 @@ class RenderPhotoHandlerTest {
     void testFocusPaddingConstants() {
         assertEquals(0.5f, RenderPhotoHandler.FURNITURE_PADDING_RATIO, 0.001);
         assertEquals(200.0f, RenderPhotoHandler.MIN_FURNITURE_PADDING, 0.001);
+    }
+
+    // ==========================================================
+    // hideWalls tests
+    // ==========================================================
+
+    @Test
+    void testHideWallsDefaultTrue() {
+        // By default hideWalls is true — walls hidden for unobstructed view
+        Map<String, Object> schema = handler.getSchema();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> prop = (Map<String, Object>) properties.get("hideWalls");
+        assertEquals(true, prop.get("default"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsHideWalls() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("hideWalls"));
+        Map<String, Object> prop = (Map<String, Object>) properties.get("hideWalls");
+        assertEquals("boolean", prop.get("type"));
+        assertEquals(true, prop.get("default"));
+    }
+
+    @Test
+    void testDescriptionMentionsHideWalls() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("hideWalls"));
+        assertTrue(desc.contains("walls"));
     }
 
     // ==========================================================

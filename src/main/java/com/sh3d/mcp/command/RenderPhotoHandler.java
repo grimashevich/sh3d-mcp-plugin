@@ -74,7 +74,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
     static final int DEFAULT_OVERHEAD_WIDTH = 1200;
     static final int DEFAULT_OVERHEAD_HEIGHT = 900;
-    static final float OVERHEAD_WALLS_ALPHA = 0.8f;
+    static final float OVERHEAD_WALL_HEIGHT = 1.0f;
     static final int DEFAULT_FLOOR_COLOR = 0xE0E0E0;
     static final float FURNITURE_PADDING_RATIO = 0.5f;
     static final float MIN_FURNITURE_PADDING = 200.0f;
@@ -257,6 +257,13 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 ? request.getFloat("fov")
                 : DEFAULT_FOV_DEG;
 
+        // hideWalls: по умолчанию true (стены скрыты для лучшей видимости мебели)
+        boolean hideWalls = true;
+        if (request.getParams().containsKey("hideWalls")) {
+            Object hw = request.getParams().get("hideWalls");
+            hideWalls = Boolean.TRUE.equals(hw) || "true".equals(String.valueOf(hw));
+        }
+
         // Bounding box: focusOn → конкретный объект, иначе вся сцена
         SceneBounds bounds;
         if (focusOn != null) {
@@ -292,16 +299,24 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         // Сохранение и установка временных настроек окружения
         Home home = accessor.getHome();
         Map<Room, Integer> savedFloorColors = new LinkedHashMap<>();
-        float savedWallsAlpha = accessor.runOnEDT(() -> {
-            float saved = home.getEnvironment().getWallsAlpha();
-            home.getEnvironment().setWallsAlpha(OVERHEAD_WALLS_ALPHA);
+        Map<Wall, Float> savedWallHeights = new LinkedHashMap<>();
+        boolean finalHideWalls = hideWalls;
+        accessor.runOnEDT(() -> {
+            // Стены: уменьшить высоту до 1 см если hideWalls=true
+            if (finalHideWalls) {
+                for (Wall wall : home.getWalls()) {
+                    savedWallHeights.put(wall, wall.getHeight());
+                    wall.setHeight(OVERHEAD_WALL_HEIGHT);
+                }
+            }
+            // Полы: серый цвет для комнат без текстур
             for (Room room : home.getRooms()) {
                 if (room.getFloorColor() == null && room.getFloorTexture() == null) {
                     savedFloorColors.put(room, null);
                     room.setFloorColor(DEFAULT_FLOOR_COLOR);
                 }
             }
-            return saved;
+            return null;
         });
 
         // Render loop
@@ -336,7 +351,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         } finally {
             // Восстановление настроек окружения
             accessor.runOnEDT(() -> {
-                home.getEnvironment().setWallsAlpha(savedWallsAlpha);
+                for (Map.Entry<Wall, Float> entry : savedWallHeights.entrySet()) {
+                    entry.getKey().setHeight(entry.getValue());
+                }
                 for (Map.Entry<Room, Integer> entry : savedFloorColors.entrySet()) {
                     entry.getKey().setFloorColor(entry.getValue());
                 }
@@ -364,10 +381,14 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         if (focusOn != null) {
             data.put("focusOn", focusOn);
         }
+        if (hideWalls) {
+            data.put("hideWalls", true);
+        }
 
         LOG.info("Overhead render complete: " + images.size() + " images, "
                 + width + "x" + height + " (" + qualityStr + ")"
-                + (focusOn != null ? ", focus: " + focusOn : ""));
+                + (focusOn != null ? ", focus: " + focusOn : "")
+                + (hideWalls ? ", walls hidden" : ""));
 
         return Response.ok(data);
     }
@@ -696,6 +717,8 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 + "for evaluating the scene before making changes.\n\n"
                 + "Use focusOn='furniture:<id>' or focusOn='room:<id>' to zoom into a specific object "
                 + "for detailed inspection of placement, rotation, and proportions.\n\n"
+                + "WALLS: By default walls are hidden in overhead mode for unobstructed view of furniture. "
+                + "Set hideWalls=false to show walls (useful for checking wall textures, doors, or windows).\n\n"
                 + "Standard mode: returns a single image from the current or specified camera position. "
                 + "If 'filePath' is provided, saves PNG(s) to disk and returns only metadata (no base64). "
                 + "Use quality 'low' for quick preview or 'high' for photo-realistic output.";
@@ -719,6 +742,12 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 "Focus on a specific object: 'furniture:<id>' or 'room:<id>'. "
                         + "Zooms the overhead camera to show only the specified object with context. "
                         + "Requires view='overhead'. Default angles=1 for furniture, angles=4 for room."));
+        properties.put("hideWalls", propWithDefault("boolean",
+                "Hide walls in overhead render by reducing them to 1cm height. "
+                        + "Default: true (walls hidden for unobstructed view of furniture). "
+                        + "Set to false to show walls (e.g. to check wall textures or door/window placement). "
+                        + "Only used with view='overhead'.",
+                true));
         properties.put("width", propWithDefault("integer", "Image width in pixels", DEFAULT_WIDTH));
         properties.put("height", propWithDefault("integer", "Image height in pixels", DEFAULT_HEIGHT));
         properties.put("quality", enumProp("Quality: 'low' (fast preview) or 'high' (ray-traced)", "low", "high"));
