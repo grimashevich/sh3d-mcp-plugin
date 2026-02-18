@@ -34,6 +34,7 @@ import com.sh3d.mcp.command.PingHandler;
 import com.sh3d.mcp.command.PlaceDoorOrWindowHandler;
 import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
+import com.sh3d.mcp.command.SaveHomeHandler;
 import com.sh3d.mcp.command.SetCameraHandler;
 import com.sh3d.mcp.command.SetEnvironmentHandler;
 import com.sh3d.mcp.command.SetSelectedLevelHandler;
@@ -172,6 +173,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("list_levels", new ListLevelsHandler());
         registry.register("list_textures_catalog", new ListTexturesCatalogHandler());
         registry.register("render_photo", new RenderPhotoHandler());
+        registry.register("save_home", new SaveHomeHandler());
         registry.register("export_plan_image", new ExportPlanImageHandler(planView));
         registry.register("export_svg", new ExportSvgHandler(planView));
         registry.register("export_to_obj", new ExportToObjHandler());
