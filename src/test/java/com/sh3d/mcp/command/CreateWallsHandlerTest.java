@@ -212,6 +212,134 @@ class CreateWallsHandlerTest {
         assertEquals("Room 500x300 created", resp.getData().get("message"));
     }
 
+    // --- Wall height tests ---
+
+    @Test
+    void testDefaultWallHeightFallback250() {
+        // Без параметра wallHeight + Home.getWallHeight() == 0 → 250 см
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 400.0);
+        params.put("height", 300.0);
+
+        Request req = new Request("create_walls", params);
+        handler.execute(req, accessor);
+
+        for (Wall w : home.getWalls()) {
+            assertEquals(250.0f, w.getHeight(), 0.01f,
+                    "Default wall height should be 250 cm");
+        }
+    }
+
+    @Test
+    void testWallHeightFromHomeDefault() {
+        // Home(320) → стены получают 320 см
+        home = new Home(320f);
+        accessor = new HomeAccessor(home, null);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 400.0);
+        params.put("height", 300.0);
+
+        Request req = new Request("create_walls", params);
+        handler.execute(req, accessor);
+
+        for (Wall w : home.getWalls()) {
+            assertEquals(320.0f, w.getHeight(), 0.01f,
+                    "Wall height should come from Home default");
+        }
+    }
+
+    @Test
+    void testExplicitWallHeightParameter() {
+        // wallHeight=400 → все стены 400 см
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 400.0);
+        params.put("height", 300.0);
+        params.put("wallHeight", 400.0);
+
+        Request req = new Request("create_walls", params);
+        handler.execute(req, accessor);
+
+        for (Wall w : home.getWalls()) {
+            assertEquals(400.0f, w.getHeight(), 0.01f,
+                    "Wall height should match explicit wallHeight parameter");
+        }
+    }
+
+    @Test
+    void testExplicitWallHeightOverridesHomeDefault() {
+        // Home default=320, wallHeight=400 → параметр приоритетнее
+        home = new Home(320f);
+        accessor = new HomeAccessor(home, null);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 400.0);
+        params.put("height", 300.0);
+        params.put("wallHeight", 400.0);
+
+        Request req = new Request("create_walls", params);
+        handler.execute(req, accessor);
+
+        for (Wall w : home.getWalls()) {
+            assertEquals(400.0f, w.getHeight(), 0.01f,
+                    "Explicit wallHeight should override Home default");
+        }
+    }
+
+    @Test
+    void testWallHeightZeroFallsBackToHomeDefault() {
+        // wallHeight=0 (явно) + Home default=300 → 300 см
+        home = new Home(300f);
+        accessor = new HomeAccessor(home, null);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 400.0);
+        params.put("height", 300.0);
+        params.put("wallHeight", 0.0);
+
+        Request req = new Request("create_walls", params);
+        handler.execute(req, accessor);
+
+        for (Wall w : home.getWalls()) {
+            assertEquals(300.0f, w.getHeight(), 0.01f,
+                    "wallHeight=0 should fall back to Home default");
+        }
+    }
+
+    @Test
+    void testAllFourWallsHaveSameHeight() {
+        // Все 4 стены должны иметь одинаковую высоту
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 500.0);
+        params.put("height", 400.0);
+        params.put("wallHeight", 275.0);
+
+        Request req = new Request("create_walls", params);
+        handler.execute(req, accessor);
+
+        List<Wall> walls = new ArrayList<>(home.getWalls());
+        assertEquals(4, walls.size());
+
+        Float firstHeight = walls.get(0).getHeight();
+        assertNotNull(firstHeight, "Wall height should not be null");
+        for (int i = 1; i < walls.size(); i++) {
+            assertEquals(firstHeight, walls.get(i).getHeight(), 0.01f,
+                    "Wall " + i + " height should match wall 0");
+        }
+    }
+
     private Wall findWall(List<Wall> walls, float xs, float ys, float xe, float ye) {
         for (Wall w : walls) {
             if (Math.abs(w.getXStart() - xs) < 0.01f

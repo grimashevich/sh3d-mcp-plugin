@@ -39,7 +39,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 ## Технический долг
 
 - [x] TcpServerTest: интеграционные тесты (10 тестов: lifecycle, ping, ошибки, multi-client, etc.)
-- [ ] Тесты для wall height fix (CreateWallsHandler)
+- [x] Тесты для wall height fix (CreateWallsHandler) -- 6 тестов
 - [ ] Исследовать race condition: текст меню не обновляется при toggle
 
 ### set_camera — улучшить описание для AI-агентов [P0, Low]
