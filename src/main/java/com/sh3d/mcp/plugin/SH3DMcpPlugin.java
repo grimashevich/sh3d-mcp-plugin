@@ -7,6 +7,7 @@ import com.sh3d.mcp.command.AddDimensionLineHandler;
 import com.sh3d.mcp.command.AddLabelHandler;
 import com.sh3d.mcp.command.AddLevelHandler;
 import com.sh3d.mcp.command.ApplyTextureHandler;
+import com.sh3d.mcp.command.BatchCommandsHandler;
 import com.sh3d.mcp.command.ClearSceneHandler;
 import com.sh3d.mcp.command.CommandRegistry;
 import com.sh3d.mcp.command.CreateRoomPolygonHandler;
@@ -182,6 +183,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("set_selected_level", new SetSelectedLevelHandler());
         registry.register("store_camera", new StoreCameraHandler());
         registry.register("get_cameras", new GetCamerasHandler());
+        registry.register("batch_commands", new BatchCommandsHandler(registry));
         registry.register("describe_commands", new DescribeCommandsHandler(registry));
         return registry;
     }
