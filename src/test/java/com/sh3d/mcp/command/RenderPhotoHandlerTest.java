@@ -1,13 +1,17 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.Camera;
+import com.eteks.sweethome3d.model.Home;
+import com.eteks.sweethome3d.model.HomePieceOfFurniture;
+import com.eteks.sweethome3d.model.Room;
+import com.eteks.sweethome3d.model.Wall;
+import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
-import com.sh3d.mcp.bridge.HomeAccessor;
-import com.eteks.sweethome3d.model.Home;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +31,9 @@ class RenderPhotoHandlerTest {
         accessor = new HomeAccessor(home, null);
     }
 
-    // --- Validation tests ---
+    // ==========================================================
+    // Existing validation tests
+    // ==========================================================
 
     @Test
     void testInvalidWidthZero() {
@@ -71,7 +77,9 @@ class RenderPhotoHandlerTest {
         assertTrue(resp.getMessage().contains("quality"));
     }
 
-    // --- Descriptor tests ---
+    // ==========================================================
+    // Existing descriptor tests
+    // ==========================================================
 
     @Test
     void testToolName() {
@@ -97,7 +105,6 @@ class RenderPhotoHandlerTest {
         Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
         assertNotNull(properties);
 
-        // Все ожидаемые параметры
         assertTrue(properties.containsKey("width"));
         assertTrue(properties.containsKey("height"));
         assertTrue(properties.containsKey("quality"));
@@ -151,7 +158,387 @@ class RenderPhotoHandlerTest {
         assertTrue(handler instanceof CommandHandler);
     }
 
-    // --- Helper ---
+    // ==========================================================
+    // Overhead validation tests
+    // ==========================================================
+
+    @Test
+    void testOverheadIncompatibleWithX() {
+        Response resp = execute("view", "overhead", "x", 100.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("x/y/z"));
+    }
+
+    @Test
+    void testOverheadIncompatibleWithY() {
+        Response resp = execute("view", "overhead", "y", 200.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("x/y/z"));
+    }
+
+    @Test
+    void testOverheadIncompatibleWithZ() {
+        Response resp = execute("view", "overhead", "z", 300.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("x/y/z"));
+    }
+
+    @Test
+    void testOverheadIncompatibleWithYaw() {
+        Response resp = execute("view", "overhead", "yaw", 90.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("yaw"));
+    }
+
+    @Test
+    void testOverheadInvalidAngles() {
+        Response resp = execute("view", "overhead", "angles", 3.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("angles"));
+    }
+
+    @Test
+    void testOverheadInvalidAnglesZero() {
+        Response resp = execute("view", "overhead", "angles", 0.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("angles"));
+    }
+
+    @Test
+    void testOverheadInvalidPitchNegative() {
+        addWalls();
+        Response resp = execute("view", "overhead", "pitch", -10.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("pitch"));
+    }
+
+    @Test
+    void testOverheadInvalidPitchOver90() {
+        addWalls();
+        Response resp = execute("view", "overhead", "pitch", 91.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("pitch"));
+    }
+
+    @Test
+    void testOverheadInvalidPitchZero() {
+        addWalls();
+        Response resp = execute("view", "overhead", "pitch", 0.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("pitch"));
+    }
+
+    @Test
+    void testOverheadEmptyScene() {
+        Response resp = execute("view", "overhead");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("empty"));
+    }
+
+    @Test
+    void testInvalidViewValue() {
+        Response resp = execute("view", "birds_eye");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("overhead"));
+    }
+
+    // ==========================================================
+    // Overhead schema tests
+    // ==========================================================
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsViewProperty() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("view"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsAnglesProperty() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("angles"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaViewEnum() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        Map<String, Object> viewProp = (Map<String, Object>) properties.get("view");
+
+        assertEquals("string", viewProp.get("type"));
+        List<String> enumValues = (List<String>) viewProp.get("enum");
+        assertNotNull(enumValues);
+        assertTrue(enumValues.contains("overhead"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaAnglesDefault() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        Map<String, Object> anglesProp = (Map<String, Object>) properties.get("angles");
+
+        assertEquals("integer", anglesProp.get("type"));
+        assertEquals(4, anglesProp.get("default"));
+    }
+
+    // ==========================================================
+    // Description tests
+    // ==========================================================
+
+    @Test
+    void testDescriptionMentionsOverhead() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("overhead"));
+    }
+
+    @Test
+    void testDescriptionRecommendsOverhead() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("RECOMMENDED"));
+    }
+
+    // ==========================================================
+    // SceneBounds tests
+    // ==========================================================
+
+    @Test
+    void testSceneBoundsEmptyScene() {
+        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        assertNull(bounds);
+    }
+
+    @Test
+    void testSceneBoundsWallsOnly() {
+        addWalls(); // Прямоугольник 0,0 -> 500,400
+        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        assertNotNull(bounds);
+
+        // Стены имеют толщину, поэтому bounds немного выходят за точки
+        assertTrue(bounds.minX <= 0, "minX should be <= 0, got " + bounds.minX);
+        assertTrue(bounds.minY <= 0, "minY should be <= 0, got " + bounds.minY);
+        assertTrue(bounds.maxX >= 500, "maxX should be >= 500, got " + bounds.maxX);
+        assertTrue(bounds.maxY >= 400, "maxY should be >= 400, got " + bounds.maxY);
+        assertTrue(bounds.maxZ > 0, "maxZ should be > 0");
+        assertEquals((bounds.minX + bounds.maxX) / 2, bounds.centerX, 1.0);
+        assertEquals((bounds.minY + bounds.maxY) / 2, bounds.centerY, 1.0);
+    }
+
+    @Test
+    void testSceneBoundsWithFurniture() {
+        addWalls(); // 0,0 -> 500,400
+        // Мебель за пределами стен
+        HomePieceOfFurniture piece = new HomePieceOfFurniture(
+                new com.eteks.sweethome3d.model.CatalogPieceOfFurniture(
+                        "Test Table", null, null, 50f, 50f, 100f, true, false));
+        piece.setX(600);
+        piece.setY(200);
+        home.addPieceOfFurniture(piece);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        assertNotNull(bounds);
+        assertTrue(bounds.maxX >= 600, "Furniture should expand maxX, got " + bounds.maxX);
+    }
+
+    @Test
+    void testSceneBoundsWithRooms() {
+        // Только комнаты, без стен
+        float[][] points = {{0, 0}, {600, 0}, {600, 500}, {0, 500}};
+        Room room = new Room(points);
+        home.addRoom(room);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        assertNotNull(bounds);
+        assertTrue(bounds.minX <= 0, "minX should be <= 0");
+        assertTrue(bounds.maxX >= 600, "maxX should be >= 600");
+        assertTrue(bounds.maxY >= 500, "maxY should be >= 500");
+    }
+
+    @Test
+    void testSceneBoundsInvisibleFurnitureIgnored() {
+        addWalls(); // 0,0 -> 500,400
+        HomePieceOfFurniture piece = new HomePieceOfFurniture(
+                new com.eteks.sweethome3d.model.CatalogPieceOfFurniture(
+                        "Hidden Item", null, null, 50f, 50f, 100f, true, false));
+        piece.setX(900);
+        piece.setY(200);
+        piece.setVisible(false);
+        home.addPieceOfFurniture(piece);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        assertNotNull(bounds);
+        assertTrue(bounds.maxX < 900, "Invisible furniture should not expand bounds, maxX=" + bounds.maxX);
+    }
+
+    @Test
+    void testSceneBoundsMinimumMaxZ() {
+        // Комната без стен — maxZ должен быть минимум 100
+        float[][] points = {{0, 0}, {100, 0}, {100, 100}, {0, 100}};
+        Room room = new Room(points);
+        home.addRoom(room);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        assertNotNull(bounds);
+        assertTrue(bounds.maxZ >= 100, "maxZ should be at least 100, got " + bounds.maxZ);
+    }
+
+    // ==========================================================
+    // Camera positioning tests
+    // ==========================================================
+
+    @Test
+    void testOverheadCameraNWPosition() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+
+        // yaw=315: camera in NW, looking SE
+        // NW = x < centerX, y < centerY
+        assertTrue(cam.getX() < bounds.centerX,
+                "Camera X should be < centerX for NW, got " + cam.getX());
+        assertTrue(cam.getY() < bounds.centerY,
+                "Camera Y should be < centerY for NW, got " + cam.getY());
+    }
+
+    @Test
+    void testOverheadCameraSEPosition() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 135, 30, 63, 800, 600);
+
+        // yaw=135: camera in SE, looking NW
+        assertTrue(cam.getX() > bounds.centerX,
+                "Camera X should be > centerX for SE, got " + cam.getX());
+        assertTrue(cam.getY() > bounds.centerY,
+                "Camera Y should be > centerY for SE, got " + cam.getY());
+    }
+
+    @Test
+    void testOverheadCameraZAboveScene() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+
+        assertTrue(cam.getZ() > bounds.maxZ,
+                "Camera Z should be above scene maxZ, got " + cam.getZ() + " vs maxZ=" + bounds.maxZ);
+    }
+
+    @Test
+    void testOverheadCameraPitchApplied() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+
+        assertEquals(Math.toRadians(30), cam.getPitch(), 0.001,
+                "Pitch should be 30 degrees in radians");
+    }
+
+    @Test
+    void testOverheadCameraCustomPitch() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 45, 63, 800, 600);
+
+        assertEquals(Math.toRadians(45), cam.getPitch(), 0.001,
+                "Pitch should be 45 degrees in radians");
+    }
+
+    @Test
+    void testOverheadCameraFovApplied() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+
+        assertEquals(Math.toRadians(63), cam.getFieldOfView(), 0.001,
+                "FOV should be 63 degrees in radians");
+    }
+
+    @Test
+    void testOverheadCameraYawApplied() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+
+        assertEquals(Math.toRadians(315), cam.getYaw(), 0.001,
+                "Yaw should be 315 degrees in radians");
+    }
+
+    @Test
+    void testOverheadCameraAllFourPositions() {
+        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
+
+        // Все 4 камеры должны быть в разных квадрантах
+        Camera nw = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera se = handler.computeOverheadCamera(template, bounds, 135, 30, 63, 800, 600);
+        Camera ne = handler.computeOverheadCamera(template, bounds, 45, 30, 63, 800, 600);
+        Camera sw = handler.computeOverheadCamera(template, bounds, 225, 30, 63, 800, 600);
+
+        // NW: x < center, y < center
+        assertTrue(nw.getX() < bounds.centerX && nw.getY() < bounds.centerY, "NW position");
+        // SE: x > center, y > center
+        assertTrue(se.getX() > bounds.centerX && se.getY() > bounds.centerY, "SE position");
+        // NE: x > center, y < center
+        assertTrue(ne.getX() > bounds.centerX && ne.getY() < bounds.centerY, "NE position");
+        // SW: x < center, y > center
+        assertTrue(sw.getX() < bounds.centerX && sw.getY() > bounds.centerY, "SW position");
+    }
+
+    // ==========================================================
+    // Helper method tests
+    // ==========================================================
+
+    @Test
+    void testGenerateIndexedFilePath() {
+        assertEquals("scene_1.png",
+                RenderPhotoHandler.generateIndexedFilePath("scene.png", 1));
+    }
+
+    @Test
+    void testGenerateIndexedFilePathNoExtension() {
+        assertEquals("scene_2",
+                RenderPhotoHandler.generateIndexedFilePath("scene", 2));
+    }
+
+    @Test
+    void testGenerateIndexedFilePathWithDirectory() {
+        assertEquals("C:/renders/scene_3.png",
+                RenderPhotoHandler.generateIndexedFilePath("C:/renders/scene.png", 3));
+    }
+
+    @Test
+    void testGenerateIndexedFilePathCaseInsensitive() {
+        assertEquals("photo_1.png",
+                RenderPhotoHandler.generateIndexedFilePath("photo.PNG", 1));
+    }
+
+    // ==========================================================
+    // Constants tests
+    // ==========================================================
+
+    @Test
+    void testOverheadYawsLength() {
+        assertEquals(4, RenderPhotoHandler.OVERHEAD_YAWS.length);
+    }
+
+    @Test
+    void testOverheadLabelsLength() {
+        assertEquals(4, RenderPhotoHandler.OVERHEAD_LABELS.length);
+    }
+
+    @Test
+    void testOverheadLabelsMatchYaws() {
+        assertEquals(RenderPhotoHandler.OVERHEAD_YAWS.length,
+                RenderPhotoHandler.OVERHEAD_LABELS.length);
+    }
+
+    // ==========================================================
+    // Helpers
+    // ==========================================================
 
     private Response execute(Object... keyValues) {
         Map<String, Object> params = new LinkedHashMap<>();
@@ -159,5 +546,33 @@ class RenderPhotoHandlerTest {
             params.put((String) keyValues[i], keyValues[i + 1]);
         }
         return handler.execute(new Request("render_photo", params), accessor);
+    }
+
+    /** Добавляет 4 стены: прямоугольник 0,0 -> 500,400, высота 250. */
+    private void addWalls() {
+        Wall w1 = new Wall(0, 0, 500, 0, 10, 250);
+        Wall w2 = new Wall(500, 0, 500, 400, 10, 250);
+        Wall w3 = new Wall(500, 400, 0, 400, 10, 250);
+        Wall w4 = new Wall(0, 400, 0, 0, 10, 250);
+        home.addWall(w1);
+        home.addWall(w2);
+        home.addWall(w3);
+        home.addWall(w4);
+    }
+
+    /** Создаёт SceneBounds для тестов камеры. */
+    private static RenderPhotoHandler.SceneBounds createTestBounds(
+            float minX, float minY, float maxX, float maxY, float maxZ) {
+        RenderPhotoHandler.SceneBounds bounds = new RenderPhotoHandler.SceneBounds();
+        bounds.minX = minX;
+        bounds.minY = minY;
+        bounds.maxX = maxX;
+        bounds.maxY = maxY;
+        bounds.maxZ = maxZ;
+        bounds.centerX = (minX + maxX) / 2;
+        bounds.centerY = (minY + maxY) / 2;
+        bounds.sceneWidth = maxX - minX;
+        bounds.sceneDepth = maxY - minY;
+        return bounds;
     }
 }
