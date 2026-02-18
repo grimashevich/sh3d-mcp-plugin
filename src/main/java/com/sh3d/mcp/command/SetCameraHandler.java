@@ -143,10 +143,28 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
     public String getDescription() {
         return "Sets the camera mode and optionally adjusts position. "
                 + "Use mode 'top' for a top-down 2D view, or 'observer' for a 3D perspective view. "
-                + "When using 'observer', you can set x, y, z position (in cm), "
-                + "yaw/pitch rotation (in degrees), and field of view. "
                 + "Alternatively, use 'name' to restore a previously stored camera viewpoint "
-                + "(saved via store_camera). When 'name' is provided, 'mode' is not required.";
+                + "(saved via store_camera). When 'name' is provided, 'mode' is not required.\n\n"
+                + "COORDINATE SYSTEM (observer mode):\n"
+                + "- X axis: increases to the right on the 2D plan\n"
+                + "- Y axis: increases downward on the 2D plan (screen coordinates)\n"
+                + "- Z axis: height above ground floor, increases upward\n\n"
+                + "YAW (horizontal rotation, degrees):\n"
+                + "- 0 = looking south (toward +Y)\n"
+                + "- 90 = looking west (toward -X)\n"
+                + "- 180 = looking north (toward -Y)\n"
+                + "- 270 = looking east (toward +X)\n"
+                + "- Increases clockwise when viewed from above\n\n"
+                + "PITCH (vertical tilt, degrees):\n"
+                + "- 0 = looking horizontally\n"
+                + "- Positive values = looking downward\n"
+                + "- Negative values = looking upward\n\n"
+                + "TYPICAL VALUES:\n"
+                + "- z=170 approximates human eye height (170 cm)\n"
+                + "- pitch=10..20 gives a natural slight downward look\n"
+                + "- fov=63 is the default field of view\n\n"
+                + "EXAMPLE: To place a camera in the NW corner of a 500x400 room looking "
+                + "diagonally toward the SE center, use x=50, y=50, z=170, yaw=135, pitch=15.";
     }
 
     @Override
@@ -157,12 +175,12 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("mode", enumProp("Camera mode: 'top' (2D plan view) or 'observer' (3D perspective). Not required if 'name' is provided.", "observer", "top"));
         properties.put("name", prop("string", "Name of a stored camera viewpoint to restore (saved via store_camera). When provided, mode is not required."));
-        properties.put("x", prop("number", "Camera X position in cm (observer mode only)"));
-        properties.put("y", prop("number", "Camera Y position in cm (observer mode only)"));
-        properties.put("z", prop("number", "Camera Z (height) position in cm (observer mode only)"));
-        properties.put("yaw", prop("number", "Camera horizontal rotation in degrees (observer mode only)"));
-        properties.put("pitch", prop("number", "Camera vertical tilt in degrees (observer mode only)"));
-        properties.put("fov", prop("number", "Camera field of view in degrees (observer mode only, default ~63)"));
+        properties.put("x", prop("number", "Camera X position in cm. X increases to the right on the 2D plan. Observer mode only."));
+        properties.put("y", prop("number", "Camera Y position in cm. Y increases downward on the 2D plan (screen coordinates). Observer mode only."));
+        properties.put("z", prop("number", "Camera height above ground in cm. Typical: 170 (eye level). Observer mode only."));
+        properties.put("yaw", prop("number", "Horizontal rotation in degrees. 0=south(+Y), 90=west(-X), 180=north(-Y), 270=east(+X). Increases clockwise from above. Observer mode only."));
+        properties.put("pitch", prop("number", "Vertical tilt in degrees. 0=horizontal, positive=down, negative=up. Typical: 10-20 for natural view. Observer mode only."));
+        properties.put("fov", prop("number", "Field of view in degrees. Default ~63. Observer mode only."));
 
         schema.put("properties", properties);
         // Neither mode nor name is strictly required — one of them must be provided
