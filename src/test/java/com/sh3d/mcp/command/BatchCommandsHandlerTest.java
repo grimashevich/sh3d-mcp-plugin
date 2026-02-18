@@ -29,7 +29,8 @@ class BatchCommandsHandlerTest {
         home = new Home();
         accessor = new HomeAccessor(home, null);
         registry = new CommandRegistry();
-        registry.register("ping", new PingHandler());
+        registry.register("ping", (req, acc) ->
+                Response.ok(Collections.singletonMap("pong", true)));
         registry.register("create_wall", new CreateWallHandler());
         registry.register("connect_walls", new ConnectWallsHandler());
         handler = new BatchCommandsHandler(registry);

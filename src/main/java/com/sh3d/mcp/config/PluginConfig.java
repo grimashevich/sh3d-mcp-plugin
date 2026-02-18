@@ -13,20 +13,17 @@ import java.util.Properties;
 public class PluginConfig {
 
     public static final int DEFAULT_PORT = 9877;
-    public static final int DEFAULT_MAX_LINE_LENGTH = 65536;
     public static final int DEFAULT_EDT_TIMEOUT = 10000;
     public static final boolean DEFAULT_AUTO_START = true;
     public static final String DEFAULT_LOG_LEVEL = "INFO";
 
     private final int port;
-    private final int maxLineLength;
     private final int edtTimeout;
     private final boolean autoStart;
     private final String logLevel;
 
-    private PluginConfig(int port, int maxLineLength, int edtTimeout, boolean autoStart, String logLevel) {
+    private PluginConfig(int port, int edtTimeout, boolean autoStart, String logLevel) {
         this.port = port;
-        this.maxLineLength = maxLineLength;
         this.edtTimeout = edtTimeout;
         this.autoStart = autoStart;
         this.logLevel = logLevel;
@@ -43,20 +40,15 @@ public class PluginConfig {
             throw new IllegalArgumentException(
                     "Invalid port: " + port + " (must be 1-65535)");
         }
-        int maxLine = getInt("sh3d.mcp.maxLineLength", fileProps, DEFAULT_MAX_LINE_LENGTH);
         int edtTimeout = getInt("sh3d.mcp.edtTimeout", fileProps, DEFAULT_EDT_TIMEOUT);
         boolean autoStart = getBoolean("sh3d.mcp.autoStart", fileProps, DEFAULT_AUTO_START);
         String logLevel = getString("sh3d.mcp.logLevel", fileProps, DEFAULT_LOG_LEVEL);
 
-        return new PluginConfig(port, maxLine, edtTimeout, autoStart, logLevel);
+        return new PluginConfig(port, edtTimeout, autoStart, logLevel);
     }
 
     public int getPort() {
         return port;
-    }
-
-    public int getMaxLineLength() {
-        return maxLineLength;
     }
 
     public int getEdtTimeout() {

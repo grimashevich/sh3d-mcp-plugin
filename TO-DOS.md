@@ -1,6 +1,6 @@
 # TO-DOS -- Sweet Home 3D MCP Plugin
 
-Roadmap и текущие задачи. Вся разработка -- в plugin/, MCP-сервер трогать не нужно (auto-discovery).
+Roadmap и текущие задачи. Плагин содержит встроенный MCP-сервер (Streamable HTTP).
 
 Детали API: [../RESEARCH.md](../RESEARCH.md)
 
@@ -33,6 +33,15 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 - [x] export_to_obj (6 тестов, живой тест OK)
 - [x] save_home (7 тестов)
 - [x] batch_commands (21 тест, живой тест OK)
+
+---
+
+## Фаза 6 (v0.6) -- Built-in MCP & UX
+
+- [x] Встроенный MCP-сервер (Streamable HTTP) — заменить TCP+внешний MCP-сервер на единый HTTP endpoint `/mcp` (667 тестов, живой тест OK)
+- [ ] render_photo: параметр `view: "overhead"` — автоматический 3D-рендер сверху (bird's eye): вычислять bounding box сцены, ставить камеру по центру, pitch=90, подбирать z и fov
+- [ ] UI диалог настройки агентов (ConfigureAction) — пункт меню "MCP: Configure Agents" с кнопками для автоконфигурации Claude Desktop, Claude Code и текстовым полем с JSON для копирования
+- [ ] Обновить документацию (CLAUDE.md, ARCHITECTURE.md) — убрать TCP-протокол, добавить HTTP MCP, обновить архитектурную диаграмму
 
 ---
 

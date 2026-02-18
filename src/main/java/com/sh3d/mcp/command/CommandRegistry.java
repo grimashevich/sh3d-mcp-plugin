@@ -57,7 +57,7 @@ public class CommandRegistry {
 
     /**
      * Возвращает неизменяемое представление зарегистрированных обработчиков.
-     * Используется DescribeCommandsHandler для итерации.
+     * Используется McpRequestHandler для итерации при tools/list.
      */
     public Map<String, CommandHandler> getHandlers() {
         return Collections.unmodifiableMap(handlers);

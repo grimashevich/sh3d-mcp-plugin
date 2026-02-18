@@ -20,7 +20,8 @@ class CommandRegistryTest {
     @BeforeEach
     void setUp() {
         registry = new CommandRegistry();
-        registry.register("ping", new PingHandler());
+        registry.register("ping", (req, acc) ->
+                Response.ok(Collections.singletonMap("version", "0.1.0")));
         mockAccessor = mock(HomeAccessor.class);
     }
 

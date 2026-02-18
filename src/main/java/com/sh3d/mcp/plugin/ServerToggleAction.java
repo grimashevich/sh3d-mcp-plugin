@@ -2,8 +2,8 @@ package com.sh3d.mcp.plugin;
 
 import com.eteks.sweethome3d.plugin.Plugin;
 import com.eteks.sweethome3d.plugin.PluginAction;
+import com.sh3d.mcp.http.HttpMcpServer;
 import com.sh3d.mcp.server.ServerState;
-import com.sh3d.mcp.server.TcpServer;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -11,28 +11,28 @@ import java.util.logging.Logger;
 
 /**
  * Пункт меню "MCP Server: Start / Stop".
- * Переключает состояние TCP-сервера.
+ * Переключает состояние HTTP MCP-сервера.
  * Текст обновляется через state listener — всегда соответствует реальному состоянию.
  */
 public class ServerToggleAction extends PluginAction {
 
     private static final Logger LOG = Logger.getLogger(ServerToggleAction.class.getName());
 
-    private final TcpServer tcpServer;
+    private final HttpMcpServer httpServer;
 
-    public ServerToggleAction(Plugin plugin, TcpServer tcpServer) {
+    public ServerToggleAction(Plugin plugin, HttpMcpServer httpServer) {
         super();
-        this.tcpServer = tcpServer;
+        this.httpServer = httpServer;
         putPropertyValue(Property.MENU, "Tools");
-        updateMenuText(tcpServer.getState());
+        updateMenuText(httpServer.getState());
         setEnabled(true);
 
-        tcpServer.addStateListener((oldState, newState) -> {
+        httpServer.addStateListener((oldState, newState) -> {
             updateMenuText(newState);
             if (oldState == ServerState.STARTING && newState == ServerState.STOPPED) {
-                Exception error = tcpServer.getLastStartupError();
+                Exception error = httpServer.getLastStartupError();
                 if (error != null) {
-                    showStartupError(tcpServer.getPort(), error);
+                    showStartupError(httpServer.getPort(), error);
                 }
             }
         });
@@ -40,11 +40,11 @@ public class ServerToggleAction extends PluginAction {
 
     @Override
     public void execute() {
-        if (tcpServer.getState() != ServerState.STOPPED) {
-            tcpServer.stop();
+        if (httpServer.getState() != ServerState.STOPPED) {
+            httpServer.stop();
             LOG.info("MCP Server stopped by user");
         } else {
-            tcpServer.start();
+            httpServer.start();
             LOG.info("MCP Server started by user");
         }
     }
