@@ -14,6 +14,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.BindException;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -233,6 +235,81 @@ class TcpServerTest {
 
         assertTrue(transitions.isEmpty(), "Removed listener should not be called");
         server = fresh;
+    }
+
+    @Test
+    void testLastStartupErrorNullOnSuccess() {
+        assertNull(server.getLastStartupError());
+    }
+
+    @Test
+    void testLastStartupErrorSetOnBindFailure() throws Exception {
+        // server is already running on 'port' — start another on the same port
+        PluginConfig config2 = mock(PluginConfig.class);
+        when(config2.getPort()).thenReturn(port);
+        when(config2.getMaxLineLength()).thenReturn(65536);
+
+        CommandRegistry registry = new CommandRegistry();
+        registry.register("ping", new PingHandler());
+        HomeAccessor mockAccessor = mock(HomeAccessor.class);
+
+        TcpServer second = new TcpServer(config2, registry, mockAccessor);
+        second.start();
+
+        // Wait for second server to fail and return to STOPPED
+        for (int i = 0; i < 50; i++) {
+            if (second.getState() == ServerState.STOPPED && second.getLastStartupError() != null) break;
+            Thread.sleep(50);
+        }
+
+        assertEquals(ServerState.STOPPED, second.getState());
+        assertNotNull(second.getLastStartupError());
+        assertInstanceOf(BindException.class, second.getLastStartupError());
+    }
+
+    @Test
+    void testLastStartupErrorClearedOnRetry() throws Exception {
+        // Occupy a specific port
+        try (ServerSocket blocker = new ServerSocket(0)) {
+            int blockedPort = blocker.getLocalPort();
+
+            PluginConfig config2 = mock(PluginConfig.class);
+            when(config2.getPort()).thenReturn(blockedPort);
+            when(config2.getMaxLineLength()).thenReturn(65536);
+
+            CommandRegistry registry = new CommandRegistry();
+            registry.register("ping", new PingHandler());
+            HomeAccessor mockAccessor = mock(HomeAccessor.class);
+
+            TcpServer retryServer = new TcpServer(config2, registry, mockAccessor);
+
+            // First attempt — should fail
+            retryServer.start();
+            for (int i = 0; i < 50; i++) {
+                if (retryServer.getState() == ServerState.STOPPED
+                        && retryServer.getLastStartupError() != null) break;
+                Thread.sleep(50);
+            }
+            assertNotNull(retryServer.getLastStartupError(), "Error should be set after bind failure");
+
+            // Release the port — blocker closes at end of try-with-resources
+            // but we need it released now for the retry
+            blocker.close();
+
+            // Retry with ephemeral port
+            // We can't change port on existing instance, so just verify the error is cleared on start()
+            // Use reflection-free approach: the error field is cleared in start()
+            // Since the port is still set to blockedPort (now free), retry should succeed
+            retryServer.start();
+            for (int i = 0; i < 50; i++) {
+                if (retryServer.isRunning()) break;
+                Thread.sleep(50);
+            }
+
+            assertTrue(retryServer.isRunning());
+            assertNull(retryServer.getLastStartupError(), "Error should be cleared on successful retry");
+            retryServer.stop();
+        }
     }
 
     // -- helpers --
