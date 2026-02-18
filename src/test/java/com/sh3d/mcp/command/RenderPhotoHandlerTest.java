@@ -84,6 +84,8 @@ class RenderPhotoHandlerTest {
         assertNotNull(desc);
         assertFalse(desc.isEmpty());
         assertTrue(desc.contains("ray-trac") || desc.contains("render") || desc.contains("photo"));
+        assertTrue(desc.contains("filePath") || desc.contains("file"),
+                "Description should mention file saving capability");
     }
 
     @Test
@@ -99,12 +101,25 @@ class RenderPhotoHandlerTest {
         assertTrue(properties.containsKey("width"));
         assertTrue(properties.containsKey("height"));
         assertTrue(properties.containsKey("quality"));
+        assertTrue(properties.containsKey("filePath"));
         assertTrue(properties.containsKey("x"));
         assertTrue(properties.containsKey("y"));
         assertTrue(properties.containsKey("z"));
         assertTrue(properties.containsKey("yaw"));
         assertTrue(properties.containsKey("pitch"));
         assertTrue(properties.containsKey("fov"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaFilePathProperty() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        Map<String, Object> filePathProp = (Map<String, Object>) properties.get("filePath");
+
+        assertEquals("string", filePathProp.get("type"));
+        assertNotNull(filePathProp.get("description"));
+        assertFalse(((String) filePathProp.get("description")).isEmpty());
     }
 
     @Test

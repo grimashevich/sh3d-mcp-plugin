@@ -11,6 +11,10 @@ import com.sh3d.mcp.protocol.Response;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -27,6 +31,7 @@ import java.util.logging.Logger;
  *   width      — ширина изображения в пикселях (default 800, max 4096)
  *   height     — высота изображения в пикселях (default 600, max 4096)
  *   quality    — "low" (быстрый) или "high" (ray-trace) (default "low")
+ *   filePath   — путь к файлу для сохранения PNG (опционально, если указан — возвращает filePath вместо base64)
  *   x, y, z    — позиция камеры в см (опционально)
  *   yaw        — горизонтальный поворот в градусах (опционально)
  *   pitch      — вертикальный наклон в градусах (опционально)
@@ -65,6 +70,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         AbstractPhotoRenderer.Quality quality = "high".equals(qualityStr)
                 ? AbstractPhotoRenderer.Quality.HIGH
                 : AbstractPhotoRenderer.Quality.LOW;
+
+        // Опциональный путь для сохранения на диск
+        String filePath = request.getString("filePath");
 
         // Получаем камеру в EDT (быстро, thread-safe)
         boolean hasCustomCamera = request.getParams().containsKey("x")
@@ -112,16 +120,36 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             renderer = new PhotoRenderer(home, quality);
             renderer.render(image, camera, null);
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", baos);
-            String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
-
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("png_base64", base64);
+            int sizeBytes;
+
+            if (filePath != null && !filePath.trim().isEmpty()) {
+                // Сохраняем PNG на диск, не формируем base64
+                Path path = Paths.get(filePath).toAbsolutePath().normalize();
+                if (!path.toString().toLowerCase().endsWith(".png")) {
+                    path = Paths.get(path.toString() + ".png");
+                }
+                Path parent = path.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+                File file = path.toFile();
+                ImageIO.write(image, "png", file);
+                sizeBytes = (int) Files.size(path);
+                data.put("filePath", path.toString());
+            } else {
+                // Возвращаем base64 как раньше
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(image, "png", baos);
+                String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+                sizeBytes = baos.size();
+                data.put("png_base64", base64);
+            }
+
             data.put("width", width);
             data.put("height", height);
             data.put("quality", qualityStr);
-            data.put("size_bytes", baos.size());
+            data.put("size_bytes", sizeBytes);
 
             Map<String, Object> camInfo = new LinkedHashMap<>();
             camInfo.put("x", camera.getX());
@@ -133,7 +161,8 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             data.put("camera", camInfo);
 
             LOG.info("Rendered photo " + width + "x" + height + " (" + qualityStr
-                    + "), size=" + baos.size() + " bytes");
+                    + "), size=" + sizeBytes + " bytes"
+                    + (filePath != null ? ", saved to " + filePath : ""));
 
             return Response.ok(data);
         } catch (OutOfMemoryError e) {
@@ -157,9 +186,10 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     @Override
     public String getDescription() {
         return "Renders a 3D photo of the current scene using ray-tracing (Sunflow). "
-                + "Returns the image as base64-encoded PNG. Use quality 'low' for quick preview "
-                + "(seconds) or 'high' for photo-realistic output (may take longer). "
-                + "Optionally specify camera position and orientation.";
+                + "By default returns the image as base64-encoded PNG. "
+                + "If 'filePath' is provided, saves the PNG to disk and returns only metadata (no base64). "
+                + "Use quality 'low' for quick preview (seconds) or 'high' for photo-realistic output "
+                + "(may take longer). Optionally specify camera position and orientation.";
     }
 
     @Override
@@ -171,6 +201,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         properties.put("width", propWithDefault("integer", "Image width in pixels", DEFAULT_WIDTH));
         properties.put("height", propWithDefault("integer", "Image height in pixels", DEFAULT_HEIGHT));
         properties.put("quality", enumProp("Quality: 'low' (fast preview) or 'high' (ray-traced)", "low", "high"));
+        properties.put("filePath", prop("string",
+                "Absolute path to save the PNG file. If provided, the image is saved to disk "
+                        + "and only metadata is returned (no base64). The .png extension is added automatically if missing."));
         properties.put("x", prop("number", "Camera X position in cm (optional, uses current camera if omitted)"));
         properties.put("y", prop("number", "Camera Y position in cm"));
         properties.put("z", prop("number", "Camera Z (height) position in cm"));
