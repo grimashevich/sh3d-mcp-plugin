@@ -16,7 +16,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -162,6 +164,75 @@ class TcpServerTest {
     void testGetActualPortReturnsNegativeWhenStopped() {
         server.stop();
         assertEquals(-1, server.getActualPort());
+    }
+
+    @Test
+    void testStateListenerNotifiedOnStartAndStop() throws Exception {
+        // Fresh server for this test — the @BeforeEach one is already running
+        server.stop();
+
+        PluginConfig config = mock(PluginConfig.class);
+        when(config.getPort()).thenReturn(0);
+        when(config.getMaxLineLength()).thenReturn(65536);
+
+        CommandRegistry registry = new CommandRegistry();
+        registry.register("ping", new PingHandler());
+
+        HomeAccessor mockAccessor = mock(HomeAccessor.class);
+        TcpServer fresh = new TcpServer(config, registry, mockAccessor);
+
+        List<String> transitions = Collections.synchronizedList(new ArrayList<>());
+        fresh.addStateListener((oldState, newState) ->
+                transitions.add(oldState + "->" + newState));
+
+        fresh.start();
+        for (int i = 0; i < 50; i++) {
+            if (fresh.isRunning()) break;
+            Thread.sleep(50);
+        }
+
+        assertTrue(transitions.contains("STOPPED->STARTING"));
+        assertTrue(transitions.contains("STARTING->RUNNING"));
+
+        fresh.stop();
+
+        assertTrue(transitions.contains("RUNNING->STOPPING"));
+        assertTrue(transitions.contains("STOPPING->STOPPED"));
+
+        // Replace server ref so @AfterEach doesn't double-stop
+        server = fresh;
+    }
+
+    @Test
+    void testStateListenerRemovedNoLongerCalled() throws Exception {
+        server.stop();
+
+        PluginConfig config = mock(PluginConfig.class);
+        when(config.getPort()).thenReturn(0);
+        when(config.getMaxLineLength()).thenReturn(65536);
+
+        CommandRegistry registry = new CommandRegistry();
+        registry.register("ping", new PingHandler());
+
+        HomeAccessor mockAccessor = mock(HomeAccessor.class);
+        TcpServer fresh = new TcpServer(config, registry, mockAccessor);
+
+        List<String> transitions = Collections.synchronizedList(new ArrayList<>());
+        ServerStateListener listener = (oldState, newState) ->
+                transitions.add(oldState + "->" + newState);
+
+        fresh.addStateListener(listener);
+        fresh.removeStateListener(listener);
+
+        fresh.start();
+        for (int i = 0; i < 50; i++) {
+            if (fresh.isRunning()) break;
+            Thread.sleep(50);
+        }
+        fresh.stop();
+
+        assertTrue(transitions.isEmpty(), "Removed listener should not be called");
+        server = fresh;
     }
 
     // -- helpers --
