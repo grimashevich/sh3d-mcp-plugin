@@ -127,7 +127,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `list_furniture_catalog` | Каталог мебели с фильтрацией |
 | `list_levels` | Список всех уровней с указанием выбранного |
 | `list_textures_catalog` | Каталог текстур с фильтрацией |
-| `render_photo` | 3D-рендер сцены (Sunflow) |
+| `render_photo` | 3D-рендер сцены (Sunflow), опционально сохранение в файл (filePath) |
 | `export_plan_image` | Быстрый экспорт 2D-плана в PNG |
 | `export_svg` | Экспорт 2D-плана в SVG |
 | `export_to_obj` | Экспорт 3D-сцены в Wavefront OBJ (ZIP: OBJ + MTL + текстуры) |
