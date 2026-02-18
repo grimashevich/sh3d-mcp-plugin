@@ -30,7 +30,7 @@ Roadmap и текущие задачи. Вся разработка -- в plugin
 ## Фаза 5 (v0.5) -- Multi-level & Export
 
 - [x] add_level / list_levels / set_selected_level / delete_level -- 53 теста
-- [ ] export_to_obj
+- [x] export_to_obj (6 тестов, живой тест OK)
 - [ ] save_home
 - [ ] batch_commands
 
