@@ -517,6 +517,224 @@ class RenderPhotoHandlerTest {
     }
 
     // ==========================================================
+    // focusOn validation tests
+    // ==========================================================
+
+    @Test
+    void testFocusOnWithoutOverhead() {
+        Response resp = execute("focusOn", "furniture:0");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("focusOn"));
+        assertTrue(resp.getMessage().contains("overhead"));
+    }
+
+    @Test
+    void testFocusOnInvalidFormat() {
+        addWalls();
+        Response resp = execute("view", "overhead", "focusOn", "blah");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("focusOn"));
+    }
+
+    @Test
+    void testFocusOnInvalidType() {
+        addWalls();
+        Response resp = execute("view", "overhead", "focusOn", "wall:0");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("furniture"));
+        assertTrue(resp.getMessage().contains("room"));
+    }
+
+    @Test
+    void testFocusOnInvalidId() {
+        addWalls();
+        Response resp = execute("view", "overhead", "focusOn", "furniture:abc");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("numeric"));
+    }
+
+    @Test
+    void testFocusOnNegativeId() {
+        addWalls();
+        Response resp = execute("view", "overhead", "focusOn", "furniture:-1");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains(">= 0"));
+    }
+
+    @Test
+    void testFocusOnFurnitureNotFound() {
+        addWalls();
+        Response resp = execute("view", "overhead", "focusOn", "furniture:999");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("not found"));
+    }
+
+    @Test
+    void testFocusOnRoomNotFound() {
+        addWalls();
+        Response resp = execute("view", "overhead", "focusOn", "room:999");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("not found"));
+    }
+
+    // ==========================================================
+    // focusOn bounds tests
+    // ==========================================================
+
+    @Test
+    void testFocusBoundsFurniture() {
+        HomePieceOfFurniture piece = new HomePieceOfFurniture(
+                new com.eteks.sweethome3d.model.CatalogPieceOfFurniture(
+                        "Sofa", null, null, 200f, 80f, 90f, true, false));
+        piece.setX(300);
+        piece.setY(250);
+        home.addPieceOfFurniture(piece);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", 0);
+        assertNotNull(bounds);
+        // Центр bounds должен быть примерно в позиции мебели
+        assertEquals(300, bounds.centerX, 60);
+        assertEquals(250, bounds.centerY, 60);
+        // Bounds должны быть шире чем сам объект (padding)
+        assertTrue(bounds.sceneWidth > 200, "Width with padding should be > 200, got " + bounds.sceneWidth);
+        assertTrue(bounds.sceneDepth > 80, "Depth with padding should be > 80, got " + bounds.sceneDepth);
+    }
+
+    @Test
+    void testFocusBoundsRoom() {
+        float[][] points = {{100, 100}, {400, 100}, {400, 350}, {100, 350}};
+        Room room = new Room(points);
+        home.addRoom(room);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", 0);
+        assertNotNull(bounds);
+        // Центр = (250, 225), но с padding bounds шире
+        assertEquals(250, bounds.centerX, 1);
+        assertEquals(225, bounds.centerY, 1);
+        assertTrue(bounds.sceneWidth > 300, "Width with padding should be > 300, got " + bounds.sceneWidth);
+    }
+
+    @Test
+    void testFocusBoundsPaddingMinimum() {
+        // Очень маленький объект — padding должен быть >= MIN_FURNITURE_PADDING (100)
+        HomePieceOfFurniture piece = new HomePieceOfFurniture(
+                new com.eteks.sweethome3d.model.CatalogPieceOfFurniture(
+                        "Tiny", null, null, 10f, 10f, 10f, true, false));
+        piece.setX(200);
+        piece.setY(200);
+        home.addPieceOfFurniture(piece);
+
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", 0);
+        assertNotNull(bounds);
+        // С padding >= 200 с каждой стороны, ширина >= 400
+        assertTrue(bounds.sceneWidth >= 400, "Padding should ensure minimum width, got " + bounds.sceneWidth);
+        assertTrue(bounds.sceneDepth >= 400, "Padding should ensure minimum depth, got " + bounds.sceneDepth);
+    }
+
+    @Test
+    void testFocusBoundsFurnitureNotFound() {
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", 0);
+        assertNull(bounds);
+    }
+
+    @Test
+    void testFocusBoundsRoomNotFound() {
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", 0);
+        assertNull(bounds);
+    }
+
+    @Test
+    void testFocusBoundsInvalidType() {
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "wall", 0);
+        assertNull(bounds);
+    }
+
+    // ==========================================================
+    // Overhead environment tests
+    // ==========================================================
+
+    @Test
+    void testOverheadWallsAlphaConstant() {
+        assertTrue(RenderPhotoHandler.OVERHEAD_WALLS_ALPHA > 0,
+                "Walls alpha should be positive");
+        assertTrue(RenderPhotoHandler.OVERHEAD_WALLS_ALPHA < 1,
+                "Walls alpha should be less than 1 (not fully transparent)");
+    }
+
+    @Test
+    void testOverheadFloorColorConstant() {
+        // Default floor color should be a light gray
+        int color = RenderPhotoHandler.DEFAULT_FLOOR_COLOR;
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+        assertTrue(r > 128 && g > 128 && b > 128,
+                "Floor color should be light gray, got #" + Integer.toHexString(color));
+    }
+
+    // ==========================================================
+    // Overhead resolution tests
+    // ==========================================================
+
+    @Test
+    void testOverheadDefaultResolution() {
+        assertEquals(1200, RenderPhotoHandler.DEFAULT_OVERHEAD_WIDTH);
+        assertEquals(900, RenderPhotoHandler.DEFAULT_OVERHEAD_HEIGHT);
+    }
+
+    @Test
+    void testOverheadDefaultResolutionLargerThanStandard() {
+        assertTrue(RenderPhotoHandler.DEFAULT_OVERHEAD_WIDTH > 800,
+                "Overhead default width should be larger than standard 800");
+        assertTrue(RenderPhotoHandler.DEFAULT_OVERHEAD_HEIGHT > 600,
+                "Overhead default height should be larger than standard 600");
+    }
+
+    // ==========================================================
+    // focusOn angles defaults
+    // ==========================================================
+
+    @Test
+    void testFocusPaddingConstants() {
+        assertEquals(0.5f, RenderPhotoHandler.FURNITURE_PADDING_RATIO, 0.001);
+        assertEquals(200.0f, RenderPhotoHandler.MIN_FURNITURE_PADDING, 0.001);
+    }
+
+    // ==========================================================
+    // Schema focusOn tests
+    // ==========================================================
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsFocusOn() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("focusOn"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaFocusOnDescription() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        Map<String, Object> focusOnProp = (Map<String, Object>) properties.get("focusOn");
+        assertEquals("string", focusOnProp.get("type"));
+        String desc = (String) focusOnProp.get("description");
+        assertTrue(desc.contains("furniture") && desc.contains("room"),
+                "focusOn description should mention furniture and room");
+    }
+
+    // ==========================================================
+    // Description focusOn tests
+    // ==========================================================
+
+    @Test
+    void testDescriptionMentionsFocusOn() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("focusOn"));
+    }
+
+    // ==========================================================
     // Constants tests
     // ==========================================================
 
