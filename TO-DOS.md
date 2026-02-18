@@ -39,7 +39,7 @@ Roadmap и текущие задачи. Плагин содержит встро
 ## Фаза 6 (v0.6) -- Built-in MCP & UX
 
 - [x] Встроенный MCP-сервер (Streamable HTTP) — заменить TCP+внешний MCP-сервер на единый HTTP endpoint `/mcp` (667 тестов, живой тест OK)
-- [ ] render_photo: параметр `view: "overhead"` — автоматический 3D-рендер сверху (bird's eye): вычислять bounding box сцены, ставить камеру по центру, pitch=90, подбирать z и fov
+- [x] render_photo: параметр `view: "overhead"` — bird's eye orbit: 4 диагональных ракурса (NW, SE, NE, SW), pitch 30°, auto bounding box, filePath + base64 (39 новых тестов, живой тест OK)
 - [ ] UI диалог настройки агентов (ConfigureAction) — пункт меню "MCP: Configure Agents" с кнопками для автоконфигурации Claude Desktop, Claude Code и текстовым полем с JSON для копирования
 - [ ] Обновить документацию (CLAUDE.md, ARCHITECTURE.md) — убрать TCP-протокол, добавить HTTP MCP, обновить архитектурную диаграмму
 
