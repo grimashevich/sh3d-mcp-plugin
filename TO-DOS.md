@@ -51,6 +51,25 @@ Roadmap и текущие задачи. Плагин содержит встро
 
 ---
 
+## Фаза 7 (v0.7) — Улучшения UX
+
+### Возврат ID из команд создания [P1, High]
+
+Команды создания объектов должны возвращать ID, чтобы агент мог ссылаться на них в последующих операциях (modify, delete, connect). Сейчас не возвращают ID:
+
+- [ ] `create_walls` — возвращает `wallsCreated: 4`, но не массив wallId (нужны для connect_walls, place_door_or_window, modify_wall)
+- [ ] `place_furniture` — возвращает name/x/y/size, но не furnitureId (нужен для modify_furniture, delete_furniture)
+- [ ] `place_door_or_window` — возвращает name/x/y/size, но не furnitureId (аналогично)
+
+### Каталог поиска [P0, High] -- DONE
+
+- [x] Точное совпадение имени приоритетнее подстроки (CatalogSearchUtil)
+- [x] Disambiguация: ошибка с подсказкой при множественном exact match
+- [x] Параметр `catalogId` для точного выбора по ID каталога
+- [x] `catalogId` в выводе list_furniture_catalog и list_textures_catalog
+
+---
+
 ## Технический долг
 
 - [x] TcpServerTest: интеграционные тесты (10 тестов: lifecycle, ping, ошибки, multi-client, etc.)
