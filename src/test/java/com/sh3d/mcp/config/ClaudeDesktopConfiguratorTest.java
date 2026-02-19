@@ -18,8 +18,9 @@ class ClaudeDesktopConfiguratorTest {
     @Test
     void testGenerateMcpJsonDefaultPort() {
         String json = ClaudeDesktopConfigurator.generateMcpJson(9877);
-        assertTrue(json.contains("\"url\": \"http://localhost:9877/mcp\""));
-        assertTrue(json.contains("\"type\": \"http\""));
+        assertTrue(json.contains("\"command\": \"npx\""));
+        assertTrue(json.contains("\"mcp-remote\""));
+        assertTrue(json.contains("http://localhost:9877/mcp"));
         assertTrue(json.contains("\"sweethome3d\""));
         assertTrue(json.contains("\"mcpServers\""));
     }
@@ -27,7 +28,7 @@ class ClaudeDesktopConfiguratorTest {
     @Test
     void testGenerateMcpJsonCustomPort() {
         String json = ClaudeDesktopConfigurator.generateMcpJson(8080);
-        assertTrue(json.contains("\"url\": \"http://localhost:8080/mcp\""));
+        assertTrue(json.contains("http://localhost:8080/mcp"));
     }
 
     @Test
@@ -83,8 +84,9 @@ class ClaudeDesktopConfiguratorTest {
         Map<String, Object> mcpServers = (Map<String, Object>) root.get("mcpServers");
 
         Map<String, Object> serverEntry = new java.util.LinkedHashMap<>();
-        serverEntry.put("type", "http");
-        serverEntry.put("url", "http://localhost:9877/mcp");
+        serverEntry.put("command", "npx");
+        serverEntry.put("args", new java.util.ArrayList<>(java.util.Arrays.asList(
+                "-y", "mcp-remote", "http://localhost:9877/mcp")));
         mcpServers.put("sweethome3d", serverEntry);
 
         // Бэкап

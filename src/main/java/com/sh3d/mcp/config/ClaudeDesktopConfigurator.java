@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,12 +47,12 @@ public class ClaudeDesktopConfigurator {
     }
 
     /**
-     * Генерирует pretty-printed JSON для MCP-секции.
+     * Генерирует pretty-printed JSON для MCP-секции Claude Desktop.
+     * Claude Desktop не поддерживает "type": "http" напрямую —
+     * используется npx mcp-remote как stdio-мост к HTTP endpoint.
      */
     public static String generateMcpJson(int port) {
-        Map<String, Object> serverEntry = new LinkedHashMap<>();
-        serverEntry.put("type", "http");
-        serverEntry.put("url", "http://localhost:" + port + "/mcp");
+        Map<String, Object> serverEntry = buildServerEntry(port);
 
         Map<String, Object> servers = new LinkedHashMap<>();
         servers.put("sweethome3d", serverEntry);
@@ -58,6 +61,15 @@ public class ClaudeDesktopConfigurator {
         root.put("mcpServers", servers);
 
         return JsonUtil.serializePretty(root);
+    }
+
+    private static Map<String, Object> buildServerEntry(int port) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("command", "npx");
+        List<Object> args = new ArrayList<>(Arrays.asList(
+                "-y", "mcp-remote", "http://localhost:" + port + "/mcp"));
+        entry.put("args", args);
+        return entry;
     }
 
     /**
@@ -110,10 +122,7 @@ public class ClaudeDesktopConfigurator {
             root.put("mcpServers", mcpServers);
         }
 
-        Map<String, Object> serverEntry = new LinkedHashMap<>();
-        serverEntry.put("type", "http");
-        serverEntry.put("url", "http://localhost:" + port + "/mcp");
-        mcpServers.put("sweethome3d", serverEntry);
+        mcpServers.put("sweethome3d", buildServerEntry(port));
 
         // Записать
         String prettyJson = JsonUtil.serializePretty(root);
