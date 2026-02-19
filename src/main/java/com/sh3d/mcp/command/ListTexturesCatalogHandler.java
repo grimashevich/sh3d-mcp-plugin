@@ -59,6 +59,10 @@ public class ListTexturesCatalogHandler implements CommandHandler, CommandDescri
                 }
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("name", textureName);
+                String texId = texture.getId();
+                if (texId != null) {
+                    item.put("catalogId", texId);
+                }
                 item.put("category", catName);
                 item.put("width", round2(texture.getWidth()));
                 item.put("height", round2(texture.getHeight()));

@@ -1,8 +1,6 @@
 package com.sh3d.mcp.command;
 
 import com.eteks.sweethome3d.model.CatalogPieceOfFurniture;
-import com.eteks.sweethome3d.model.FurnitureCatalog;
-import com.eteks.sweethome3d.model.FurnitureCategory;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
@@ -16,27 +14,20 @@ import java.util.Map;
  * Обработчик команды "place_furniture".
  * Ищет мебель в каталоге SH3D и размещает на плане.
  *
- * <pre>
- * Параметры:
- *   name   — поисковый запрос (string, case-insensitive contains)
- *   x, y   — координаты размещения (float, см)
- *   angle  — угол поворота в градусах (float, default 0)
- *
- * Логика:
- *   1. Получить FurnitureCatalog из UserPreferences
- *   2. Итерировать по категориям/элементам, найти первое совпадение
- *   3. Если не найден → Response.error("Furniture not found: ...")
- *   4. В EDT: создать HomePieceOfFurniture, setX/Y/Angle, home.addPieceOfFurniture
- *   5. Вернуть данные размещённой мебели
- * </pre>
+ * <p>Поиск: exact match имени приоритетнее substring.
+ * При нескольких exact match — ошибка disambiguации.
+ * Параметр catalogId позволяет выбрать конкретный элемент по ID каталога.
  */
 public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
         String name = request.getString("name");
-        if (name == null || name.trim().isEmpty()) {
-            return Response.error("Parameter 'name' is required and must not be empty");
+        String catalogId = request.getString("catalogId");
+
+        if ((name == null || name.trim().isEmpty())
+                && (catalogId == null || catalogId.trim().isEmpty())) {
+            return Response.error("Either 'name' or 'catalogId' must be provided");
         }
 
         if (!request.getParams().containsKey("x")) {
@@ -50,10 +41,16 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         float y = request.getFloat("y");
         float angle = request.getFloat("angle", 0f);
 
-        CatalogPieceOfFurniture found = findInCatalog(accessor.getFurnitureCatalog(), name);
-        if (found == null) {
+        CatalogSearchUtil.FurnitureSearchResult searchResult =
+                CatalogSearchUtil.findFurniture(
+                        accessor.getFurnitureCatalog(), name, catalogId, null);
+        if (searchResult.isError()) {
+            return Response.error(searchResult.getError());
+        }
+        if (!searchResult.isFound()) {
             return Response.error("Furniture not found: " + name);
         }
+        CatalogPieceOfFurniture found = searchResult.getFound();
 
         float angleRad = (float) Math.toRadians(angle);
 
@@ -77,18 +74,6 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         return Response.ok(data);
     }
 
-    private CatalogPieceOfFurniture findInCatalog(FurnitureCatalog catalog, String query) {
-        String lowerQuery = query.toLowerCase();
-        for (FurnitureCategory category : catalog.getCategories()) {
-            for (CatalogPieceOfFurniture piece : category.getFurniture()) {
-                if (piece.getName().toLowerCase().contains(lowerQuery)) {
-                    return piece;
-                }
-            }
-        }
-        return null;
-    }
-
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
     }
@@ -98,7 +83,8 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         return "Places a piece of furniture from the Sweet Home 3D catalog. "
                 + "Searches the catalog by name (case-insensitive, partial match). "
                 + "Coordinates are in centimeters. "
-                + "Angle is in degrees (0 = default orientation, 90 = rotated clockwise).";
+                + "Angle is in degrees (0 = default orientation, 90 = rotated clockwise). "
+                + "Use 'catalogId' for precise selection when multiple items share the same name.";
     }
 
     @Override
@@ -107,7 +93,11 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("name", prop("string", "Furniture name to search in catalog (e.g., 'bed', 'sofa', 'table')"));
+        properties.put("name", prop("string",
+                "Furniture name to search in catalog (e.g., 'bed', 'sofa', 'table')"));
+        properties.put("catalogId", prop("string",
+                "Exact catalog ID for precise selection (bypasses name search). "
+                        + "Use list_furniture_catalog to find catalog IDs"));
         properties.put("x", prop("number", "X coordinate in cm"));
         properties.put("y", prop("number", "Y coordinate in cm"));
 
@@ -118,7 +108,7 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         properties.put("angle", angleProp);
 
         schema.put("properties", properties);
-        schema.put("required", Arrays.asList("name", "x", "y"));
+        schema.put("required", Arrays.asList("x", "y"));
         return schema;
     }
 

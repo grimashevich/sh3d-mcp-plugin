@@ -248,6 +248,43 @@ class ListFurnitureCatalogHandlerTest {
     }
 
     @Test
+    void testCatalogIdInOutputWhenPresent() {
+        // Create catalog with piece that has an ID
+        FurnitureCatalog catalog = new FurnitureCatalog();
+        FurnitureCategory cat = new FurnitureCategory("Test");
+        CatalogPieceOfFurniture piece = new CatalogPieceOfFurniture(
+                "table-001", "Test Table", null, null, null,
+                100f, 80f, 75f, 0f, true, null, null, true, null, null);
+        catalog.add(cat, piece);
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor testAccessor = new HomeAccessor(new Home(), prefs);
+
+        Request req = new Request("list_furniture_catalog", Collections.emptyMap());
+        Response resp = handler.execute(req, testAccessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertEquals("table-001", item.get("catalogId"));
+    }
+
+    @Test
+    void testCatalogIdNotInOutputWhenNull() {
+        // Standard catalog from setUp has no IDs
+        Request req = new Request("list_furniture_catalog", Collections.emptyMap());
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertFalse(furniture.isEmpty());
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertNull(item.get("catalogId"));
+    }
+
+    @Test
     void testNullNamesInCatalogAreSkipped() {
         CatalogPieceOfFurniture normalPiece = mock(CatalogPieceOfFurniture.class);
         when(normalPiece.getName()).thenReturn("Sink");
