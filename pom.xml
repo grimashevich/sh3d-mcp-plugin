@@ -156,4 +156,37 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Deploy .sh3p to local SH3D plugins dir: ./mvnw package -Pdeploy-local -->
+        <profile>
+            <id>deploy-local</id>
+            <properties>
+                <sh3d.plugins.dir>${user.home}/AppData/Roaming/eTeks/Sweet Home 3D/plugins</sh3d.plugins.dir>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>deploy-sh3p</id>
+                                <phase>package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.sh3p"
+                                              todir="${sh3d.plugins.dir}"
+                                              overwrite="true"/>
+                                        <echo>Deployed to ${sh3d.plugins.dir}</echo>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
