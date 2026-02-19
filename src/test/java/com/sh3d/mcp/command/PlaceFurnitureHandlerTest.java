@@ -257,4 +257,105 @@ class PlaceFurnitureHandlerTest {
 
         assertEquals(2, home.getFurniture().size());
     }
+
+    // ==================== Exact match priority ====================
+
+    @Test
+    void testExactMatchPreferredOverSubstring() {
+        // Add "Table" which is exact match for "Table", while "Dining Table" is substring
+        FurnitureCatalog catalog = new FurnitureCatalog();
+        FurnitureCategory cat = new FurnitureCategory("Living Room");
+        catalog.add(cat, new CatalogPieceOfFurniture(
+                "Dining Table", null, null, 120f, 80f, 75f, true, false));
+        catalog.add(cat, new CatalogPieceOfFurniture(
+                "Table", null, null, 80f, 60f, 70f, true, false));
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor localAccessor = new HomeAccessor(new Home(), prefs);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Table");
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), localAccessor);
+
+        assertTrue(resp.isOk());
+        assertEquals("Table", resp.getData().get("name"));
+    }
+
+    // ==================== catalogId ====================
+
+    @Test
+    void testCatalogIdSuccess() {
+        FurnitureCatalog catalog = new FurnitureCatalog();
+        FurnitureCategory cat = new FurnitureCategory("Living Room");
+        catalog.add(cat, new CatalogPieceOfFurniture(
+                "table-001", "Dining Table", null, null, null,
+                120f, 80f, 75f, 0f, true, null, null, true, null, null));
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor localAccessor = new HomeAccessor(new Home(), prefs);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("catalogId", "table-001");
+        params.put("x", 100.0);
+        params.put("y", 200.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), localAccessor);
+
+        assertTrue(resp.isOk());
+        assertEquals("Dining Table", resp.getData().get("name"));
+    }
+
+    @Test
+    void testCatalogIdNotFound() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("catalogId", "nonexistent");
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("nonexistent"));
+    }
+
+    @Test
+    void testCatalogIdWithoutName() {
+        FurnitureCatalog catalog = new FurnitureCatalog();
+        FurnitureCategory cat = new FurnitureCategory("Living Room");
+        catalog.add(cat, new CatalogPieceOfFurniture(
+                "chair-001", "Office Chair", null, null, null,
+                50f, 50f, 90f, 0f, true, null, null, true, null, null));
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor localAccessor = new HomeAccessor(new Home(), prefs);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("catalogId", "chair-001");
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), localAccessor);
+
+        assertTrue(resp.isOk());
+        assertEquals("Office Chair", resp.getData().get("name"));
+    }
+
+    @Test
+    void testBothNameAndCatalogIdMissingReturnsError() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("name"));
+        assertTrue(resp.getMessage().contains("catalogId"));
+    }
 }

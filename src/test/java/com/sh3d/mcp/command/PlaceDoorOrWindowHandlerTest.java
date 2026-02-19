@@ -493,4 +493,98 @@ class PlaceDoorOrWindowHandlerTest {
         assertTrue(resp.getMessage().contains("Door/window not found"));
         assertTrue(resp.getMessage().contains("NonExistent Door"));
     }
+
+    // ==================== Exact match priority ====================
+
+    @Test
+    void testExactMatchPreferredOverSubstring() throws Exception {
+        // Add "Door" (exact) alongside existing "Front Door" (substring)
+        FurnitureCatalog catalog = new FurnitureCatalog();
+        FurnitureCategory cat = new FurnitureCategory("Doors");
+
+        CatalogPieceOfFurniture door = new CatalogPieceOfFurniture(
+                "Door", null, null, 87f, 10f, 210f, false, false);
+        setDoorOrWindow(door, true);
+        CatalogPieceOfFurniture frontDoor = new CatalogPieceOfFurniture(
+                "Front Door", null, null, 91.5f, 10f, 210f, false, false);
+        setDoorOrWindow(frontDoor, true);
+
+        catalog.add(cat, frontDoor); // front door added FIRST
+        catalog.add(cat, door);       // exact match added SECOND
+
+        Home localHome = new Home();
+        localHome.addWall(new Wall(0, 0, 500, 0, 10));
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor localAccessor = new HomeAccessor(localHome, prefs);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Door");
+        params.put("wallId", 0.0);
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), localAccessor);
+
+        assertTrue(resp.isOk());
+        // Should find "Door" (exact match), NOT "Front Door" (substring)
+        assertEquals("Door", resp.getData().get("name"));
+    }
+
+    // ==================== catalogId ====================
+
+    @Test
+    void testCatalogIdSuccess() throws Exception {
+        FurnitureCatalog catalog = new FurnitureCatalog();
+        FurnitureCategory cat = new FurnitureCategory("Doors");
+
+        CatalogPieceOfFurniture door = new CatalogPieceOfFurniture(
+                "door-001", "Front Door", null, null, null,
+                80f, 10f, 210f, 0f, false, null, null, true, null, null);
+        setDoorOrWindow(door, true);
+        catalog.add(cat, door);
+
+        Home localHome = new Home();
+        localHome.addWall(new Wall(0, 0, 500, 0, 10));
+
+        UserPreferences prefs = mock(UserPreferences.class);
+        when(prefs.getFurnitureCatalog()).thenReturn(catalog);
+        HomeAccessor localAccessor = new HomeAccessor(localHome, prefs);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("catalogId", "door-001");
+        params.put("wallId", 0.0);
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), localAccessor);
+
+        assertTrue(resp.isOk());
+        assertEquals("Front Door", resp.getData().get("name"));
+    }
+
+    @Test
+    void testCatalogIdNotFound() {
+        addWall(0, 0, 500, 0);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("catalogId", "nonexistent");
+        params.put("wallId", 0.0);
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("nonexistent"));
+    }
+
+    @Test
+    void testBothNameAndCatalogIdMissingReturnsError() {
+        addWall(0, 0, 500, 0);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("wallId", 0.0);
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("name"));
+        assertTrue(resp.getMessage().contains("catalogId"));
+    }
 }

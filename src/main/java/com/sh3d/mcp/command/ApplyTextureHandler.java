@@ -5,7 +5,6 @@ import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeTexture;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.TexturesCatalog;
-import com.eteks.sweethome3d.model.TexturesCategory;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
@@ -110,12 +109,14 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
                 return Response.error("Texture catalog is not available");
             }
 
-            CatalogTexture found = findTexture(catalog, textureName, textureCategory);
-            if (found == null) {
+            CatalogSearchUtil.TextureSearchResult texResult =
+                    CatalogSearchUtil.findTexture(catalog, textureName, textureCategory);
+            if (!texResult.isFound()) {
                 return Response.error("Texture not found: '" + textureName + "'"
                         + (textureCategory != null ? " in category '" + textureCategory + "'" : "")
                         + ". Use list_textures_catalog to browse available textures");
             }
+            CatalogTexture found = texResult.getFound();
 
             resolvedName = found.getName();
             resolvedCategory = found.getCategory().getName();
@@ -199,25 +200,6 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
 
             return buildRoomResponse(targetId, room, surface, texName, texCategory);
         });
-    }
-
-    // --- Texture lookup ---
-
-    static CatalogTexture findTexture(TexturesCatalog catalog, String name, String category) {
-        String lowerCategory = category != null ? category.toLowerCase() : null;
-
-        for (TexturesCategory cat : catalog.getCategories()) {
-            String catName = cat.getName();
-            if (catName == null) continue;
-            if (lowerCategory != null && !catName.toLowerCase().contains(lowerCategory)) continue;
-
-            for (CatalogTexture texture : cat.getTextures()) {
-                if (name.equals(texture.getName())) {
-                    return texture;
-                }
-            }
-        }
-        return null;
     }
 
     // --- Response builders ---

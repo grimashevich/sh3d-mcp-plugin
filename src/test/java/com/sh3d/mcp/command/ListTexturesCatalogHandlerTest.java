@@ -264,6 +264,38 @@ class ListTexturesCatalogHandlerTest {
     }
 
     @Test
+    void testCatalogIdInOutputWhenPresent() {
+        // Oak Parquet was created with id "parquet1" in setUp
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("query", "Oak Parquet");
+
+        Request req = new Request("list_textures_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> textures = (List<?>) resp.getData().get("textures");
+        assertEquals(1, textures.size());
+        Map<?, ?> item = (Map<?, ?>) textures.get(0);
+        assertEquals("parquet1", item.get("catalogId"));
+    }
+
+    @Test
+    void testCatalogIdNotInOutputWhenNull() {
+        // Red Brick was created without id
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("query", "Red Brick");
+
+        Request req = new Request("list_textures_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> textures = (List<?>) resp.getData().get("textures");
+        assertEquals(1, textures.size());
+        Map<?, ?> item = (Map<?, ?>) textures.get(0);
+        assertNull(item.get("catalogId"));
+    }
+
+    @Test
     void testNullNamesInCatalogAreSkipped() {
         CatalogTexture normalTexture = mock(CatalogTexture.class);
         when(normalTexture.getName()).thenReturn("Marble");

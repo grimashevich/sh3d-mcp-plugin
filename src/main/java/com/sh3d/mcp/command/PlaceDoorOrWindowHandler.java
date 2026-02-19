@@ -1,8 +1,6 @@
 package com.sh3d.mcp.command;
 
 import com.eteks.sweethome3d.model.CatalogPieceOfFurniture;
-import com.eteks.sweethome3d.model.FurnitureCatalog;
-import com.eteks.sweethome3d.model.FurnitureCategory;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Wall;
@@ -21,23 +19,20 @@ import java.util.Map;
  * Размещает дверь/окно из каталога в указанную стену, автоматически
  * вычисляя координаты и угол поворота из геометрии стены.
  *
- * <pre>
- * Параметры:
- *   name     — поисковый запрос (string, ищет только среди isDoorOrWindow)
- *   wallId   — ID стены из get_state (integer)
- *   position — позиция на стене 0.0-1.0 (float, default 0.5)
- *   elevation — высота от пола в см (float, optional)
- *   mirrored — зеркалирование модели (boolean, default false)
- * </pre>
+ * <p>Поиск: exact match имени приоритетнее substring.
+ * При нескольких exact match — ошибка disambiguации.
+ * Параметр catalogId позволяет выбрать конкретный элемент по ID каталога.
  */
 public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        // --- Validate name ---
+        // --- Validate name or catalogId ---
         String name = request.getString("name");
-        if (name == null || name.trim().isEmpty()) {
-            return Response.error("Parameter 'name' is required and must not be empty");
+        String catalogId = request.getString("catalogId");
+        if ((name == null || name.trim().isEmpty())
+                && (catalogId == null || catalogId.trim().isEmpty())) {
+            return Response.error("Either 'name' or 'catalogId' must be provided");
         }
 
         // --- Validate wallId ---
@@ -62,11 +57,17 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         Boolean mirrored = request.getBoolean("mirrored");
 
         // --- Search catalog (only doors/windows) ---
-        CatalogPieceOfFurniture found = findDoorOrWindowInCatalog(
-                accessor.getFurnitureCatalog(), name);
-        if (found == null) {
+        CatalogSearchUtil.FurnitureSearchResult searchResult =
+                CatalogSearchUtil.findFurniture(
+                        accessor.getFurnitureCatalog(), name, catalogId,
+                        CatalogPieceOfFurniture::isDoorOrWindow);
+        if (searchResult.isError()) {
+            return Response.error(searchResult.getError());
+        }
+        if (!searchResult.isFound()) {
             return Response.error("Door/window not found in catalog: " + name);
         }
+        CatalogPieceOfFurniture found = searchResult.getFound();
 
         // --- Place in EDT ---
         Map<String, Object> data = accessor.runOnEDT(() -> {
@@ -125,20 +126,6 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         return Response.ok(data);
     }
 
-    private CatalogPieceOfFurniture findDoorOrWindowInCatalog(
-            FurnitureCatalog catalog, String query) {
-        String lowerQuery = query.toLowerCase();
-        for (FurnitureCategory category : catalog.getCategories()) {
-            for (CatalogPieceOfFurniture piece : category.getFurniture()) {
-                if (piece.isDoorOrWindow()
-                        && piece.getName().toLowerCase().contains(lowerQuery)) {
-                    return piece;
-                }
-            }
-        }
-        return null;
-    }
-
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
     }
@@ -152,7 +139,8 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
                 + "0.0 = wall start, 0.5 = center (default), 1.0 = wall end. "
                 + "Use 'elevation' for windows (typically 80-100 cm above floor). "
                 + "Doors usually have elevation 0 (default from catalog). "
-                + "Use get_state to find wall IDs and list_furniture_catalog to browse available doors/windows.";
+                + "Use get_state to find wall IDs and list_furniture_catalog to browse available doors/windows. "
+                + "Use 'catalogId' for precise selection when multiple items share the same name.";
     }
 
     @Override
@@ -163,6 +151,9 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("name", prop("string",
                 "Door/window name to search in catalog (e.g., 'door', 'window', 'French door')"));
+        properties.put("catalogId", prop("string",
+                "Exact catalog ID for precise selection (bypasses name search). "
+                        + "Use list_furniture_catalog to find catalog IDs"));
         properties.put("wallId", prop("integer",
                 "ID of the wall to place the door/window in (from get_state)"));
 
@@ -183,7 +174,7 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         properties.put("mirrored", mirroredProp);
 
         schema.put("properties", properties);
-        schema.put("required", Arrays.asList("name", "wallId"));
+        schema.put("required", Arrays.asList("wallId"));
         return schema;
     }
 

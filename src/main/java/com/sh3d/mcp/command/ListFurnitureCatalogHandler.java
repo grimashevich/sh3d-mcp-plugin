@@ -59,6 +59,10 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
                 }
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("name", pieceName);
+                String pieceId = piece.getId();
+                if (pieceId != null) {
+                    item.put("catalogId", pieceId);
+                }
                 item.put("category", catName);
                 item.put("width", round2(piece.getWidth()));
                 item.put("depth", round2(piece.getDepth()));

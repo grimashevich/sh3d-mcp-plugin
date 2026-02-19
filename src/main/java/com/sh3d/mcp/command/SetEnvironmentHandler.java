@@ -1,11 +1,9 @@
 package com.sh3d.mcp.command;
 
-import com.eteks.sweethome3d.model.CatalogTexture;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeEnvironment;
 import com.eteks.sweethome3d.model.HomeTexture;
 import com.eteks.sweethome3d.model.TexturesCatalog;
-import com.eteks.sweethome3d.model.TexturesCategory;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -143,13 +141,14 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
                 }
                 TexturesCatalog catalog = accessor.getTexturesCatalog();
                 String category = request.getString("groundTextureCategory");
-                CatalogTexture found = findTexture(catalog, texName, category);
-                if (found == null) {
+                CatalogSearchUtil.TextureSearchResult texResult =
+                        CatalogSearchUtil.findTexture(catalog, texName, category);
+                if (!texResult.isFound()) {
                     return Response.error("Ground texture not found: '" + texName + "'"
                             + (category != null ? " in category '" + category + "'" : "")
                             + ". Use list_textures_catalog to browse available textures");
                 }
-                groundTexture = new HomeTexture(found);
+                groundTexture = new HomeTexture(texResult.getFound());
             }
         }
 
@@ -166,13 +165,14 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
                 }
                 TexturesCatalog catalog = accessor.getTexturesCatalog();
                 String category = request.getString("skyTextureCategory");
-                CatalogTexture found = findTexture(catalog, texName, category);
-                if (found == null) {
+                CatalogSearchUtil.TextureSearchResult texResult =
+                        CatalogSearchUtil.findTexture(catalog, texName, category);
+                if (!texResult.isFound()) {
                     return Response.error("Sky texture not found: '" + texName + "'"
                             + (category != null ? " in category '" + category + "'" : "")
                             + ". Use list_textures_catalog to browse available textures");
                 }
-                skyTexture = new HomeTexture(found);
+                skyTexture = new HomeTexture(texResult.getFound());
             }
         }
 
@@ -240,25 +240,6 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
         result.put("drawingMode", env.getDrawingMode().name());
         result.put("allLevelsVisible", env.isAllLevelsVisible());
         return result;
-    }
-
-    // --- Texture lookup ---
-
-    static CatalogTexture findTexture(TexturesCatalog catalog, String name, String category) {
-        String lowerCategory = category != null ? category.toLowerCase() : null;
-
-        for (TexturesCategory cat : catalog.getCategories()) {
-            String catName = cat.getName();
-            if (catName == null) continue;
-            if (lowerCategory != null && !catName.toLowerCase().contains(lowerCategory)) continue;
-
-            for (CatalogTexture texture : cat.getTextures()) {
-                if (name.equals(texture.getName())) {
-                    return texture;
-                }
-            }
-        }
-        return null;
     }
 
     // --- Utilities ---
