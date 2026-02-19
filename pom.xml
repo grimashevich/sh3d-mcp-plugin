@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
 
     <name>Sweet Home 3D MCP Plugin</name>
-    <description>TCP server plugin for MCP integration with Sweet Home 3D</description>
+    <description>HTTP MCP server plugin for Model Context Protocol integration with Sweet Home 3D</description>
 
     <licenses>
         <license>
