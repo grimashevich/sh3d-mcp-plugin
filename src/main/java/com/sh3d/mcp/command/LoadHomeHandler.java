@@ -178,8 +178,8 @@ public class LoadHomeHandler implements CommandHandler, CommandDescriptor {
 
     // --- Add helper ---
 
-    private <T> int addAll(Home home, java.util.Collection<T> items,
-                           java.util.function.Consumer<T> adder) {
+    static <T> int addAll(Home home, java.util.Collection<T> items,
+                          java.util.function.Consumer<T> adder) {
         int count = 0;
         for (T item : items) {
             adder.accept(item);

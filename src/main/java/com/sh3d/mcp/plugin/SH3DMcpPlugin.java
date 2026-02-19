@@ -7,7 +7,9 @@ import com.sh3d.mcp.command.AddDimensionLineHandler;
 import com.sh3d.mcp.command.AddLabelHandler;
 import com.sh3d.mcp.command.AddLevelHandler;
 import com.sh3d.mcp.command.ApplyTextureHandler;
+import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.command.BatchCommandsHandler;
+import com.sh3d.mcp.command.CheckpointHandler;
 import com.sh3d.mcp.command.ClearSceneHandler;
 import com.sh3d.mcp.command.CommandRegistry;
 import com.sh3d.mcp.command.CreateRoomPolygonHandler;
@@ -27,12 +29,14 @@ import com.sh3d.mcp.command.ModifyFurnitureHandler;
 import com.sh3d.mcp.command.ModifyRoomHandler;
 import com.sh3d.mcp.command.ModifyWallHandler;
 import com.sh3d.mcp.command.GetStateHandler;
+import com.sh3d.mcp.command.ListCheckpointsHandler;
 import com.sh3d.mcp.command.ListFurnitureCatalogHandler;
 import com.sh3d.mcp.command.ListLevelsHandler;
 import com.sh3d.mcp.command.ListTexturesCatalogHandler;
 import com.sh3d.mcp.command.PlaceDoorOrWindowHandler;
 import com.sh3d.mcp.command.PlaceFurnitureHandler;
 import com.sh3d.mcp.command.RenderPhotoHandler;
+import com.sh3d.mcp.command.RestoreCheckpointHandler;
 import com.sh3d.mcp.command.LoadHomeHandler;
 import com.sh3d.mcp.command.SaveHomeHandler;
 import com.sh3d.mcp.command.SetCameraHandler;
@@ -148,6 +152,10 @@ public class SH3DMcpPlugin extends Plugin {
 
     private CommandRegistry createCommandRegistry(ExportableView planView) {
         CommandRegistry registry = new CommandRegistry();
+        CheckpointManager checkpointManager = new CheckpointManager();
+        registry.register("checkpoint", new CheckpointHandler(checkpointManager));
+        registry.register("restore_checkpoint", new RestoreCheckpointHandler(checkpointManager));
+        registry.register("list_checkpoints", new ListCheckpointsHandler(checkpointManager));
         registry.register("add_dimension_line", new AddDimensionLineHandler());
         registry.register("add_label", new AddLabelHandler());
         registry.register("add_level", new AddLevelHandler());
