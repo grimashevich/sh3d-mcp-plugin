@@ -95,7 +95,8 @@ public class ExportPlanImageHandler implements CommandHandler, CommandDescriptor
             String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
 
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("png_base64", base64);
+            data.put("_image", base64);
+            data.put("_mimeType", "image/png");
             data.put("width", image.getWidth());
             data.put("height", image.getHeight());
             data.put("size_bytes", baos.size());

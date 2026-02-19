@@ -13,10 +13,17 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriter;
+import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
+import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +40,8 @@ import java.util.logging.Logger;
 
 /**
  * Обработчик команды "render_photo".
- * Рендерит 3D-сцену в PNG через Sunflow ray-tracer.
+ * Рендерит 3D-сцену через Sunflow ray-tracer.
+ * Возвращает изображения как нативный MCP image content (JPEG по умолчанию).
  *
  * <p>Поддерживает два режима:
  * <ul>
@@ -48,7 +57,8 @@ import java.util.logging.Logger;
  *   width      — ширина изображения в пикселях (default 800, max 4096)
  *   height     — высота изображения в пикселях (default 600, max 4096)
  *   quality    — "low" (быстрый) или "high" (ray-trace) (default "low")
- *   filePath   — путь для сохранения PNG (опционально)
+ *   format     — "jpeg" (default inline) или "png" (default filePath)
+ *   filePath   — путь для сохранения файла (опционально)
  *   view       — "overhead" для bird's eye orbit (опционально)
  *   focusOn    — "furniture:id" или "room:id" для зума на объект (требует overhead)
  *   angles     — 1 или 4 ракурса для overhead (default 4, или 1 для мебели)
@@ -79,6 +89,8 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     static final float FURNITURE_PADDING_RATIO = 0.5f;
     static final float MIN_FURNITURE_PADDING = 200.0f;
     static final float ROOM_PADDING = 50.0f;
+
+    static final float JPEG_QUALITY = 0.85f;
 
     static final float[] OVERHEAD_YAWS = {315f, 135f, 45f, 225f};
     static final String[] OVERHEAD_LABELS = {
@@ -112,6 +124,16 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
         String filePath = request.getString("filePath");
 
+        // Формат изображения: jpeg (default inline) или png (default filePath)
+        String format = request.getString("format");
+        if (format == null) {
+            format = (filePath != null && !filePath.trim().isEmpty()) ? "png" : "jpeg";
+        }
+        format = format.toLowerCase();
+        if (!"png".equals(format) && !"jpeg".equals(format)) {
+            return Response.error("Parameter 'format' must be 'png' or 'jpeg', got '" + format + "'");
+        }
+
         // Проверка view и focusOn
         String view = request.getString("view");
         String focusOn = request.getString("focusOn");
@@ -123,7 +145,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
         if (view != null) {
             if ("overhead".equalsIgnoreCase(view)) {
-                return executeOverhead(request, accessor, width, height, quality, qualityStr, filePath);
+                return executeOverhead(request, accessor, width, height, quality, qualityStr, filePath, format);
             }
             return Response.error("Parameter 'view' must be 'overhead', got '" + view + "'");
         }
@@ -166,7 +188,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
         try {
             Map<String, Object> data = renderSingleImage(accessor.getHome(), camera,
-                    width, height, quality, filePath);
+                    width, height, quality, filePath, format);
             data.put("quality", qualityStr);
 
             LOG.info("Rendered photo " + width + "x" + height + " (" + qualityStr
@@ -189,7 +211,8 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     private Response executeOverhead(Request request, HomeAccessor accessor,
                                      int width, int height,
                                      AbstractPhotoRenderer.Quality quality,
-                                     String qualityStr, String filePath) {
+                                     String qualityStr, String filePath,
+                                     String format) {
         // Валидация: overhead несовместим с ручными координатами
         if (request.getParams().containsKey("x")
                 || request.getParams().containsKey("y")
@@ -202,12 +225,14 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                     + "Overhead mode renders from predefined orbital angles.");
         }
 
-        // Overhead-дефолты для разрешения (1200×900 вместо стандартных 800×600)
+        // Overhead-дефолты для разрешения
+        // filePath: 1200×900 (полное качество для файлов), inline: 800×600 (экономия размера)
+        boolean hasFilePath = filePath != null && !filePath.trim().isEmpty();
         if (!request.getParams().containsKey("width")) {
-            width = DEFAULT_OVERHEAD_WIDTH;
+            width = hasFilePath ? DEFAULT_OVERHEAD_WIDTH : DEFAULT_WIDTH;
         }
         if (!request.getParams().containsKey("height")) {
-            height = DEFAULT_OVERHEAD_HEIGHT;
+            height = hasFilePath ? DEFAULT_OVERHEAD_HEIGHT : DEFAULT_HEIGHT;
         }
 
         // Парсинг focusOn
@@ -320,14 +345,15 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         });
 
         // Render loop
-        List<Object> images = new ArrayList<>();
+        List<Object> imagesMeta = new ArrayList<>();
+        List<Map<String, Object>> mcpImages = new ArrayList<>();
 
         try {
             for (int i = 0; i < cameras.size(); i++) {
                 Camera cam = cameras.get(i);
 
                 String currentFilePath = null;
-                if (filePath != null && !filePath.trim().isEmpty()) {
+                if (hasFilePath) {
                     if (angles > 1) {
                         currentFilePath = generateIndexedFilePath(filePath, i + 1);
                     } else {
@@ -336,10 +362,22 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 }
 
                 Map<String, Object> imageResult = renderSingleImage(
-                        home, cam, width, height, quality, currentFilePath);
+                        home, cam, width, height, quality, currentFilePath, format);
                 imageResult.put("index", i);
                 imageResult.put("direction", OVERHEAD_LABELS[i]);
-                images.add(imageResult);
+
+                if (currentFilePath == null) {
+                    // Inline: извлекаем base64 для MCP image content
+                    Object imgData = imageResult.remove("_image");
+                    Object imgMime = imageResult.remove("_mimeType");
+                    if (imgData != null) {
+                        Map<String, Object> mcpImg = new LinkedHashMap<>();
+                        mcpImg.put("data", imgData);
+                        mcpImg.put("mimeType", imgMime != null ? imgMime : "image/png");
+                        mcpImages.add(mcpImg);
+                    }
+                }
+                imagesMeta.add(imageResult);
             }
         } catch (OutOfMemoryError e) {
             LOG.log(Level.SEVERE, "OOM during overhead render", e);
@@ -364,9 +402,10 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         // Response
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("view", "overhead");
-        data.put("imageCount", images.size());
-        data.put("images", images);
+        data.put("imageCount", imagesMeta.size());
+        data.put("images", imagesMeta);
         data.put("quality", qualityStr);
+        data.put("format", format);
 
         Map<String, Object> boundsInfo = new LinkedHashMap<>();
         boundsInfo.put("minX", round2(bounds.minX));
@@ -384,8 +423,11 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         if (hideWalls) {
             data.put("hideWalls", true);
         }
+        if (!mcpImages.isEmpty()) {
+            data.put("_images", mcpImages);
+        }
 
-        LOG.info("Overhead render complete: " + images.size() + " images, "
+        LOG.info("Overhead render complete: " + imagesMeta.size() + " images, "
                 + width + "x" + height + " (" + qualityStr + ")"
                 + (focusOn != null ? ", focus: " + focusOn : "")
                 + (hideWalls ? ", walls hidden" : ""));
@@ -628,7 +670,8 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     private Map<String, Object> renderSingleImage(Home home, Camera camera,
                                                    int width, int height,
                                                    AbstractPhotoRenderer.Quality quality,
-                                                   String filePath) throws Exception {
+                                                   String filePath,
+                                                   String format) throws Exception {
         PhotoRenderer renderer = null;
         try {
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -639,24 +682,39 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             int sizeBytes;
 
             if (filePath != null && !filePath.trim().isEmpty()) {
+                // File mode: сохранение на диск
                 Path path = Paths.get(filePath).toAbsolutePath().normalize();
-                if (!path.toString().toLowerCase().endsWith(".png")) {
-                    path = Paths.get(path.toString() + ".png");
+                String pathLower = path.toString().toLowerCase();
+                if ("jpeg".equals(format)) {
+                    if (pathLower.endsWith(".png")) {
+                        path = Paths.get(path.toString().substring(0, path.toString().length() - 4) + ".jpg");
+                    } else if (!pathLower.endsWith(".jpg") && !pathLower.endsWith(".jpeg")) {
+                        path = Paths.get(path.toString() + ".jpg");
+                    }
+                } else {
+                    if (!pathLower.endsWith(".png")) {
+                        path = Paths.get(path.toString() + ".png");
+                    }
                 }
                 Path parent = path.getParent();
                 if (parent != null) {
                     Files.createDirectories(parent);
                 }
                 File file = path.toFile();
-                ImageIO.write(image, "png", file);
+                writeImage(image, format, file);
                 sizeBytes = (int) Files.size(path);
                 result.put("filePath", path.toString());
+                result.put("format", format);
             } else {
+                // Inline mode: MCP image content
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(image, "png", baos);
+                writeImage(image, format, baos);
                 String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
                 sizeBytes = baos.size();
-                result.put("png_base64", base64);
+                String mimeType = "jpeg".equals(format) ? "image/jpeg" : "image/png";
+                result.put("_image", base64);
+                result.put("_mimeType", mimeType);
+                result.put("format", format);
             }
 
             result.put("width", width);
@@ -692,7 +750,69 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         if (lower.endsWith(".png")) {
             return clean.substring(0, clean.length() - 4) + "_" + index + ".png";
         }
+        if (lower.endsWith(".jpg")) {
+            return clean.substring(0, clean.length() - 4) + "_" + index + ".jpg";
+        }
+        if (lower.endsWith(".jpeg")) {
+            return clean.substring(0, clean.length() - 5) + "_" + index + ".jpeg";
+        }
         return clean + "_" + index;
+    }
+
+    /**
+     * Записывает изображение в указанном формате (png/jpeg).
+     * JPEG записывается с quality {@link #JPEG_QUALITY}.
+     */
+    private static void writeImage(BufferedImage image, String format, File file) throws Exception {
+        if ("jpeg".equals(format)) {
+            try (ImageOutputStream ios = ImageIO.createImageOutputStream(file)) {
+                writeJpeg(ensureRgb(image), ios);
+            }
+        } else {
+            ImageIO.write(image, "png", file);
+        }
+    }
+
+    private static void writeImage(BufferedImage image, String format,
+                                    ByteArrayOutputStream baos) throws Exception {
+        if ("jpeg".equals(format)) {
+            try (ImageOutputStream ios = new MemoryCacheImageOutputStream(baos)) {
+                writeJpeg(ensureRgb(image), ios);
+            }
+        } else {
+            ImageIO.write(image, "png", baos);
+        }
+    }
+
+    private static void writeJpeg(BufferedImage image, ImageOutputStream ios) throws Exception {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpeg");
+        if (!writers.hasNext()) {
+            throw new IllegalStateException("No JPEG ImageWriter available");
+        }
+        ImageWriter writer = writers.next();
+        try {
+            JPEGImageWriteParam param = new JPEGImageWriteParam(null);
+            param.setCompressionMode(JPEGImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(JPEG_QUALITY);
+            writer.setOutput(ios);
+            writer.write(null, new IIOImage(image, null, null), param);
+        } finally {
+            writer.dispose();
+        }
+    }
+
+    /** Конвертирует ARGB в RGB для JPEG (JPEG не поддерживает alpha). */
+    private static BufferedImage ensureRgb(BufferedImage image) {
+        if (image.getType() == BufferedImage.TYPE_INT_ARGB
+                || image.getType() == BufferedImage.TYPE_4BYTE_ABGR) {
+            BufferedImage rgb = new BufferedImage(
+                    image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = rgb.createGraphics();
+            g.drawImage(image, 0, 0, null);
+            g.dispose();
+            return rgb;
+        }
+        return image;
     }
 
     private static double round2(double value) {
@@ -711,6 +831,8 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     @Override
     public String getDescription() {
         return "Renders a 3D photo of the current scene using ray-tracing (Sunflow). "
+                + "Returns images as native MCP image content (JPEG by default for compact size). "
+                + "Use format='png' for lossless quality.\n\n"
                 + "RECOMMENDED: Use view='overhead' for scene assessment — it automatically renders "
                 + "the scene from 4 bird's eye angles (NW, SE, NE, SW) with a single call, "
                 + "providing comprehensive 3D coverage. This is the most informative option "
@@ -720,7 +842,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 + "WALLS: By default walls are hidden in overhead mode for unobstructed view of furniture. "
                 + "Set hideWalls=false to show walls (useful for checking wall textures, doors, or windows).\n\n"
                 + "Standard mode: returns a single image from the current or specified camera position. "
-                + "If 'filePath' is provided, saves PNG(s) to disk and returns only metadata (no base64). "
+                + "If 'filePath' is provided, saves image(s) to disk and returns only metadata (no base64). "
                 + "Use quality 'low' for quick preview or 'high' for photo-realistic output.";
     }
 
@@ -751,9 +873,13 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         properties.put("width", propWithDefault("integer", "Image width in pixels", DEFAULT_WIDTH));
         properties.put("height", propWithDefault("integer", "Image height in pixels", DEFAULT_HEIGHT));
         properties.put("quality", enumProp("Quality: 'low' (fast preview) or 'high' (ray-traced)", "low", "high"));
+        properties.put("format", enumProp(
+                "Image format: 'jpeg' (smaller, default for inline) or 'png' (lossless, default for filePath). "
+                        + "JPEG typically produces 5-10x smaller images than PNG for 3D renders.",
+                "jpeg", "png"));
         properties.put("filePath", prop("string",
-                "Absolute path to save PNG file(s). For overhead with angles=4, files are saved as "
-                        + "{path}_1.png through {path}_4.png. The .png extension is added automatically if missing."));
+                "Absolute path to save image file(s). Extension is auto-corrected to match format. "
+                        + "For overhead with angles=4, files are saved as {path}_1 through {path}_4."));
         properties.put("x", prop("number", "Camera X position in cm (standard mode only)"));
         properties.put("y", prop("number", "Camera Y position in cm (standard mode only)"));
         properties.put("z", prop("number", "Camera Z (height) position in cm (standard mode only)"));

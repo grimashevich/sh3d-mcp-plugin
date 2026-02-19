@@ -768,6 +768,125 @@ class RenderPhotoHandlerTest {
     }
 
     // ==========================================================
+    // Format parameter tests
+    // ==========================================================
+
+    @Test
+    void testInvalidFormat() {
+        Response resp = execute("format", "bmp");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("format"));
+    }
+
+    @Test
+    void testInvalidFormatGif() {
+        Response resp = execute("format", "gif");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("format"));
+    }
+
+    @Test
+    void testFormatCaseInsensitive() {
+        // "JPEG" should be accepted (lowercased internally)
+        // Use overhead with empty scene to trigger "empty" error AFTER format validation passes
+        Response resp = execute("view", "overhead", "format", "JPEG");
+        assertTrue(resp.isError());
+        assertFalse(resp.getMessage().contains("format"),
+                "JPEG in uppercase should be accepted, error: " + resp.getMessage());
+        assertTrue(resp.getMessage().contains("empty"),
+                "Should fail on empty scene, not format validation");
+    }
+
+    // ==========================================================
+    // Schema: format property
+    // ==========================================================
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsFormatProperty() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("format"), "Schema should have 'format' property");
+
+        Map<String, Object> formatProp = (Map<String, Object>) properties.get("format");
+        assertEquals("string", formatProp.get("type"));
+        List<String> enumValues = (List<String>) formatProp.get("enum");
+        assertNotNull(enumValues);
+        assertTrue(enumValues.contains("jpeg"), "Format enum should include 'jpeg'");
+        assertTrue(enumValues.contains("png"), "Format enum should include 'png'");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaFormatDefaultIsJpeg() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        Map<String, Object> formatProp = (Map<String, Object>) properties.get("format");
+        assertEquals("jpeg", formatProp.get("default"), "Default format should be 'jpeg'");
+    }
+
+    // ==========================================================
+    // generateIndexedFilePath: JPEG extensions
+    // ==========================================================
+
+    @Test
+    void testGenerateIndexedFilePathJpg() {
+        assertEquals("scene_1.jpg",
+                RenderPhotoHandler.generateIndexedFilePath("scene.jpg", 1));
+    }
+
+    @Test
+    void testGenerateIndexedFilePathJpgUpperCase() {
+        assertEquals("photo_2.jpg",
+                RenderPhotoHandler.generateIndexedFilePath("photo.JPG", 2));
+    }
+
+    @Test
+    void testGenerateIndexedFilePathJpeg() {
+        assertEquals("render_3.jpeg",
+                RenderPhotoHandler.generateIndexedFilePath("render.jpeg", 3));
+    }
+
+    @Test
+    void testGenerateIndexedFilePathJpegWithDir() {
+        assertEquals("C:/renders/out_1.jpg",
+                RenderPhotoHandler.generateIndexedFilePath("C:/renders/out.jpg", 1));
+    }
+
+    // ==========================================================
+    // JPEG_QUALITY constant
+    // ==========================================================
+
+    @Test
+    void testJpegQualityInRange() {
+        assertTrue(RenderPhotoHandler.JPEG_QUALITY > 0.0f, "JPEG quality should be > 0");
+        assertTrue(RenderPhotoHandler.JPEG_QUALITY <= 1.0f, "JPEG quality should be <= 1");
+    }
+
+    @Test
+    void testJpegQualityValue() {
+        assertEquals(0.85f, RenderPhotoHandler.JPEG_QUALITY, 0.001f);
+    }
+
+    // ==========================================================
+    // Description mentions format
+    // ==========================================================
+
+    @Test
+    void testDescriptionMentionsJpeg() {
+        String desc = handler.getDescription();
+        assertTrue(desc.toLowerCase().contains("jpeg"),
+                "Description should mention JPEG");
+    }
+
+    @Test
+    void testDescriptionMentionsMcpImage() {
+        String desc = handler.getDescription();
+        assertTrue(desc.toLowerCase().contains("mcp image") || desc.toLowerCase().contains("image content"),
+                "Description should mention MCP image content");
+    }
+
+    // ==========================================================
     // Constants tests
     // ==========================================================
 
