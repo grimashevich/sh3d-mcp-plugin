@@ -6,8 +6,10 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,7 +53,7 @@ public class CreateWallsHandler implements CommandHandler, CommandDescriptor {
 
         float wallHeight = request.getFloat("wallHeight", 0f);
 
-        accessor.runOnEDT(() -> {
+        Wall[] created = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
 
             // Высота: параметр > Home default > 250 см
@@ -85,11 +87,19 @@ public class CreateWallsHandler implements CommandHandler, CommandDescriptor {
             home.addWall(w3);
             home.addWall(w4);
 
-            return null;
+            return new Wall[]{w1, w2, w3, w4};
         });
+
+        // Индексы стен в коллекции (совместимо с get_state)
+        List<Wall> walls = new ArrayList<>(accessor.runOnEDT(() -> accessor.getHome().getWalls()));
+        List<Integer> wallIds = new ArrayList<>(4);
+        for (Wall w : created) {
+            wallIds.add(walls.indexOf(w));
+        }
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("wallsCreated", 4);
+        data.put("wallIds", wallIds);
         data.put("message", "Room " + (int) width + "x" + (int) height + " created");
         return Response.ok(data);
     }
@@ -98,7 +108,9 @@ public class CreateWallsHandler implements CommandHandler, CommandDescriptor {
     public String getDescription() {
         return "Creates a rectangular room by adding 4 connected walls in Sweet Home 3D. "
                 + "Coordinates and dimensions are in centimeters (e.g., 500 = 5 meters). "
-                + "The coordinate system has X pointing right and Y pointing down.";
+                + "The coordinate system has X pointing right and Y pointing down. "
+                + "Returns wallIds array (top, right, bottom, left) for use with "
+                + "connect_walls, modify_wall, place_door_or_window, delete_wall.";
     }
 
     @Override

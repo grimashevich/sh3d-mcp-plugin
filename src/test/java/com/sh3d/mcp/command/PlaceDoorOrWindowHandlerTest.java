@@ -574,6 +574,45 @@ class PlaceDoorOrWindowHandlerTest {
         assertTrue(resp.getMessage().contains("nonexistent"));
     }
 
+    // ==================== returned id ====================
+
+    @Test
+    void testResponseContainsId() {
+        addWall(0, 0, 500, 0);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", 0.0);
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        assertNotNull(resp.getData().get("id"), "Response must contain id");
+        assertEquals(0, resp.getData().get("id"));
+    }
+
+    @Test
+    void testIdWithPreexistingFurniture() {
+        addWall(0, 0, 500, 0);
+
+        // Добавляем мебель до вызова
+        HomePieceOfFurniture existing = new HomePieceOfFurniture(
+                new CatalogPieceOfFurniture(
+                        "Existing Sofa", null, null, 200f, 80f, 85f, true, false));
+        home.addPieceOfFurniture(existing);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", 0.0);
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        int id = (int) resp.getData().get("id");
+        assertEquals(1, id, "ID should be 1 (offset by pre-existing furniture)");
+        assertEquals("Front Door", home.getFurniture().get(id).getName());
+    }
+
     @Test
     void testBothNameAndCatalogIdMissingReturnsError() {
         addWall(0, 0, 500, 0);

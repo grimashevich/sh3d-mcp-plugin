@@ -340,6 +340,88 @@ class CreateWallsHandlerTest {
         }
     }
 
+    // --- Wall IDs in response ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testResponseContainsWallIds() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+        params.put("width", 500.0);
+        params.put("height", 300.0);
+
+        Request req = new Request("create_walls", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<Integer> wallIds = (List<Integer>) resp.getData().get("wallIds");
+        assertNotNull(wallIds, "Response must contain wallIds");
+        assertEquals(4, wallIds.size(), "wallIds must have 4 elements");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testWallIdsMatchHomeState() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100.0);
+        params.put("y", 200.0);
+        params.put("width", 400.0);
+        params.put("height", 300.0);
+
+        Request req = new Request("create_walls", params);
+        Response resp = handler.execute(req, accessor);
+
+        List<Integer> wallIds = (List<Integer>) resp.getData().get("wallIds");
+        List<Wall> walls = new ArrayList<>(home.getWalls());
+
+        // top: A(100,200)→B(500,200)
+        Wall top = walls.get(wallIds.get(0));
+        assertEquals(100f, top.getXStart(), 0.01f);
+        assertEquals(200f, top.getYStart(), 0.01f);
+        assertEquals(500f, top.getXEnd(), 0.01f);
+
+        // right: B(500,200)→C(500,500)
+        Wall right = walls.get(wallIds.get(1));
+        assertEquals(500f, right.getXStart(), 0.01f);
+        assertEquals(200f, right.getYStart(), 0.01f);
+        assertEquals(500f, right.getYEnd(), 0.01f);
+
+        // bottom: C(500,500)→D(100,500)
+        Wall bottom = walls.get(wallIds.get(2));
+        assertEquals(500f, bottom.getXStart(), 0.01f);
+        assertEquals(500f, bottom.getYStart(), 0.01f);
+
+        // left: D(100,500)→A(100,200)
+        Wall left = walls.get(wallIds.get(3));
+        assertEquals(100f, left.getXStart(), 0.01f);
+        assertEquals(500f, left.getYStart(), 0.01f);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testWallIdsWithPreexistingWalls() {
+        // Добавляем 2 стены до вызова create_walls
+        home.addWall(new Wall(0, 0, 100, 0, 10));
+        home.addWall(new Wall(100, 0, 100, 100, 10));
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 200.0);
+        params.put("y", 200.0);
+        params.put("width", 300.0);
+        params.put("height", 300.0);
+
+        Request req = new Request("create_walls", params);
+        Response resp = handler.execute(req, accessor);
+
+        List<Integer> wallIds = (List<Integer>) resp.getData().get("wallIds");
+        // IDs должны быть сдвинуты на 2 (существующие стены занимают 0 и 1)
+        for (int id : wallIds) {
+            assertTrue(id >= 2, "Wall IDs should be offset by pre-existing walls, got " + id);
+        }
+        assertEquals(6, home.getWalls().size());
+    }
+
     private Wall findWall(List<Wall> walls, float xs, float ys, float xe, float ye) {
         for (Wall w : walls) {
             if (Math.abs(w.getXStart() - xs) < 0.01f

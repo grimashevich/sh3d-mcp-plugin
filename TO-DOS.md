@@ -57,9 +57,9 @@ Roadmap и текущие задачи. Плагин содержит встро
 
 Команды создания объектов должны возвращать ID, чтобы агент мог ссылаться на них в последующих операциях (modify, delete, connect). Сейчас не возвращают ID:
 
-- [ ] `create_walls` — возвращает `wallsCreated: 4`, но не массив wallId (нужны для connect_walls, place_door_or_window, modify_wall)
-- [ ] `place_furniture` — возвращает name/x/y/size, но не furnitureId (нужен для modify_furniture, delete_furniture)
-- [ ] `place_door_or_window` — возвращает name/x/y/size, но не furnitureId (аналогично)
+- [x] `create_walls` — возвращает `wallIds` массив из 4 int (top, right, bottom, left)
+- [x] `place_furniture` — возвращает `id` (индекс в коллекции мебели)
+- [x] `place_door_or_window` — возвращает `id` (индекс в коллекции мебели)
 
 ### Каталог поиска [P0, High] -- DONE
 
