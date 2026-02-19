@@ -10,12 +10,16 @@ import javax.swing.SwingUtilities;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Потокобезопасная обёртка над Home и UserPreferences.
  * Все мутации модели выполняются в EDT через {@link SwingUtilities#invokeAndWait}.
  */
 public class HomeAccessor {
+
+    private static final Logger LOG = Logger.getLogger(HomeAccessor.class.getName());
 
     private final Home home;
     private final UserPreferences userPreferences;
@@ -54,13 +58,20 @@ public class HomeAccessor {
      */
     public <T> T runOnEDT(Callable<T> task) {
         if (SwingUtilities.isEventDispatchThread()) {
+            long startNanos = System.nanoTime();
             try {
-                return task.call();
+                T result = task.call();
+                if (LOG.isLoggable(Level.FINE)) {
+                    long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+                    LOG.fine("runOnEDT (direct, already on EDT): " + elapsedMs + "ms");
+                }
+                return result;
             } catch (Exception e) {
                 throw new CommandException("EDT execution failed: " + e.getMessage(), e);
             }
         }
 
+        long waitStart = System.nanoTime();
         AtomicReference<T> resultRef = new AtomicReference<>();
         AtomicReference<Exception> errorRef = new AtomicReference<>();
 
@@ -78,6 +89,11 @@ public class HomeAccessor {
         } catch (InvocationTargetException e) {
             throw new CommandException(
                     "EDT invocation failed: " + e.getCause().getMessage(), e.getCause());
+        }
+
+        if (LOG.isLoggable(Level.FINE)) {
+            long elapsedMs = (System.nanoTime() - waitStart) / 1_000_000;
+            LOG.fine("runOnEDT (invokeAndWait): " + elapsedMs + "ms");
         }
 
         if (errorRef.get() != null) {

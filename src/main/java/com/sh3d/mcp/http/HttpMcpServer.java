@@ -161,6 +161,7 @@ public class HttpMcpServer {
 
     private boolean transitionState(ServerState expected, ServerState newState) {
         if (state.compareAndSet(expected, newState)) {
+            LOG.fine("State transition: " + expected + " -> " + newState);
             fireStateChanged(expected, newState);
             return true;
         }
@@ -170,6 +171,7 @@ public class HttpMcpServer {
     private void forceState(ServerState newState) {
         ServerState old = state.getAndSet(newState);
         if (old != newState) {
+            LOG.fine("State forced: " + old + " -> " + newState);
             fireStateChanged(old, newState);
         }
     }

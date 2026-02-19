@@ -53,6 +53,12 @@ Roadmap и текущие задачи. Плагин содержит встро
 
 ## Технический долг
 
+### Вернуть DEFAULT_LOG_LEVEL на INFO перед релизом [P2, Low]
+
+- [ ] `PluginConfig.DEFAULT_LOG_LEVEL` = `"FINE"` → `"INFO"`
+- [ ] Убрать TODO-комментарий из `PluginConfig.java`
+- Сейчас FINE для фазы тестирования MCP-сервера
+
 - [x] TcpServerTest: интеграционные тесты (10 тестов: lifecycle, ping, ошибки, multi-client, etc.)
 - [x] Тесты для wall height fix (CreateWallsHandler) -- 6 тестов
 - [x] Исследовать race condition: текст меню не обновляется при toggle — state listener pattern (10 тестов)

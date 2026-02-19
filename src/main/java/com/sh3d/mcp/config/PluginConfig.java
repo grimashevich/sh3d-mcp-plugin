@@ -15,7 +15,8 @@ public class PluginConfig {
     public static final int DEFAULT_PORT = 9877;
     public static final int DEFAULT_EDT_TIMEOUT = 10000;
     public static final boolean DEFAULT_AUTO_START = true;
-    public static final String DEFAULT_LOG_LEVEL = "INFO";
+    // TODO: вернуть на "INFO" перед релизом (сейчас FINE для фазы тестирования)
+    public static final String DEFAULT_LOG_LEVEL = "FINE";
 
     private final int port;
     private final int edtTimeout;

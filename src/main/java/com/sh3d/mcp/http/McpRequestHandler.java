@@ -88,6 +88,10 @@ public class McpRequestHandler implements HttpHandler {
 
     private void handlePost(HttpExchange exchange) throws IOException {
         String body = readBody(exchange);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("MCP POST body (" + body.length() + " chars): "
+                    + truncate(body, 2000));
+        }
         if (body.isEmpty()) {
             sendJson(exchange, 400, JsonRpcProtocol.formatError(null,
                     JsonRpcProtocol.PARSE_ERROR, "Empty request body"));
@@ -143,6 +147,12 @@ public class McpRequestHandler implements HttpHandler {
         String clientVersion = params.containsKey("protocolVersion")
                 ? params.get("protocolVersion").toString()
                 : SUPPORTED_PROTOCOL_VERSION;
+
+        if (LOG.isLoggable(Level.FINE)) {
+            Object clientInfo = params.get("clientInfo");
+            LOG.fine("MCP initialize: clientVersion=" + clientVersion
+                    + " clientInfo=" + clientInfo);
+        }
 
         // Negotiation: сервер отвечает своей версией
         McpSession session = sessionManager.createSession(SUPPORTED_PROTOCOL_VERSION);
@@ -216,6 +226,10 @@ public class McpRequestHandler implements HttpHandler {
             arguments = Collections.emptyMap();
         }
 
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("tools/call: tool=" + toolName + " arguments=" + arguments);
+        }
+
         // Находим action по toolName (может совпадать с action или CommandDescriptor.getToolName())
         String action = resolveAction(toolName);
         if (action == null) {
@@ -225,8 +239,16 @@ public class McpRequestHandler implements HttpHandler {
         }
 
         // Dispatch через CommandRegistry
+        long startNanos = System.nanoTime();
         Request cmdRequest = new Request(action, arguments);
         Response cmdResponse = commandRegistry.dispatch(cmdRequest, accessor);
+        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("tools/call completed: tool=" + toolName
+                    + " status=" + cmdResponse.getStatus()
+                    + " elapsed=" + elapsedMs + "ms");
+        }
 
         sendJson(exchange, 200, JsonRpcProtocol.formatToolCallResult(id, cmdResponse));
     }
@@ -320,11 +342,22 @@ public class McpRequestHandler implements HttpHandler {
     }
 
     private void sendJson(HttpExchange exchange, int statusCode, String json) throws IOException {
+        if (LOG.isLoggable(Level.FINER)) {
+            LOG.finer("MCP response (" + statusCode + ", " + json.length() + " chars): "
+                    + truncate(json, 2000));
+        }
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
         exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
+    }
+
+    private static String truncate(String s, int maxLen) {
+        if (s.length() <= maxLen) {
+            return s;
+        }
+        return s.substring(0, maxLen) + "...[truncated, total " + s.length() + "]";
     }
 }

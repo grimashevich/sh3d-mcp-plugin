@@ -7,11 +7,15 @@ import com.sh3d.mcp.protocol.Response;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Реестр команд: связывает имя action с обработчиком CommandHandler.
  */
 public class CommandRegistry {
+
+    private static final Logger LOG = Logger.getLogger(CommandRegistry.class.getName());
 
     private final Map<String, CommandHandler> handlers = new LinkedHashMap<>();
 
@@ -37,13 +41,29 @@ public class CommandRegistry {
         String action = request.getAction();
         CommandHandler handler = handlers.get(action);
         if (handler == null) {
+            LOG.warning("Unknown action: " + action);
             return Response.error("Unknown action: " + action);
         }
+        long startNanos = System.nanoTime();
         try {
-            return handler.execute(request, accessor);
+            Response response = handler.execute(request, accessor);
+            if (LOG.isLoggable(Level.FINE)) {
+                long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+                LOG.fine("dispatch: action=" + action
+                        + " status=" + response.getStatus()
+                        + " elapsed=" + elapsedMs + "ms");
+            }
+            return response;
         } catch (CommandException e) {
+            long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+            LOG.warning("dispatch failed: action=" + action
+                    + " error=" + e.getMessage()
+                    + " elapsed=" + elapsedMs + "ms");
             return Response.error(e.getMessage());
         } catch (Exception e) {
+            long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+            LOG.log(Level.WARNING, "dispatch internal error: action=" + action
+                    + " elapsed=" + elapsedMs + "ms", e);
             return Response.error("Internal error: " + e.getMessage());
         }
     }
