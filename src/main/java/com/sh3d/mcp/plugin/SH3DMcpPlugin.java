@@ -88,7 +88,7 @@ public class SH3DMcpPlugin extends Plugin {
         }
 
         return new PluginAction[]{
-                new ServerToggleAction(this, httpServer)
+                new McpSettingsAction(this, httpServer)
         };
     }
 
