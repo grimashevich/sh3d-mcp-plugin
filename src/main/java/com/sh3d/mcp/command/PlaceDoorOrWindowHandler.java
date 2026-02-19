@@ -103,7 +103,11 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
 
             home.addPieceOfFurniture(piece);
 
+            // Индекс мебели в коллекции (совместимо с get_state)
+            int id = home.getFurniture().indexOf(piece);
+
             Map<String, Object> result = new LinkedHashMap<>();
+            result.put("id", id);
             result.put("name", piece.getName());
             result.put("x", round2(piece.getX()));
             result.put("y", round2(piece.getY()));
@@ -140,7 +144,8 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
                 + "Use 'elevation' for windows (typically 80-100 cm above floor). "
                 + "Doors usually have elevation 0 (default from catalog). "
                 + "Use get_state to find wall IDs and list_furniture_catalog to browse available doors/windows. "
-                + "Use 'catalogId' for precise selection when multiple items share the same name.";
+                + "Use 'catalogId' for precise selection when multiple items share the same name. "
+                + "Returns the furniture id for use with modify_furniture, delete_furniture.";
     }
 
     @Override

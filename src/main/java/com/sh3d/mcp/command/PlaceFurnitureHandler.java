@@ -63,7 +63,11 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
             return piece;
         });
 
+        // Индекс мебели в коллекции (совместимо с get_state)
+        int id = accessor.runOnEDT(() -> accessor.getHome().getFurniture().indexOf(placed));
+
         Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", id);
         data.put("name", placed.getName());
         data.put("x", round2(placed.getX()));
         data.put("y", round2(placed.getY()));
@@ -84,7 +88,8 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
                 + "Searches the catalog by name (case-insensitive, partial match). "
                 + "Coordinates are in centimeters. "
                 + "Angle is in degrees (0 = default orientation, 90 = rotated clockwise). "
-                + "Use 'catalogId' for precise selection when multiple items share the same name.";
+                + "Use 'catalogId' for precise selection when multiple items share the same name. "
+                + "Returns the furniture id for use with modify_furniture, delete_furniture.";
     }
 
     @Override

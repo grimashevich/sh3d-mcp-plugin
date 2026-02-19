@@ -346,6 +346,66 @@ class PlaceFurnitureHandlerTest {
         assertEquals("Office Chair", resp.getData().get("name"));
     }
 
+    // ==================== returned id ====================
+
+    @Test
+    void testResponseContainsId() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Dining Table");
+        params.put("x", 100.0);
+        params.put("y", 200.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isOk());
+        assertNotNull(resp.getData().get("id"), "Response must contain id");
+        assertEquals(0, resp.getData().get("id"));
+    }
+
+    @Test
+    void testIdMatchesHomeIndex() {
+        // Размещаем два предмета мебели
+        Map<String, Object> params1 = new LinkedHashMap<>();
+        params1.put("name", "Dining Table");
+        params1.put("x", 100.0);
+        params1.put("y", 100.0);
+
+        Map<String, Object> params2 = new LinkedHashMap<>();
+        params2.put("name", "Office Chair");
+        params2.put("x", 200.0);
+        params2.put("y", 200.0);
+
+        Response resp1 = handler.execute(new Request("place_furniture", params1), accessor);
+        Response resp2 = handler.execute(new Request("place_furniture", params2), accessor);
+
+        int id1 = (int) resp1.getData().get("id");
+        int id2 = (int) resp2.getData().get("id");
+
+        assertEquals("Dining Table", home.getFurniture().get(id1).getName());
+        assertEquals("Office Chair", home.getFurniture().get(id2).getName());
+    }
+
+    @Test
+    void testIdWithPreexistingFurniture() {
+        // Добавляем мебель до вызова place_furniture
+        HomePieceOfFurniture existing = new HomePieceOfFurniture(
+                new CatalogPieceOfFurniture(
+                        "Existing Sofa", null, null, 200f, 80f, 85f, true, false));
+        home.addPieceOfFurniture(existing);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Dining Table");
+        params.put("x", 100.0);
+        params.put("y", 200.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isOk());
+        int id = (int) resp.getData().get("id");
+        assertEquals(1, id, "ID should be 1 (offset by pre-existing furniture)");
+        assertEquals("Dining Table", home.getFurniture().get(id).getName());
+    }
+
     @Test
     void testBothNameAndCatalogIdMissingReturnsError() {
         Map<String, Object> params = new LinkedHashMap<>();
