@@ -132,18 +132,69 @@ public final class JsonRpcProtocol {
 
     /**
      * Трансформирует Response (из CommandHandler) в MCP tools/call result.
-     * OK → content с text (JSON-сериализованные данные).
-     * Error → content с isError=true.
-     * Если data содержит "image" — возвращает image content.
+     *
+     * <p>Поддерживает три режима content-блоков:
+     * <ul>
+     *   <li><b>Multi-content (новый)</b> — data содержит {@code _image} (одно изображение)
+     *       или {@code _images} (список изображений). Метаданные (ключи без {@code _})
+     *       сериализуются в text block, изображения — в image block(s).</li>
+     *   <li><b>Legacy image</b> — data содержит {@code image} (обратная совместимость).
+     *       Возвращает одиночный image content block.</li>
+     *   <li><b>Text-only</b> — всё остальное. JSON-сериализация data в text block.</li>
+     * </ul>
      */
+    @SuppressWarnings("unchecked")
     public static String formatToolCallResult(Object id, Response response) {
         Map<String, Object> result = new LinkedHashMap<>();
 
         List<Object> content = new ArrayList<>();
         if (response.isOk()) {
             Map<String, Object> data = response.getData();
-            if (data != null && data.containsKey("image")) {
-                // Image content (base64)
+
+            if (data != null && (data.containsKey("_image") || data.containsKey("_images"))) {
+                // --- Multi-content: metadata text block + image block(s) ---
+
+                // Metadata: все ключи без префикса _
+                Map<String, Object> metadata = new LinkedHashMap<>();
+                for (Map.Entry<String, Object> entry : data.entrySet()) {
+                    if (!entry.getKey().startsWith("_")) {
+                        metadata.put(entry.getKey(), entry.getValue());
+                    }
+                }
+                if (!metadata.isEmpty()) {
+                    Map<String, Object> textContent = new LinkedHashMap<>();
+                    textContent.put("type", "text");
+                    textContent.put("text", JsonUtil.serialize(metadata));
+                    content.add(textContent);
+                }
+
+                // Single image
+                if (data.containsKey("_image")) {
+                    String mimeType = data.containsKey("_mimeType")
+                            ? data.get("_mimeType").toString()
+                            : "image/png";
+                    Map<String, Object> imageContent = new LinkedHashMap<>();
+                    imageContent.put("type", "image");
+                    imageContent.put("data", data.get("_image"));
+                    imageContent.put("mimeType", mimeType);
+                    content.add(imageContent);
+                }
+
+                // Multiple images
+                if (data.containsKey("_images")) {
+                    List<Map<String, Object>> images = (List<Map<String, Object>>) data.get("_images");
+                    for (Map<String, Object> img : images) {
+                        Map<String, Object> imageContent = new LinkedHashMap<>();
+                        imageContent.put("type", "image");
+                        imageContent.put("data", img.get("data"));
+                        Object mime = img.get("mimeType");
+                        imageContent.put("mimeType", mime != null ? mime : "image/png");
+                        content.add(imageContent);
+                    }
+                }
+
+            } else if (data != null && data.containsKey("image")) {
+                // --- Legacy: одиночный image content block ---
                 Map<String, Object> imageContent = new LinkedHashMap<>();
                 imageContent.put("type", "image");
                 imageContent.put("data", data.get("image"));
@@ -152,8 +203,9 @@ public final class JsonRpcProtocol {
                         : "image/png";
                 imageContent.put("mimeType", mimeType);
                 content.add(imageContent);
+
             } else {
-                // Text content (JSON-сериализованные данные)
+                // --- Text-only: JSON-сериализованные данные ---
                 Map<String, Object> textContent = new LinkedHashMap<>();
                 textContent.put("type", "text");
                 textContent.put("text", JsonUtil.serialize(data));

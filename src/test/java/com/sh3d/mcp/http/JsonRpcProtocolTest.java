@@ -390,6 +390,131 @@ class JsonRpcProtocolTest {
         assertTrue(json.contains("\"type\":\"text\""));
     }
 
+    // === formatToolCallResult: multi-content (_image, _images) ===
+
+    @Test
+    void testFormatToolCallResultNewImageWithMetadata() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("width", 800);
+        data.put("height", 600);
+        data.put("size_bytes", 45000);
+        data.put("_image", "jpegBase64Data");
+        data.put("_mimeType", "image/jpeg");
+        Response response = Response.ok(data);
+
+        String json = JsonRpcProtocol.formatToolCallResult(10, response);
+        // Metadata text block (inside escaped JSON string)
+        assertTrue(json.contains("\"type\":\"text\""), "Should have text block");
+        assertTrue(json.contains("width"), "Text should contain metadata key 'width'");
+        assertTrue(json.contains("height"), "Text should contain metadata key 'height'");
+        assertTrue(json.contains("size_bytes"), "Text should contain metadata key 'size_bytes'");
+        // Image block
+        assertTrue(json.contains("\"type\":\"image\""), "Should have image block");
+        assertTrue(json.contains("\"data\":\"jpegBase64Data\""));
+        assertTrue(json.contains("\"mimeType\":\"image/jpeg\""));
+        assertTrue(json.contains("\"isError\":false"));
+    }
+
+    @Test
+    void testFormatToolCallResultNewImageDefaultMimeType() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("_image", "pngBase64");
+        Response response = Response.ok(data);
+
+        String json = JsonRpcProtocol.formatToolCallResult(11, response);
+        assertTrue(json.contains("\"mimeType\":\"image/png\""), "Should default to image/png");
+        assertTrue(json.contains("\"data\":\"pngBase64\""));
+    }
+
+    @Test
+    void testFormatToolCallResultNewImageNoMetadata() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("_image", "onlyImage");
+        data.put("_mimeType", "image/png");
+        // No non-underscore keys → no text block
+        Response response = Response.ok(data);
+
+        String json = JsonRpcProtocol.formatToolCallResult(12, response);
+        assertTrue(json.contains("\"type\":\"image\""));
+        assertFalse(json.contains("\"type\":\"text\""), "No text block when no metadata");
+    }
+
+    @Test
+    void testFormatToolCallResultMultipleImages() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("view", "overhead");
+        data.put("imageCount", 2);
+
+        List<Map<String, Object>> images = new ArrayList<>();
+        Map<String, Object> img1 = new LinkedHashMap<>();
+        img1.put("data", "img1base64");
+        img1.put("mimeType", "image/jpeg");
+        images.add(img1);
+        Map<String, Object> img2 = new LinkedHashMap<>();
+        img2.put("data", "img2base64");
+        img2.put("mimeType", "image/jpeg");
+        images.add(img2);
+        data.put("_images", images);
+
+        Response response = Response.ok(data);
+        String json = JsonRpcProtocol.formatToolCallResult(13, response);
+
+        // Metadata text block (inside escaped JSON string)
+        assertTrue(json.contains("overhead"), "Should contain view value");
+        assertTrue(json.contains("imageCount"), "Should contain imageCount key");
+        // Both image blocks
+        assertTrue(json.contains("\"img1base64\""));
+        assertTrue(json.contains("\"img2base64\""));
+        assertTrue(json.contains("\"isError\":false"));
+    }
+
+    @Test
+    void testFormatToolCallResultMultipleImagesDefaultMimeType() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        List<Map<String, Object>> images = new ArrayList<>();
+        Map<String, Object> img = new LinkedHashMap<>();
+        img.put("data", "noMimeImage");
+        // No mimeType → default image/png
+        images.add(img);
+        data.put("_images", images);
+
+        Response response = Response.ok(data);
+        String json = JsonRpcProtocol.formatToolCallResult(14, response);
+        assertTrue(json.contains("\"mimeType\":\"image/png\""));
+    }
+
+    @Test
+    void testFormatToolCallResultUnderscoreKeysExcludedFromMetadata() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("format", "jpeg");
+        data.put("_image", "secretBase64");
+        data.put("_mimeType", "image/jpeg");
+        Response response = Response.ok(data);
+
+        String json = JsonRpcProtocol.formatToolCallResult(15, response);
+        // Text block should have "format" but not "_image" or "_mimeType"
+        assertTrue(json.contains("format"), "Metadata should contain 'format'");
+        assertFalse(json.contains("_image"), "Metadata should NOT contain '_image' key");
+        assertFalse(json.contains("_mimeType"), "Metadata should NOT contain '_mimeType' key");
+        // Base64 data appears only in image block
+        int count = json.split("secretBase64", -1).length - 1;
+        assertEquals(1, count, "Base64 data should appear only in image block, not in text block");
+    }
+
+    @Test
+    void testFormatToolCallResultLegacyImageStillWorks() {
+        // Backward compatibility: old "image" key without underscore
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("image", "legacyBase64");
+        data.put("mimeType", "image/png");
+        Response response = Response.ok(data);
+
+        String json = JsonRpcProtocol.formatToolCallResult(16, response);
+        assertTrue(json.contains("\"type\":\"image\""));
+        assertTrue(json.contains("\"data\":\"legacyBase64\""));
+        assertTrue(json.contains("\"mimeType\":\"image/png\""));
+    }
+
     // === Error code constants ===
 
     @Test
