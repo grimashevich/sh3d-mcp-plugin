@@ -46,7 +46,7 @@ Roadmap и текущие задачи. Плагин содержит встро
 - [x] render_photo overhead: контраст — авто-серый пол (#E0E0E0) для комнат без текстур
 - [x] load_home — загрузка сцены из .sh3d файла (парный метод к save_home), позволяет переиспользовать сохранённые планировки вместо создания с нуля — 24 теста, живой тест OK
 - [x] checkpoint / restore_checkpoint / list_checkpoints — in-memory snapshot сцены (undo/redo таймлайн с курсором). `checkpoint` клонирует Home через `Home.clone()`, `restore_checkpoint` восстанавливает через clearAll + addAll (паттерн LoadHomeHandler), `list_checkpoints` показывает таймлайн с текущей позицией. Fork: новый checkpoint после restore отсекает forward-историю. maxDepth=32, ~50-200 KB на снимок. CheckpointManager в bridge-пакете — 84 теста, живой тест OK
-- [ ] UI диалог настройки агентов (ConfigureAction) — пункт меню "MCP: Configure Agents" с кнопками для автоконфигурации Claude Desktop, Claude Code и текстовым полем с JSON для копирования
+- [x] UI диалог настроек MCP-сервера (McpSettingsDialog) — единый диалог Tools > "MCP Server..." с управлением сервером (status, port, start/stop), JSON-превью конфига, Copy to Clipboard, Auto-configure Claude Desktop (merge + .bak backup). Заменяет ServerToggleAction. ClaudeDesktopConfigurator (кросс-платформенный merge), JsonUtil.serializePretty(), HttpMcpServer.setPort() — 26 новых тестов, 857 всего
 - [x] Обновить документацию (CLAUDE.md, ARCHITECTURE.md) — убрать TCP-протокол, добавить HTTP MCP, обновить архитектурную диаграмму
 
 ---

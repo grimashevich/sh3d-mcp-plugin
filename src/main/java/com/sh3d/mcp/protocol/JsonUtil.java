@@ -37,6 +37,16 @@ public final class JsonUtil {
         return sb.toString();
     }
 
+    /**
+     * Сериализует Java-объект в отформатированную JSON-строку (2 пробела на уровень).
+     */
+    public static String serializePretty(Object value) {
+        StringBuilder sb = new StringBuilder();
+        appendPretty(sb, value, 0);
+        sb.append('\n');
+        return sb.toString();
+    }
+
     @SuppressWarnings("unchecked")
     public static void appendValue(StringBuilder sb, Object value) {
         if (value == null) {
@@ -103,6 +113,71 @@ public final class JsonUtil {
             appendValue(sb, list.get(i));
         }
         sb.append(']');
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void appendPretty(StringBuilder sb, Object value, int indent) {
+        if (value instanceof Map) {
+            appendPrettyObject(sb, (Map<String, Object>) value, indent);
+        } else if (value instanceof List) {
+            appendPrettyArray(sb, (List<Object>) value, indent);
+        } else if (value instanceof String) {
+            appendString(sb, (String) value);
+        } else if (value == null) {
+            sb.append("null");
+        } else if (value instanceof Number || value instanceof Boolean) {
+            sb.append(value);
+        } else {
+            appendString(sb, value.toString());
+        }
+    }
+
+    private static void appendPrettyObject(StringBuilder sb, Map<String, Object> map, int indent) {
+        if (map.isEmpty()) {
+            sb.append("{}");
+            return;
+        }
+        sb.append("{\n");
+        int childIndent = indent + 2;
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (!first) {
+                sb.append(",\n");
+            }
+            first = false;
+            appendIndent(sb, childIndent);
+            appendString(sb, entry.getKey());
+            sb.append(": ");
+            appendPretty(sb, entry.getValue(), childIndent);
+        }
+        sb.append('\n');
+        appendIndent(sb, indent);
+        sb.append('}');
+    }
+
+    private static void appendPrettyArray(StringBuilder sb, List<Object> list, int indent) {
+        if (list.isEmpty()) {
+            sb.append("[]");
+            return;
+        }
+        sb.append("[\n");
+        int childIndent = indent + 2;
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) {
+                sb.append(",\n");
+            }
+            appendIndent(sb, childIndent);
+            appendPretty(sb, list.get(i), childIndent);
+        }
+        sb.append('\n');
+        appendIndent(sb, indent);
+        sb.append(']');
+    }
+
+    private static void appendIndent(StringBuilder sb, int indent) {
+        for (int i = 0; i < indent; i++) {
+            sb.append(' ');
+        }
     }
 
     /**

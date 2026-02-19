@@ -31,7 +31,7 @@ public class HttpMcpServer {
     private static final Logger LOG = Logger.getLogger(HttpMcpServer.class.getName());
     private static final String MCP_ENDPOINT = "/mcp";
 
-    private final int port;
+    private int port;
     private final CommandRegistry commandRegistry;
     private final HomeAccessor accessor;
 
@@ -110,6 +110,19 @@ public class HttpMcpServer {
 
     public Exception getLastStartupError() {
         return lastStartupError;
+    }
+
+    /**
+     * Устанавливает порт сервера. Допустимо только в состоянии STOPPED.
+     */
+    public void setPort(int port) {
+        if (state.get() != ServerState.STOPPED) {
+            throw new IllegalStateException("Cannot change port while server is " + state.get());
+        }
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("Invalid port: " + port + " (must be 1-65535)");
+        }
+        this.port = port;
     }
 
     public void addStateListener(ServerStateListener listener) {
