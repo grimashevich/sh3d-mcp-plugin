@@ -99,7 +99,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `server` | TCP-сервер: `TcpServer` (accept loop), `ClientHandler` (обработка соединения), `ServerState` (enum) |
 | `protocol` | JSON-протокол: `JsonProtocol` (парсинг/форматирование), `Request`, `Response` (value objects) |
 | `command` | Обработчики: `CommandHandler` (интерфейс), `CommandDescriptor` (auto-discovery), `CommandRegistry` (реестр), handler-классы |
-| `bridge` | Мост к SH3D API: `HomeAccessor` -- потокобезопасная обёртка над `Home` через EDT |
+| `bridge` | Мост к SH3D API: `HomeAccessor` -- потокобезопасная обёртка над `Home` через EDT, `CheckpointManager` -- undo/redo таймлайн (in-memory снимки через `Home.clone()`) |
 | `config` | `PluginConfig` -- настройки (порт, autoStart и др.) |
 
 ## Реализованные команды
@@ -111,6 +111,7 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `add_label` | Текстовая метка (аннотация) на 2D-плане |
 | `add_level` | Создание нового уровня (этажа) с высотой и толщиной перекрытия |
 | `apply_texture` | Применение текстуры из каталога к стене или комнате |
+| `checkpoint` | In-memory снимок сцены (undo-точка). Опциональный `description` |
 | `clear_scene` | Удаление всех объектов из сцены |
 | `connect_walls` | Соединение двух стен по ID для корректного рендеринга углов |
 | `create_room_polygon` | Создание комнаты по полигону точек |
@@ -124,10 +125,12 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 | `place_door_or_window` | Размещение двери/окна из каталога в стену (wallId + position) |
 | `place_furniture` | Размещение мебели из каталога |
 | `get_state` | Состояние сцены (стены, мебель, комнаты, камера) |
+| `list_checkpoints` | Список всех чекпоинтов с текущей позицией курсора (undo/redo таймлайн) |
 | `list_furniture_catalog` | Каталог мебели с фильтрацией |
 | `list_levels` | Список всех уровней с указанием выбранного |
 | `list_textures_catalog` | Каталог текстур с фильтрацией |
 | `render_photo` | 3D-рендер сцены (Sunflow), опционально сохранение в файл (filePath) |
+| `restore_checkpoint` | Восстановление сцены из чекпоинта (undo/redo). Опциональный `id` |
 | `export_plan_image` | Быстрый экспорт 2D-плана в PNG |
 | `export_svg` | Экспорт 2D-плана в SVG |
 | `export_to_obj` | Экспорт 3D-сцены в Wavefront OBJ (ZIP: OBJ + MTL + текстуры) |
