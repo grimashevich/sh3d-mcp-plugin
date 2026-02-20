@@ -6,10 +6,10 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -90,11 +90,9 @@ public class CreateWallsHandler implements CommandHandler, CommandDescriptor {
             return new Wall[]{w1, w2, w3, w4};
         });
 
-        // Индексы стен в коллекции (совместимо с get_state)
-        List<Wall> walls = new ArrayList<>(accessor.runOnEDT(() -> accessor.getHome().getWalls()));
-        List<Integer> wallIds = new ArrayList<>(4);
+        List<String> wallIds = new ArrayList<>(4);
         for (Wall w : created) {
-            wallIds.add(walls.indexOf(w));
+            wallIds.add(w.getId());
         }
 
         Map<String, Object> data = new LinkedHashMap<>();

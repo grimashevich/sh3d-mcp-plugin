@@ -44,7 +44,8 @@ class CreateWallHandlerTest {
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertNotNull(data.get("id"));
+        assertInstanceOf(String.class, data.get("id"));
         assertEquals(100f, ((Number) data.get("xStart")).floatValue(), 0.01f);
         assertEquals(200f, ((Number) data.get("yStart")).floatValue(), 0.01f);
         assertEquals(500f, ((Number) data.get("xEnd")).floatValue(), 0.01f);
@@ -180,12 +181,14 @@ class CreateWallHandlerTest {
     }
 
     @Test
-    void testSecondWallGetsId1() {
-        handler.execute(makeRequest(0, 0, 500, 0), accessor);
-        Response resp = handler.execute(makeRequest(500, 0, 500, 300), accessor);
+    void testSecondWallGetsUniqueId() {
+        Response resp1 = handler.execute(makeRequest(0, 0, 500, 0), accessor);
+        Response resp2 = handler.execute(makeRequest(500, 0, 500, 300), accessor);
 
-        assertTrue(resp.isOk());
-        assertEquals(1, resp.getData().get("id"));
+        assertTrue(resp2.isOk());
+        String id1 = (String) resp1.getData().get("id");
+        String id2 = (String) resp2.getData().get("id");
+        assertNotEquals(id1, id2);
         assertEquals(2, home.getWalls().size());
     }
 

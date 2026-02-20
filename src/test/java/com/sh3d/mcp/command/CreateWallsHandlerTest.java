@@ -8,6 +8,8 @@ import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.sh3d.mcp.bridge.ObjectResolver;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -355,9 +357,13 @@ class CreateWallsHandlerTest {
         Response resp = handler.execute(req, accessor);
 
         assertTrue(resp.isOk());
-        List<Integer> wallIds = (List<Integer>) resp.getData().get("wallIds");
+        List<String> wallIds = (List<String>) resp.getData().get("wallIds");
         assertNotNull(wallIds, "Response must contain wallIds");
         assertEquals(4, wallIds.size(), "wallIds must have 4 elements");
+        for (String id : wallIds) {
+            assertNotNull(id);
+            assertFalse(id.isEmpty());
+        }
     }
 
     @Test
@@ -372,28 +378,31 @@ class CreateWallsHandlerTest {
         Request req = new Request("create_walls", params);
         Response resp = handler.execute(req, accessor);
 
-        List<Integer> wallIds = (List<Integer>) resp.getData().get("wallIds");
-        List<Wall> walls = new ArrayList<>(home.getWalls());
+        List<String> wallIds = (List<String>) resp.getData().get("wallIds");
 
-        // top: A(100,200)→B(500,200)
-        Wall top = walls.get(wallIds.get(0));
+        // top: A(100,200)->B(500,200)
+        Wall top = ObjectResolver.findWall(home, wallIds.get(0));
+        assertNotNull(top);
         assertEquals(100f, top.getXStart(), 0.01f);
         assertEquals(200f, top.getYStart(), 0.01f);
         assertEquals(500f, top.getXEnd(), 0.01f);
 
-        // right: B(500,200)→C(500,500)
-        Wall right = walls.get(wallIds.get(1));
+        // right: B(500,200)->C(500,500)
+        Wall right = ObjectResolver.findWall(home, wallIds.get(1));
+        assertNotNull(right);
         assertEquals(500f, right.getXStart(), 0.01f);
         assertEquals(200f, right.getYStart(), 0.01f);
         assertEquals(500f, right.getYEnd(), 0.01f);
 
-        // bottom: C(500,500)→D(100,500)
-        Wall bottom = walls.get(wallIds.get(2));
+        // bottom: C(500,500)->D(100,500)
+        Wall bottom = ObjectResolver.findWall(home, wallIds.get(2));
+        assertNotNull(bottom);
         assertEquals(500f, bottom.getXStart(), 0.01f);
         assertEquals(500f, bottom.getYStart(), 0.01f);
 
-        // left: D(100,500)→A(100,200)
-        Wall left = walls.get(wallIds.get(3));
+        // left: D(100,500)->A(100,200)
+        Wall left = ObjectResolver.findWall(home, wallIds.get(3));
+        assertNotNull(left);
         assertEquals(100f, left.getXStart(), 0.01f);
         assertEquals(500f, left.getYStart(), 0.01f);
     }
@@ -402,8 +411,10 @@ class CreateWallsHandlerTest {
     @SuppressWarnings("unchecked")
     void testWallIdsWithPreexistingWalls() {
         // Добавляем 2 стены до вызова create_walls
-        home.addWall(new Wall(0, 0, 100, 0, 10));
-        home.addWall(new Wall(100, 0, 100, 100, 10));
+        Wall pre1 = new Wall(0, 0, 100, 0, 10);
+        Wall pre2 = new Wall(100, 0, 100, 100, 10);
+        home.addWall(pre1);
+        home.addWall(pre2);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("x", 200.0);
@@ -414,10 +425,11 @@ class CreateWallsHandlerTest {
         Request req = new Request("create_walls", params);
         Response resp = handler.execute(req, accessor);
 
-        List<Integer> wallIds = (List<Integer>) resp.getData().get("wallIds");
-        // IDs должны быть сдвинуты на 2 (существующие стены занимают 0 и 1)
-        for (int id : wallIds) {
-            assertTrue(id >= 2, "Wall IDs should be offset by pre-existing walls, got " + id);
+        List<String> wallIds = (List<String>) resp.getData().get("wallIds");
+        // IDs should be different from pre-existing walls
+        for (String id : wallIds) {
+            assertNotEquals(pre1.getId(), id);
+            assertNotEquals(pre2.getId(), id);
         }
         assertEquals(6, home.getWalls().size());
     }
