@@ -27,8 +27,9 @@ import java.util.Map;
  * Возвращает полное состояние сцены: стены, мебель, комнаты, labels,
  * dimension lines, камера, уровни, bounding box.
  *
- * Каждый объект получает числовой ID (индекс в коллекции), который можно
- * использовать в последующих командах (delete, modify и т.д.).
+ * Каждый объект получает стабильный строковый ID ({@code HomeObject.getId()}),
+ * который не сдвигается при удалении других объектов и может использоваться
+ * в последующих командах (delete, modify и т.д.).
  */
 public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
@@ -69,13 +70,11 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             // --- Stored cameras ---
             List<Camera> storedCameras = home.getStoredCameras();
             List<Object> storedCamList = new ArrayList<>();
-            int camIdx = 0;
             for (Camera sc : storedCameras) {
                 Map<String, Object> cam = new LinkedHashMap<>();
-                cam.put("id", camIdx);
+                cam.put("id", sc.getId());
                 cam.put("name", sc.getName());
                 storedCamList.add(cam);
-                camIdx++;
             }
             result.put("storedCameraCount", storedCamList.size());
             result.put("storedCameras", storedCamList);
@@ -101,10 +100,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private List<Object> buildWalls(Collection<Wall> walls) {
         List<Object> list = new ArrayList<>();
-        int index = 0;
         for (Wall w : walls) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", index);
+            item.put("id", w.getId());
             item.put("xStart", round2(w.getXStart()));
             item.put("yStart", round2(w.getYStart()));
             item.put("xEnd", round2(w.getXEnd()));
@@ -125,7 +123,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             Level level = w.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
-            index++;
         }
         return list;
     }
@@ -134,10 +131,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private List<Object> buildFurniture(List<HomePieceOfFurniture> furniture) {
         List<Object> list = new ArrayList<>();
-        int index = 0;
         for (HomePieceOfFurniture piece : furniture) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", index);
+            item.put("id", piece.getId());
             item.put("name", piece.getName());
             item.put("catalogId", piece.getCatalogId());
             item.put("x", round2(piece.getX()));
@@ -152,7 +148,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             Level level = piece.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
-            index++;
         }
         return list;
     }
@@ -161,10 +156,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private List<Object> buildRooms(List<Room> rooms) {
         List<Object> list = new ArrayList<>();
-        int index = 0;
         for (Room room : rooms) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", index);
+            item.put("id", room.getId());
             item.put("name", room.getName());
             item.put("area", round2(room.getArea()));
             item.put("areaVisible", room.isAreaVisible());
@@ -193,7 +187,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             Level level = room.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
-            index++;
         }
         return list;
     }
@@ -202,10 +195,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private List<Object> buildLabels(Collection<Label> labels) {
         List<Object> list = new ArrayList<>();
-        int index = 0;
         for (Label label : labels) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", index);
+            item.put("id", label.getId());
             item.put("text", label.getText());
             item.put("x", round2(label.getX()));
             item.put("y", round2(label.getY()));
@@ -214,7 +206,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             Level level = label.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
-            index++;
         }
         return list;
     }
@@ -223,10 +214,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private List<Object> buildDimensionLines(Collection<DimensionLine> dimensionLines) {
         List<Object> list = new ArrayList<>();
-        int index = 0;
         for (DimensionLine dim : dimensionLines) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", index);
+            item.put("id", dim.getId());
             item.put("xStart", round2(dim.getXStart()));
             item.put("yStart", round2(dim.getYStart()));
             item.put("xEnd", round2(dim.getXEnd()));
@@ -236,7 +226,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             Level level = dim.getLevel();
             item.put("level", level != null ? level.getName() : null);
             list.add(item);
-            index++;
         }
         return list;
     }
@@ -260,10 +249,9 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     private List<Object> buildLevels(List<Level> levels, Level selectedLevel) {
         List<Object> list = new ArrayList<>();
-        int index = 0;
         for (Level level : levels) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", index);
+            item.put("id", level.getId());
             item.put("name", level.getName());
             item.put("elevation", round2(level.getElevation()));
             item.put("height", round2(level.getHeight()));
@@ -271,7 +259,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             item.put("viewable", level.isViewable());
             item.put("selected", level.equals(selectedLevel));
             list.add(item);
-            index++;
         }
         return list;
     }
@@ -339,8 +326,8 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
                 + "furniture with positions and IDs, rooms with polygons, labels, dimension lines, "
                 + "camera settings, environment (ground, sky, light, wallsAlpha, drawingMode), "
                 + "and levels. Each object has a numeric 'id' field that can be "
-                + "used in subsequent commands (delete, modify, etc.). "
-                + "Always call this before making changes to understand the current scene.";
+                + "used in subsequent commands (delete, modify, etc.). Always call this before "
+                + "making changes to understand the current scene.";
     }
 
     @Override
