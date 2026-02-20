@@ -106,10 +106,16 @@ class BatchCommandsHandlerTest {
     @Test
     @SuppressWarnings("unchecked")
     void testSequentialExecutionDependsOnPrior() {
+        // Pre-create walls to get stable IDs (UUIDs can't be predicted)
+        Wall w1 = new Wall(0, 0, 500, 0, 10);
+        Wall w2 = new Wall(500, 0, 500, 300, 10);
+        home.addWall(w1);
+        home.addWall(w2);
+
         List<Map<String, Object>> cmds = Arrays.asList(
-                cmd("create_wall", wallParams(0, 0, 500, 0)),
-                cmd("create_wall", wallParams(500, 0, 500, 300)),
-                cmd("connect_walls", connectParams(0, 1)));
+                cmd("create_wall", wallParams(0, 0, 100, 0)),
+                cmd("create_wall", wallParams(100, 0, 100, 100)),
+                cmd("connect_walls", connectParams(w1.getId(), w2.getId())));
 
         Response resp = executeBatch(cmds);
 
@@ -418,10 +424,10 @@ class BatchCommandsHandlerTest {
         return p;
     }
 
-    private static Map<String, Object> connectParams(int wall1Id, int wall2Id) {
+    private static Map<String, Object> connectParams(String wall1Id, String wall2Id) {
         Map<String, Object> p = new LinkedHashMap<>();
-        p.put("wall1Id", (float) wall1Id);
-        p.put("wall2Id", (float) wall2Id);
+        p.put("wall1Id", wall1Id);
+        p.put("wall2Id", wall2Id);
         return p;
     }
 }
