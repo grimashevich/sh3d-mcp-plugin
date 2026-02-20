@@ -422,6 +422,50 @@ class PlaceFurnitureHandlerTest {
         assertEquals("Dining Table", placed.getName());
     }
 
+    // ==================== elevation ====================
+
+    @Test
+    void testElevationApplied() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Dining Table");
+        params.put("x", 100.0);
+        params.put("y", 200.0);
+        params.put("elevation", 150.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(150.0, (double) resp.getData().get("elevation"), 0.01);
+        assertEquals(150f, home.getFurniture().get(0).getElevation(), 0.01f);
+    }
+
+    @Test
+    void testDefaultElevationIsZero() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Dining Table");
+        params.put("x", 100.0);
+        params.put("y", 200.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(0.0, (double) resp.getData().get("elevation"), 0.01);
+        assertEquals(0f, home.getFurniture().get(0).getElevation(), 0.01f);
+    }
+
+    @Test
+    void testResponseContainsElevation() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Dining Table");
+        params.put("x", 0.0);
+        params.put("y", 0.0);
+
+        Response resp = handler.execute(new Request("place_furniture", params), accessor);
+
+        assertTrue(resp.isOk());
+        assertTrue(resp.getData().containsKey("elevation"), "Response must contain elevation");
+    }
+
     @Test
     void testBothNameAndCatalogIdMissingReturnsError() {
         Map<String, Object> params = new LinkedHashMap<>();
