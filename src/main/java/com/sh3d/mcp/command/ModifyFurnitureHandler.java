@@ -3,6 +3,7 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -13,7 +14,7 @@ import java.util.Map;
 
 /**
  * Обработчик команды "modify_furniture".
- * Изменяет свойства мебели по ID (индексу из get_state).
+ * Изменяет свойства мебели по стабильному строковому ID.
  */
 public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor {
 
@@ -24,11 +25,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int id = (int) request.getFloat("id");
-
-        if (id < 0) {
-            return Response.error("Parameter 'id' must be non-negative, got " + id);
-        }
+        String id = request.getRequiredString("id");
 
         Map<String, Object> params = request.getParams();
         boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);
@@ -58,13 +55,11 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<HomePieceOfFurniture> furniture = home.getFurniture();
+            HomePieceOfFurniture piece = ObjectResolver.findFurniture(home, id);
 
-            if (id >= furniture.size()) {
+            if (piece == null) {
                 return null;
             }
-
-            HomePieceOfFurniture piece = furniture.get(id);
 
             // Position
             if (params.containsKey("x")) {
@@ -118,7 +113,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
 
             // Build response with current state
             Map<String, Object> result = new LinkedHashMap<>();
-            result.put("id", id);
+            result.put("id", piece.getId());
             result.put("name", piece.getName());
             result.put("x", round2(piece.getX()));
             result.put("y", round2(piece.getY()));
@@ -135,7 +130,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
         });
 
         if (data == null) {
-            return Response.error("Furniture not found: id " + id + " is out of range");
+            return Response.error("Furniture not found: " + id);
         }
 
         return Response.ok(data);
@@ -155,7 +150,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("id", prop("integer", "Furniture ID from get_state"));
+        properties.put("id", prop("string", "Furniture ID from get_state"));
         properties.put("x", prop("number", "New X coordinate in cm"));
         properties.put("y", prop("number", "New Y coordinate in cm"));
         properties.put("angle", prop("number", "New rotation angle in degrees (0-360)"));

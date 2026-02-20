@@ -358,12 +358,14 @@ class PlaceFurnitureHandlerTest {
         Response resp = handler.execute(new Request("place_furniture", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNotNull(resp.getData().get("id"), "Response must contain id");
-        assertEquals(0, resp.getData().get("id"));
+        Object id = resp.getData().get("id");
+        assertNotNull(id, "Response must contain id");
+        assertInstanceOf(String.class, id, "ID must be a string");
+        assertFalse(((String) id).isEmpty(), "ID must not be empty");
     }
 
     @Test
-    void testIdMatchesHomeIndex() {
+    void testIdMatchesPlacedFurniture() {
         // Размещаем два предмета мебели
         Map<String, Object> params1 = new LinkedHashMap<>();
         params1.put("name", "Dining Table");
@@ -378,15 +380,24 @@ class PlaceFurnitureHandlerTest {
         Response resp1 = handler.execute(new Request("place_furniture", params1), accessor);
         Response resp2 = handler.execute(new Request("place_furniture", params2), accessor);
 
-        int id1 = (int) resp1.getData().get("id");
-        int id2 = (int) resp2.getData().get("id");
+        String id1 = (String) resp1.getData().get("id");
+        String id2 = (String) resp2.getData().get("id");
 
-        assertEquals("Dining Table", home.getFurniture().get(id1).getName());
-        assertEquals("Office Chair", home.getFurniture().get(id2).getName());
+        assertNotEquals(id1, id2, "IDs must be unique");
+
+        // Verify IDs match actual furniture objects
+        HomePieceOfFurniture piece1 = home.getFurniture().stream()
+                .filter(p -> p.getId().equals(id1)).findFirst().orElse(null);
+        HomePieceOfFurniture piece2 = home.getFurniture().stream()
+                .filter(p -> p.getId().equals(id2)).findFirst().orElse(null);
+        assertNotNull(piece1);
+        assertNotNull(piece2);
+        assertEquals("Dining Table", piece1.getName());
+        assertEquals("Office Chair", piece2.getName());
     }
 
     @Test
-    void testIdWithPreexistingFurniture() {
+    void testIdIsStableAcrossAdditions() {
         // Добавляем мебель до вызова place_furniture
         HomePieceOfFurniture existing = new HomePieceOfFurniture(
                 new CatalogPieceOfFurniture(
@@ -401,9 +412,14 @@ class PlaceFurnitureHandlerTest {
         Response resp = handler.execute(new Request("place_furniture", params), accessor);
 
         assertTrue(resp.isOk());
-        int id = (int) resp.getData().get("id");
-        assertEquals(1, id, "ID should be 1 (offset by pre-existing furniture)");
-        assertEquals("Dining Table", home.getFurniture().get(id).getName());
+        String id = (String) resp.getData().get("id");
+        assertNotEquals(existing.getId(), id, "New furniture must have different ID");
+
+        // Verify the returned ID matches the placed furniture
+        HomePieceOfFurniture placed = home.getFurniture().stream()
+                .filter(p -> p.getId().equals(id)).findFirst().orElse(null);
+        assertNotNull(placed);
+        assertEquals("Dining Table", placed.getName());
     }
 
     @Test
