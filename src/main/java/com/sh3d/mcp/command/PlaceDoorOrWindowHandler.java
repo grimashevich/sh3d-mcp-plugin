@@ -81,6 +81,11 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
             float angle = (float) Math.atan2(yEnd - yStart, xEnd - xStart);
 
             HomePieceOfFurniture piece = new HomePieceOfFurniture(found);
+            // Auto-fit depth to wall thickness for proper rendering
+            float wallThickness = wall.getThickness();
+            if (piece.getDepth() < wallThickness) {
+                piece.setDepth(wallThickness);
+            }
             piece.setX(x);
             piece.setY(y);
             piece.setAngle(angle);

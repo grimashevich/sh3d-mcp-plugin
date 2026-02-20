@@ -422,6 +422,62 @@ class PlaceDoorOrWindowHandlerTest {
         assertEquals(450f, home.getFurniture().get(1).getX(), 0.01f);
     }
 
+    // --- Auto-fit depth to wall thickness ---
+
+    @Test
+    void testDepthAutoFitToWallThickness() {
+        // Door depth (10) < wall thickness (default 10), so no change
+        Wall wall = addWall(0, 0, 500, 0); // thickness=10
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", wall.getId());
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        // Door depth=10, wall thickness=10, no change needed
+        assertEquals(10.0, (double) resp.getData().get("depth"), 0.01);
+    }
+
+    @Test
+    void testDepthAutoFitWhenDoorThinnerThanWall() {
+        // Create wall with thickness=20, door depth=10 -> should be auto-fit to 20
+        Wall wall = new Wall(0, 0, 500, 0, 20);
+        wall.setHeight(250f);
+        home.addWall(wall);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", wall.getId());
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        // Door depth should be increased to wall thickness
+        assertEquals(20.0, (double) resp.getData().get("depth"), 0.01);
+        assertEquals(20f, home.getFurniture().get(0).getDepth(), 0.01f);
+    }
+
+    @Test
+    void testDepthNotReducedWhenDoorThickerThanWall() {
+        // Create wall with thickness=5, door depth=10 -> should stay 10
+        Wall wall = new Wall(0, 0, 500, 0, 5);
+        wall.setHeight(250f);
+        home.addWall(wall);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", wall.getId());
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        // Door depth should NOT be reduced
+        assertEquals(10.0, (double) resp.getData().get("depth"), 0.01);
+        assertEquals(10f, home.getFurniture().get(0).getDepth(), 0.01f);
+    }
+
     @Test
     void testResponseContainsAllFields() {
         Wall wall = addWall(0, 0, 500, 0);
