@@ -113,16 +113,24 @@ class McpRequestHandlerTest {
     }
 
     @Test
-    void testToolsListWithInvalidSessionReturns404() throws Exception {
+    void testToolsListWithInvalidSessionAutoRecreatesSession() throws Exception {
+        registerTestTool("create_wall", "Create a wall", null);
+
         String body = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}";
         HttpExchange exchange = createPostExchange(body, "nonexistent-session-id", null);
         ByteArrayOutputStream responseBody = captureResponseBody(exchange);
 
         handler.handle(exchange);
 
-        verify(exchange).sendResponseHeaders(eq(404), anyLong());
+        verify(exchange).sendResponseHeaders(eq(200), anyLong());
         String response = responseBody.toString(StandardCharsets.UTF_8.name());
-        assertTrue(response.contains("Session not found or expired"));
+        assertTrue(response.contains("\"tools\""));
+        assertTrue(response.contains("\"create_wall\""));
+
+        // New session ID should be set in response
+        String newSessionId = exchange.getResponseHeaders().getFirst("Mcp-Session-Id");
+        assertNotNull(newSessionId, "Response should contain new Mcp-Session-Id after auto-recreate");
+        assertNotEquals("nonexistent-session-id", newSessionId);
     }
 
     // === POST tools/call ===
@@ -184,6 +192,31 @@ class McpRequestHandlerTest {
         verify(exchange).sendResponseHeaders(eq(200), anyLong());
         String response = responseBody.toString(StandardCharsets.UTF_8.name());
         assertTrue(response.contains("\"isError\":false"));
+    }
+
+    @Test
+    void testToolsCallWithInvalidSessionAutoRecreatesSession() throws Exception {
+        commandRegistry.register("get_state", (req, acc) -> {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("walls", 0);
+            return Response.ok(data);
+        });
+
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\","
+                + "\"params\":{\"name\":\"get_state\",\"arguments\":{}}}";
+        HttpExchange exchange = createPostExchange(body, "expired-session-id", null);
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(200), anyLong());
+        String response = responseBody.toString(StandardCharsets.UTF_8.name());
+        assertTrue(response.contains("\"isError\":false"));
+
+        // Verify new session ID in response
+        String newSessionId = exchange.getResponseHeaders().getFirst("Mcp-Session-Id");
+        assertNotNull(newSessionId, "Auto-recreated session ID should be in response");
+        assertNotEquals("expired-session-id", newSessionId);
     }
 
     @Test
@@ -294,14 +327,19 @@ class McpRequestHandlerTest {
 
         verify(exchange).sendResponseHeaders(200, -1);
 
-        // Verify session is actually removed by trying tools/list
+        // After deletion, using the old session ID triggers auto-recreate (200, not 404)
         String body = "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/list\"}";
         HttpExchange exchange2 = createPostExchange(body, sessionId, null);
         ByteArrayOutputStream responseBody2 = captureResponseBody(exchange2);
 
         handler.handle(exchange2);
 
-        verify(exchange2).sendResponseHeaders(eq(404), anyLong());
+        verify(exchange2).sendResponseHeaders(eq(200), anyLong());
+
+        // A new session ID should be assigned
+        String newSessionId = exchange2.getResponseHeaders().getFirst("Mcp-Session-Id");
+        assertNotNull(newSessionId);
+        assertNotEquals(sessionId, newSessionId);
     }
 
     @Test
