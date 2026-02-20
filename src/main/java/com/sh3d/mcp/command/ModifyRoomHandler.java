@@ -3,6 +3,7 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Room;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -14,7 +15,7 @@ import java.util.Map;
 
 /**
  * Обработчик команды "modify_room".
- * Изменяет свойства комнаты по ID (индексу из get_state).
+ * Изменяет свойства комнаты по стабильному ID.
  */
 public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
 
@@ -26,10 +27,9 @@ public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int id = (int) request.getFloat("id");
-
-        if (id < 0) {
-            return Response.error("Parameter 'id' must be non-negative, got " + id);
+        String id = request.getRequiredString("id");
+        if (id == null) {
+            return Response.error("Missing required parameter 'id'");
         }
 
         Map<String, Object> params = request.getParams();
@@ -87,13 +87,11 @@ public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Room> rooms = home.getRooms();
 
-            if (id >= rooms.size()) {
+            Room room = ObjectResolver.findRoom(home, id);
+            if (room == null) {
                 return null;
             }
-
-            Room room = rooms.get(id);
 
             // Name
             if (params.containsKey("name")) {
@@ -134,13 +132,13 @@ public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
         });
 
         if (data == null) {
-            return Response.error("Room not found: id " + id + " is out of range");
+            return Response.error("Room not found: " + id);
         }
 
         return Response.ok(data);
     }
 
-    private static Map<String, Object> buildResponse(int id, Room room) {
+    private static Map<String, Object> buildResponse(String id, Room room) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", id);
         result.put("name", room.getName());
@@ -219,7 +217,7 @@ public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("id", prop("integer", "Room ID from get_state"));
+        properties.put("id", prop("string", "Room ID from get_state"));
         properties.put("name", prop("string", "Room name (e.g. 'Kitchen', 'Living Room')"));
         properties.put("floorVisible", prop("boolean", "Whether floor surface is visible in 3D"));
         properties.put("ceilingVisible", prop("boolean", "Whether ceiling surface is visible in 3D"));

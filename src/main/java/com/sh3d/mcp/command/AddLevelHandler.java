@@ -6,7 +6,6 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,16 +42,13 @@ public class AddLevelHandler implements CommandHandler, CommandDescriptor {
             home.addLevel(level);
             home.setSelectedLevel(level);
 
-            List<Level> levels = home.getLevels();
-            int id = new ArrayList<>(levels).indexOf(level);
-
             Map<String, Object> result = new LinkedHashMap<>();
-            result.put("id", id);
+            result.put("id", level.getId());
             result.put("name", level.getName());
             result.put("elevation", round2(level.getElevation()));
             result.put("height", round2(level.getHeight()));
             result.put("floorThickness", round2(level.getFloorThickness()));
-            result.put("levelCount", levels.size());
+            result.put("levelCount", home.getLevels().size());
             return result;
         });
 

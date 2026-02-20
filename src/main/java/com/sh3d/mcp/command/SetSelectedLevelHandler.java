@@ -3,6 +3,7 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Level;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -13,27 +14,24 @@ import java.util.Map;
 
 /**
  * Обработчик команды "set_selected_level".
- * Переключает активный уровень по ID.
+ * Переключает активный уровень по стабильному ID.
  */
 public class SetSelectedLevelHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int id = (int) request.getFloat("id");
-
-        if (id < 0) {
-            return Response.error("Parameter 'id' must be non-negative, got " + id);
+        String id = request.getRequiredString("id");
+        if (id == null) {
+            return Response.error("Missing required parameter 'id'");
         }
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Level> levels = home.getLevels();
 
-            if (id >= levels.size()) {
+            Level level = ObjectResolver.findLevel(home, id);
+            if (level == null) {
                 return null;
             }
-
-            Level level = levels.get(id);
             home.setSelectedLevel(level);
 
             Map<String, Object> result = new LinkedHashMap<>();
@@ -47,7 +45,7 @@ public class SetSelectedLevelHandler implements CommandHandler, CommandDescripto
         });
 
         if (data == null) {
-            return Response.error("Level not found: id " + id + " is out of range");
+            return Response.error("Level not found: " + id);
         }
 
         return Response.ok(data);
@@ -66,7 +64,7 @@ public class SetSelectedLevelHandler implements CommandHandler, CommandDescripto
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("id", prop("integer", "Level ID (index) from list_levels or get_state"));
+        properties.put("id", prop("string", "Level ID from list_levels or get_state"));
         schema.put("properties", properties);
 
         schema.put("required", Arrays.asList("id"));

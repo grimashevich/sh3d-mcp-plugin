@@ -381,13 +381,8 @@ public class GenerateShapeHandler implements CommandHandler, CommandDescriptor {
                 return piece;
             });
 
-            // Get ID (index in furniture list)
-            List<HomePieceOfFurniture> furniture = new ArrayList<>(
-                    accessor.runOnEDT(() -> accessor.getHome().getFurniture()));
-            int id = furniture.indexOf(placed);
-
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("id", id);
+            data.put("id", placed.getId());
             data.put("name", placed.getName());
             data.put("x", round2(placed.getX()));
             data.put("y", round2(placed.getY()));
