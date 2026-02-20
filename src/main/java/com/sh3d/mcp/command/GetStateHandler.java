@@ -325,7 +325,7 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
         return "Returns the full state of the Sweet Home 3D scene: walls with coordinates, "
                 + "furniture with positions and IDs, rooms with polygons, labels, dimension lines, "
                 + "camera settings, environment (ground, sky, light, wallsAlpha, drawingMode), "
-                + "and levels. Each object has a numeric 'id' field that can be "
+                + "and levels. Each object has a stable string 'id' field that can be "
                 + "used in subsequent commands (delete, modify, etc.). Always call this before "
                 + "making changes to understand the current scene.";
     }

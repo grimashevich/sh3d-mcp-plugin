@@ -21,8 +21,8 @@ public class DeleteRoomHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        String id = request.getRequiredString("id");
-        if (id == null) {
+        String id = request.getString("id");
+        if (id == null || id.trim().isEmpty()) {
             return Response.error("Missing required parameter 'id'");
         }
 

@@ -118,7 +118,8 @@ public class ClearSceneHandler implements CommandHandler, CommandDescriptor {
     public String getDescription() {
         return "Removes ALL objects from the scene: walls, furniture, rooms, labels, "
                 + "and dimension lines. Returns the count of deleted objects by type. "
-                + "Use with caution — this cannot be undone.";
+                + "An automatic checkpoint is created before clearing, so you can use "
+                + "restore_checkpoint to undo. Levels are preserved; use delete_level to remove them.";
     }
 
     @Override

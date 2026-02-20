@@ -127,10 +127,8 @@ class McpRequestHandlerTest {
         assertTrue(response.contains("\"tools\""));
         assertTrue(response.contains("\"create_wall\""));
 
-        // New session ID should be set in response
-        String newSessionId = exchange.getResponseHeaders().getFirst("Mcp-Session-Id");
-        assertNotNull(newSessionId, "Response should contain new Mcp-Session-Id after auto-recreate");
-        assertNotEquals("nonexistent-session-id", newSessionId);
+        // Session reuses the same ID (no new header needed, avoids session leak)
+        // Verify session was auto-recreated and request succeeded (200 instead of 404)
     }
 
     // === POST tools/call ===
@@ -213,10 +211,8 @@ class McpRequestHandlerTest {
         String response = responseBody.toString(StandardCharsets.UTF_8.name());
         assertTrue(response.contains("\"isError\":false"));
 
-        // Verify new session ID in response
-        String newSessionId = exchange.getResponseHeaders().getFirst("Mcp-Session-Id");
-        assertNotNull(newSessionId, "Auto-recreated session ID should be in response");
-        assertNotEquals("expired-session-id", newSessionId);
+        // Session reuses the same ID (no new header needed, avoids session leak)
+        // Verify session was auto-recreated and request succeeded (200 instead of 404)
     }
 
     @Test
@@ -336,10 +332,8 @@ class McpRequestHandlerTest {
 
         verify(exchange2).sendResponseHeaders(eq(200), anyLong());
 
-        // A new session ID should be assigned
-        String newSessionId = exchange2.getResponseHeaders().getFirst("Mcp-Session-Id");
-        assertNotNull(newSessionId);
-        assertNotEquals(sessionId, newSessionId);
+        // Session is auto-recreated with the SAME ID (no new header needed)
+        // The old session ID continues to work transparently
     }
 
     @Test

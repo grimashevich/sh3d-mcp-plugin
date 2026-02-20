@@ -283,12 +283,10 @@ public class McpRequestHandler implements HttpHandler {
         }
         McpSession session = sessionManager.getSession(sessionId);
         if (session == null) {
-            // Auto-recreate session for expired/invalid session IDs
-            session = sessionManager.createSession(SUPPORTED_PROTOCOL_VERSION);
+            // Auto-recreate session reusing the same ID (avoids session leak)
+            session = sessionManager.createSessionWithId(sessionId, SUPPORTED_PROTOCOL_VERSION);
             session.setInitialized(true);
-            exchange.getResponseHeaders().set("Mcp-Session-Id", session.getSessionId());
-            LOG.warning("MCP session auto-recreated: old=" + sessionId
-                    + " new=" + session.getSessionId());
+            LOG.warning("MCP session auto-recreated with same ID: " + sessionId);
         }
         return session;
     }
