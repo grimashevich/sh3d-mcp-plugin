@@ -6,6 +6,7 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
+import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -14,16 +15,31 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Обработчик команды "clear_scene".
  * Удаляет все объекты из сцены: стены, мебель, комнаты, labels, dimension lines.
  * Возвращает количество удалённых объектов каждого типа.
+ *
+ * <p>Перед очисткой автоматически создаёт checkpoint для возможности отката.
  */
 public class ClearSceneHandler implements CommandHandler, CommandDescriptor {
 
+    private static final Logger LOG = Logger.getLogger(ClearSceneHandler.class.getName());
+
+    private final CheckpointManager checkpointManager;
+
+    public ClearSceneHandler(CheckpointManager checkpointManager) {
+        this.checkpointManager = checkpointManager;
+    }
+
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
+        // Auto-checkpoint before destructive operation
+        autoCheckpoint(accessor);
+
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
 
@@ -86,6 +102,16 @@ public class ClearSceneHandler implements CommandHandler, CommandDescriptor {
             home.deleteDimensionLine(line);
         }
         return lines.size();
+    }
+
+    private void autoCheckpoint(HomeAccessor accessor) {
+        try {
+            Home clonedHome = accessor.runOnEDT(() -> accessor.getHome().clone());
+            checkpointManager.push(clonedHome, "Auto: before clear_scene");
+            LOG.info("Auto-checkpoint created before clear_scene");
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "Failed to create auto-checkpoint before clear_scene", e);
+        }
     }
 
     @Override

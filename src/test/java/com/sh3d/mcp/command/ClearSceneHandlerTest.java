@@ -6,6 +6,7 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
+import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -21,12 +22,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class ClearSceneHandlerTest {
 
     private ClearSceneHandler handler;
+    private CheckpointManager checkpointManager;
     private Home home;
     private HomeAccessor accessor;
 
     @BeforeEach
     void setUp() {
-        handler = new ClearSceneHandler();
+        checkpointManager = new CheckpointManager();
+        handler = new ClearSceneHandler(checkpointManager);
         home = new Home();
         accessor = new HomeAccessor(home, null);
     }
@@ -182,6 +185,20 @@ class ClearSceneHandlerTest {
         assertTrue(data.containsKey("deletedDimensionLines"));
         assertTrue(data.containsKey("totalDeleted"));
         assertEquals(6, data.size());
+    }
+
+    // --- Auto-checkpoint ---
+
+    @Test
+    void testAutoCheckpointCreatedBeforeClear() {
+        home.addWall(new Wall(0, 0, 500, 0, 10, 250));
+        assertEquals(0, checkpointManager.size());
+
+        execute();
+
+        assertEquals(1, checkpointManager.size());
+        assertEquals("Auto: before clear_scene",
+                checkpointManager.list().get(0).getDescription());
     }
 
     // --- Descriptor ---

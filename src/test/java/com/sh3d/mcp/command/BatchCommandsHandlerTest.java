@@ -2,6 +2,7 @@ package com.sh3d.mcp.command;
 
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Wall;
+import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -21,6 +22,7 @@ class BatchCommandsHandlerTest {
 
     private BatchCommandsHandler handler;
     private CommandRegistry registry;
+    private CheckpointManager checkpointManager;
     private HomeAccessor accessor;
     private Home home;
 
@@ -28,12 +30,13 @@ class BatchCommandsHandlerTest {
     void setUp() {
         home = new Home();
         accessor = new HomeAccessor(home, null);
+        checkpointManager = new CheckpointManager();
         registry = new CommandRegistry();
         registry.register("ping", (req, acc) ->
                 Response.ok(Collections.singletonMap("pong", true)));
         registry.register("create_wall", new CreateWallHandler());
         registry.register("connect_walls", new ConnectWallsHandler());
-        handler = new BatchCommandsHandler(registry);
+        handler = new BatchCommandsHandler(registry, checkpointManager);
         registry.register("batch_commands", handler);
     }
 
@@ -127,6 +130,17 @@ class BatchCommandsHandlerTest {
         List<Object> results = (List<Object>) data.get("results");
         Map<String, Object> connectResult = (Map<String, Object>) results.get(2);
         assertEquals("ok", connectResult.get("status"));
+    }
+
+    @Test
+    void testAutoCheckpointCreatedBeforeBatch() {
+        assertEquals(0, checkpointManager.size());
+
+        executeBatch(Arrays.asList(cmd("ping", null)));
+
+        assertEquals(1, checkpointManager.size());
+        assertTrue(checkpointManager.list().get(0).getDescription()
+                .startsWith("Auto: before batch_commands"));
     }
 
     @Test
