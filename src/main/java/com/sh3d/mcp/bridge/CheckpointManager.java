@@ -119,6 +119,24 @@ public class CheckpointManager {
     }
 
     /**
+     * Восстанавливает чекпоинт по id, даже если это текущая позиция.
+     * Используется в force-режиме для повторного применения снимка
+     * (например, когда сцена была изменена после предыдущего restore).
+     *
+     * @param id индекс чекпоинта
+     * @return снимок для восстановления
+     * @throws IllegalArgumentException если id вне диапазона
+     */
+    public synchronized Snapshot restoreForce(int id) {
+        if (id < 0 || id >= timeline.size()) {
+            throw new IllegalArgumentException(
+                    "Checkpoint id " + id + " out of range [0, " + (timeline.size() - 1) + "]");
+        }
+        cursor = id;
+        return timeline.get(cursor);
+    }
+
+    /**
      * Возвращает список всех чекпоинтов с отметкой текущей позиции курсора.
      */
     public synchronized List<SnapshotInfo> list() {

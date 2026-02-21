@@ -8,6 +8,7 @@ import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.round2;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
+import static com.sh3d.mcp.command.SchemaUtil.propWithDefault;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -23,12 +24,11 @@ public class AddDimensionLineHandler implements CommandHandler, CommandDescripto
     public Response execute(Request request, HomeAccessor accessor) {
         Map<String, Object> params = request.getParams();
 
-        // Required: xStart, yStart, xEnd, yEnd, offset
+        // Required: xStart, yStart, xEnd, yEnd
         Object xsVal = params.get("xStart");
         Object ysVal = params.get("yStart");
         Object xeVal = params.get("xEnd");
         Object yeVal = params.get("yEnd");
-        Object offVal = params.get("offset");
 
         if (!(xsVal instanceof Number) || !(ysVal instanceof Number)) {
             return Response.error("Missing required numeric parameters: 'xStart' and 'yStart'");
@@ -36,15 +36,22 @@ public class AddDimensionLineHandler implements CommandHandler, CommandDescripto
         if (!(xeVal instanceof Number) || !(yeVal instanceof Number)) {
             return Response.error("Missing required numeric parameters: 'xEnd' and 'yEnd'");
         }
-        if (!(offVal instanceof Number)) {
-            return Response.error("Missing required numeric parameter: 'offset'");
+
+        // Optional: offset (default 25)
+        float parsedOffset = 25.0f;
+        Object offVal = params.get("offset");
+        if (offVal != null) {
+            if (!(offVal instanceof Number)) {
+                return Response.error("Parameter 'offset' must be a number, got: " + offVal);
+            }
+            parsedOffset = ((Number) offVal).floatValue();
         }
 
         float xStart = ((Number) xsVal).floatValue();
         float yStart = ((Number) ysVal).floatValue();
         float xEnd = ((Number) xeVal).floatValue();
         float yEnd = ((Number) yeVal).floatValue();
-        float offset = ((Number) offVal).floatValue();
+        final float offset = parsedOffset;
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
@@ -85,12 +92,13 @@ public class AddDimensionLineHandler implements CommandHandler, CommandDescripto
         properties.put("yStart", prop("number", "Y coordinate of the start point in centimeters"));
         properties.put("xEnd", prop("number", "X coordinate of the end point in centimeters"));
         properties.put("yEnd", prop("number", "Y coordinate of the end point in centimeters"));
-        properties.put("offset", prop("number",
+        properties.put("offset", propWithDefault("number",
                 "Perpendicular distance (cm) of the dimension label from the measured line. "
-                + "Positive = above/left, negative = below/right. Typical: 20-50"));
+                + "Positive = above/left, negative = below/right. Typical: 20-50. Default: 25",
+                25));
 
         schema.put("properties", properties);
-        schema.put("required", Arrays.asList("xStart", "yStart", "xEnd", "yEnd", "offset"));
+        schema.put("required", Arrays.asList("xStart", "yStart", "xEnd", "yEnd"));
         return schema;
     }
 

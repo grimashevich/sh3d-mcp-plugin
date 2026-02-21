@@ -41,11 +41,18 @@ public class RestoreCheckpointHandler implements CommandHandler, CommandDescript
             }
         }
 
+        Boolean force = request.getBoolean("force");
+        boolean isForce = Boolean.TRUE.equals(force);
+
         // Resolve snapshot
         CheckpointManager.Snapshot snapshot;
         try {
             if (id != null) {
-                snapshot = checkpointManager.restore(id);
+                if (isForce) {
+                    snapshot = checkpointManager.restoreForce(id);
+                } else {
+                    snapshot = checkpointManager.restore(id);
+                }
             } else {
                 snapshot = checkpointManager.restore();
             }
@@ -119,6 +126,8 @@ public class RestoreCheckpointHandler implements CommandHandler, CommandDescript
         return "Restores the scene from a previously saved checkpoint. "
                 + "Without parameters, moves one step back (undo). "
                 + "With 'id', jumps to a specific checkpoint (can also move forward = redo). "
+                + "With 'force', re-applies the checkpoint even if it is already the current position "
+                + "(useful when the scene has been modified after a previous restore). "
                 + "Snapshots are NOT deleted on restore — forward history is only discarded "
                 + "when a new checkpoint is created after a restore (fork). "
                 + "Use list_checkpoints to see available snapshots and the current position.";
@@ -137,6 +146,14 @@ public class RestoreCheckpointHandler implements CommandHandler, CommandDescript
                 "Checkpoint ID to restore (from list_checkpoints). "
                         + "If omitted, restores the previous checkpoint (one step back).");
         properties.put("id", idProp);
+
+        Map<String, Object> forceProp = new LinkedHashMap<>();
+        forceProp.put("type", "boolean");
+        forceProp.put("description",
+                "Force restore even if the checkpoint is already the current position. "
+                        + "Useful when the scene has been modified after a previous restore.");
+        forceProp.put("default", false);
+        properties.put("force", forceProp);
 
         schema.put("properties", properties);
         schema.put("required", Collections.emptyList());
