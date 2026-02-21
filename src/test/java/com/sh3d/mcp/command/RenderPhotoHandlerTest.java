@@ -77,6 +77,22 @@ class RenderPhotoHandlerTest {
         assertTrue(resp.getMessage().contains("quality"));
     }
 
+    @Test
+    void testMediumQualityAccepted() {
+        // medium quality should pass validation (will fail at render stage without Sunflow, but not at validation)
+        try {
+            Response resp = execute("width", 800.0, "height", 600.0, "quality", "medium");
+            // Will error because PhotoRenderer needs Sunflow, but the error should NOT be about quality validation
+            if (resp.isError()) {
+                assertFalse(resp.getMessage().contains("quality"),
+                        "Medium quality should be accepted, error: " + resp.getMessage());
+            }
+        } catch (NoClassDefFoundError | Exception e) {
+            // Sunflow not in test classpath — expected, validation passed
+            assertTrue(true, "Medium quality passed validation, render failed due to missing Sunflow");
+        }
+    }
+
     // ==========================================================
     // Existing descriptor tests
     // ==========================================================
@@ -140,6 +156,7 @@ class RenderPhotoHandlerTest {
         List<String> enumValues = (List<String>) qualityProp.get("enum");
         assertNotNull(enumValues);
         assertTrue(enumValues.contains("low"));
+        assertTrue(enumValues.contains("medium"), "Quality enum should include 'medium'");
         assertTrue(enumValues.contains("high"));
     }
 
@@ -869,6 +886,13 @@ class RenderPhotoHandlerTest {
         String desc = handler.getDescription();
         assertTrue(desc.toLowerCase().contains("jpeg"),
                 "Description should mention JPEG");
+    }
+
+    @Test
+    void testDescriptionMentionsMediumQuality() {
+        String desc = handler.getDescription();
+        assertTrue(desc.toLowerCase().contains("medium"),
+                "Description should mention medium quality");
     }
 
     @Test

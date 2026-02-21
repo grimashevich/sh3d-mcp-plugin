@@ -116,4 +116,24 @@ class ExportPlanImageHandlerTest {
         assertTrue(handler instanceof CommandDescriptor);
         assertTrue(handler instanceof CommandHandler);
     }
+
+    // --- filePath schema ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsFilePath() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("filePath"), "Schema should have 'filePath' property");
+        Map<String, Object> filePathProp = (Map<String, Object>) properties.get("filePath");
+        assertEquals("string", filePathProp.get("type"));
+        assertNotNull(filePathProp.get("description"));
+    }
+
+    @Test
+    void testDescriptionMentionsFilePath() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("filePath") || desc.contains("file"),
+                "Description should mention file saving capability");
+    }
 }

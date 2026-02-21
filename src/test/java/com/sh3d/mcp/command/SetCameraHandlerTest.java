@@ -6,6 +6,7 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.ObserverCamera;
+import com.eteks.sweethome3d.model.Wall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -210,6 +211,211 @@ class SetCameraHandlerTest {
         assertEquals(90.0, ((Number) data.get("yaw_degrees")).doubleValue(), 0.5);
         assertEquals(-15.0, ((Number) data.get("pitch_degrees")).doubleValue(), 0.5);
         assertEquals(75.0, ((Number) data.get("fov_degrees")).doubleValue(), 0.5);
+    }
+
+    // --- lookAt ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testLookAtComputesYawPitch() {
+        // Camera at (0, 0, 170), looking at (500, 500, 0)
+        // dx=500, dy=500, dz=-170
+        // yaw = atan2(-500, 500) = atan2(-1, 1) = -π/4 = -45° = 315°
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 500.0);
+        lookAt.put("y", 500.0);
+        lookAt.put("z", 0.0);
+
+        Response resp = execute("mode", "observer", "x", 0.0, "y", 0.0, "z", 170.0, "lookAt", lookAt);
+        assertFalse(resp.isError(), "Expected success, got: " + resp.getMessage());
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        double yawDeg = ((Number) data.get("yaw_degrees")).doubleValue();
+        // Normalize to 0-360
+        while (yawDeg < 0) yawDeg += 360;
+        assertEquals(315.0, yawDeg, 1.0, "Yaw should be ~315 degrees");
+    }
+
+    @Test
+    void testLookAtConflictWithYaw() {
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 100.0);
+        lookAt.put("y", 100.0);
+        Response resp = execute("mode", "observer", "lookAt", lookAt, "yaw", 90.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("mutually exclusive"));
+    }
+
+    @Test
+    void testLookAtConflictWithPitch() {
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 100.0);
+        lookAt.put("y", 100.0);
+        Response resp = execute("mode", "observer", "lookAt", lookAt, "pitch", 10.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("mutually exclusive"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testLookAtWithoutZ() {
+        // z defaults to 0 when not provided
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 0.0);
+        lookAt.put("y", 500.0);
+
+        Response resp = execute("mode", "observer", "x", 0.0, "y", 0.0, "z", 170.0, "lookAt", lookAt);
+        assertFalse(resp.isError(), "Expected success, got: " + resp.getMessage());
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        // Camera at (0,0,170) looking at (0,500,0): dx=0, dy=500 → yaw=atan2(0,500)=0 → 0 degrees (south)
+        double yawDeg = ((Number) data.get("yaw_degrees")).doubleValue();
+        while (yawDeg < 0) yawDeg += 360;
+        assertEquals(0.0, yawDeg, 1.0, "Yaw should be ~0 degrees (looking south)");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testLookAtPitchComputation() {
+        // Camera at (0, 0, 200), looking at (0, 100, 0)
+        // dx=0, dy=100, dz=-200
+        // horizontalDist=100, pitch=atan2(200, 100) ≈ 63.4°
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 0.0);
+        lookAt.put("y", 100.0);
+        lookAt.put("z", 0.0);
+
+        Response resp = execute("mode", "observer", "x", 0.0, "y", 0.0, "z", 200.0, "lookAt", lookAt);
+        assertFalse(resp.isError(), "Expected success, got: " + resp.getMessage());
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        double pitchDeg = ((Number) data.get("pitch_degrees")).doubleValue();
+        // pitch = atan2(-dz, horizontalDist) = atan2(200, 100) ≈ 63.4°
+        assertEquals(63.4, pitchDeg, 1.0, "Pitch should be ~63.4 degrees (looking down)");
+    }
+
+    @Test
+    void testLookAtTopModeError() {
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 100.0);
+        lookAt.put("y", 100.0);
+        Response resp = execute("mode", "top", "lookAt", lookAt);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("observer mode"));
+    }
+
+    // --- target ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testTargetCenter() {
+        // Add walls to create a scene with center at (250, 200)
+        home.addWall(new Wall(0, 0, 500, 0, 10, 250));
+        home.addWall(new Wall(500, 0, 500, 400, 10, 250));
+        home.addWall(new Wall(500, 400, 0, 400, 10, 250));
+        home.addWall(new Wall(0, 400, 0, 0, 10, 250));
+
+        Response resp = execute("mode", "observer", "x", 0.0, "y", 0.0, "z", 170.0, "target", "center");
+        assertFalse(resp.isError(), "Expected success, got: " + resp.getMessage());
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        // Camera at (0,0) looking at center (~250, ~200) → yaw should point toward +X/+Y quadrant
+        assertNotNull(data.get("yaw_degrees"));
+        assertNotNull(data.get("pitch_degrees"));
+    }
+
+    @Test
+    void testTargetCenterEmptyScene() {
+        Response resp = execute("mode", "observer", "target", "center");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("empty"));
+    }
+
+    @Test
+    void testTargetConflictWithYaw() {
+        home.addWall(new Wall(0, 0, 100, 0, 10, 250));
+        Response resp = execute("mode", "observer", "target", "center", "yaw", 90.0);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("mutually exclusive"));
+    }
+
+    @Test
+    void testTargetConflictWithLookAt() {
+        home.addWall(new Wall(0, 0, 100, 0, 10, 250));
+        Map<String, Object> lookAt = new LinkedHashMap<>();
+        lookAt.put("x", 100.0);
+        lookAt.put("y", 100.0);
+        Response resp = execute("mode", "observer", "target", "center", "lookAt", lookAt);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("mutually exclusive"));
+    }
+
+    @Test
+    void testTargetInvalidValue() {
+        home.addWall(new Wall(0, 0, 100, 0, 10, 250));
+        Response resp = execute("mode", "observer", "target", "origin");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("center"));
+    }
+
+    @Test
+    void testTargetTopModeError() {
+        home.addWall(new Wall(0, 0, 100, 0, 10, 250));
+        Response resp = execute("mode", "top", "target", "center");
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("observer mode"));
+    }
+
+    // --- Schema lookAt/target ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsLookAt() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+        assertTrue(props.containsKey("lookAt"));
+        Map<String, Object> lookAtProp = (Map<String, Object>) props.get("lookAt");
+        assertEquals("object", lookAtProp.get("type"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsTarget() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+        assertTrue(props.containsKey("target"));
+    }
+
+    @Test
+    void testDescriptionMentionsLookAt() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("lookAt") || desc.contains("LOOKAT"));
+    }
+
+    @Test
+    void testDescriptionMentionsTarget() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("target") || desc.contains("TARGET"));
+    }
+
+    // --- computeSceneCenter ---
+
+    @Test
+    void testComputeSceneCenterWithWalls() {
+        home.addWall(new Wall(0, 0, 500, 0, 10, 250));
+        home.addWall(new Wall(500, 0, 500, 400, 10, 250));
+        home.addWall(new Wall(500, 400, 0, 400, 10, 250));
+        home.addWall(new Wall(0, 400, 0, 0, 10, 250));
+
+        float[] center = SetCameraHandler.computeSceneCenter(accessor);
+        assertNotNull(center);
+        assertEquals(3, center.length);
+        // Center should be approximately (250, 200, 125) — walls have thickness so bounds vary slightly
+        assertEquals(250.0, center[0], 10.0);
+        assertEquals(200.0, center[1], 10.0);
+        assertTrue(center[2] > 0, "Z center should be > 0");
+    }
+
+    @Test
+    void testComputeSceneCenterEmptyScene() {
+        float[] center = SetCameraHandler.computeSceneCenter(accessor);
+        assertNull(center);
     }
 
     // --- Helper ---

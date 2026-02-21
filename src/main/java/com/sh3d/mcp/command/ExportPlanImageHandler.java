@@ -8,11 +8,16 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -90,6 +95,32 @@ public class ExportPlanImageHandler implements CommandHandler, CommandDescriptor
                 image = scaleImage(image, requestedWidth);
             }
 
+            // filePath mode: save to disk and return metadata without base64
+            String filePath = request.getString("filePath");
+            if (filePath != null && !filePath.trim().isEmpty()) {
+                Path path = Paths.get(filePath).toAbsolutePath().normalize();
+                if (!path.toString().toLowerCase().endsWith(".png")) {
+                    path = Paths.get(path.toString() + ".png");
+                }
+                Path parent = path.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+                ImageIO.write(image, "png", path.toFile());
+
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("filePath", path.toString());
+                data.put("width", image.getWidth());
+                data.put("height", image.getHeight());
+                data.put("size_bytes", (int) Files.size(path));
+
+                LOG.info("Exported plan image to " + path + " " + image.getWidth() + "x" + image.getHeight()
+                        + ", size=" + Files.size(path) + " bytes");
+
+                return Response.ok(data);
+            }
+
+            // Inline mode: base64
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(image, "png", baos);
             String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
@@ -131,7 +162,8 @@ public class ExportPlanImageHandler implements CommandHandler, CommandDescriptor
                 + "Much faster than render_photo — returns the plan view as seen in the editor, "
                 + "showing walls, rooms, furniture outlines, labels, and dimension lines. "
                 + "Ideal for quick visual feedback after scene modifications. "
-                + "Optionally specify width to scale the output image.";
+                + "Optionally specify width to scale the output image. "
+                + "If filePath is provided, saves the PNG to disk and returns only metadata (no base64).";
     }
 
     @Override
@@ -145,6 +177,9 @@ public class ExportPlanImageHandler implements CommandHandler, CommandDescriptor
         widthProp.put("description", "Target image width in pixels (height scales proportionally). "
                 + "If omitted, returns at the natural plan view size.");
         properties.put("width", widthProp);
+        properties.put("filePath", prop("string",
+                "Absolute path to save the PNG file. Extension is auto-corrected to .png. "
+                        + "If provided, returns metadata only (no base64 image data)."));
 
         schema.put("properties", properties);
         schema.put("required", Arrays.asList());
