@@ -75,13 +75,13 @@ cp target/sh3d-mcp-plugin-0.1.0-SNAPSHOT.sh3p "$APPDATA/eTeks/Sweet Home 3D/plug
 
 | Пакет | Назначение |
 |-------|-----------|
-| `plugin` | Точка входа (`SH3DMcpPlugin extends Plugin`), пункт меню (`ServerToggleAction`) |
+| `plugin` | Точка входа (`SH3DMcpPlugin extends Plugin`), пункт меню (`McpSettingsAction`) |
 | `http` | HTTP MCP-сервер: `HttpMcpServer`, `McpRequestHandler`, `JsonRpcProtocol`, `McpSession`, `SessionManager` |
 | `server` | Состояние сервера: `ServerState` (enum), `ServerStateListener` |
 | `protocol` | JSON-утилиты: `JsonUtil` (парсинг/сериализация), `Request`, `Response` (value objects) |
 | `command` | Обработчики: `CommandHandler` (интерфейс), `CommandDescriptor` (auto-discovery), `CommandRegistry` (реестр), handler-классы |
-| `bridge` | Мост к SH3D API: `HomeAccessor` -- потокобезопасная обёртка над `Home` через EDT, `CheckpointManager` -- undo/redo таймлайн (in-memory снимки через `Home.clone()`) |
-| `config` | `PluginConfig` -- настройки (порт, autoStart и др.) |
+| `bridge` | Мост к SH3D API: `HomeAccessor` -- потокобезопасная обёртка над `Home` через EDT, `CheckpointManager` -- undo/redo таймлайн (in-memory снимки через `Home.clone()`), `ObjectResolver` -- линейный поиск по UUID для стен/мебели/комнат/меток и др. |
+| `config` | `PluginConfig` -- настройки (порт, autoStart и др.), `ClaudeDesktopConfigurator` -- кросс-платформенный merge конфигурации Claude Desktop |
 
 ## Реализованные команды
 
@@ -191,7 +191,7 @@ accessor.getHome().addWall(wall);
 
 ### Нулевые внешние зависимости
 
-Итоговый JAR не должен содержать внешних библиотек. JSON парсится вручную в `JsonProtocol`. **Не использовать** Gson, Jackson и любые другие JSON-библиотеки.
+Итоговый JAR не должен содержать внешних библиотек. JSON парсится вручную в `JsonUtil`. **Не использовать** Gson, Jackson и любые другие JSON-библиотеки.
 
 ### MCP-протокол
 

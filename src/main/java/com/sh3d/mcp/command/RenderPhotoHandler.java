@@ -78,27 +78,45 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
     private static final Logger LOG = Logger.getLogger(RenderPhotoHandler.class.getName());
 
+    /** Default image width in pixels for standard and inline overhead modes. */
     private static final int DEFAULT_WIDTH = 800;
+    /** Default image height in pixels for standard and inline overhead modes. */
     private static final int DEFAULT_HEIGHT = 600;
+    /** Maximum allowed image dimension (width or height) in pixels. */
     private static final int MAX_DIMENSION = 4096;
 
+    /** Default camera pitch in degrees for overhead scene view. */
     private static final float DEFAULT_OVERHEAD_PITCH_DEG = 30.0f;
+    /** Default camera pitch in degrees when focusing on a specific object (steeper angle). */
     static final float DEFAULT_FOCUS_PITCH_DEG = 55.0f;
+    /** Default camera field of view in degrees. */
     private static final float DEFAULT_FOV_DEG = 63.0f;
+    /** Safety margin multiplier (5%) applied to camera distance to ensure the scene fits within the frame. */
     private static final float OVERHEAD_MARGIN = 1.05f;
+    /** Minimum scene height in cm, used as floor for maxZ when scene is very flat. */
     private static final float MIN_SCENE_HEIGHT = 100.0f;
 
+    /** Default image width in pixels for overhead mode with filePath (higher resolution). */
     static final int DEFAULT_OVERHEAD_WIDTH = 1200;
+    /** Default image height in pixels for overhead mode with filePath (higher resolution). */
     static final int DEFAULT_OVERHEAD_HEIGHT = 900;
+    /** Wall height in cm used in overhead mode when hideWalls=true (effectively hides walls). */
     static final float OVERHEAD_WALL_HEIGHT = 1.0f;
+    /** Default floor color (light grey, RGB 0xE0E0E0) applied to rooms without texture. */
     static final int DEFAULT_FLOOR_COLOR = 0xE0E0E0;
+    /** Padding around focused furniture as a ratio of its largest dimension (50%). */
     static final float FURNITURE_PADDING_RATIO = 0.5f;
+    /** Minimum padding around focused furniture in cm, even for small items. */
     static final float MIN_FURNITURE_PADDING = 200.0f;
+    /** Fixed padding around focused room in cm. */
     static final float ROOM_PADDING = 50.0f;
 
+    /** JPEG compression quality (0.0-1.0). 0.85 balances file size and visual quality. */
     static final float JPEG_QUALITY = 0.85f;
 
+    /** Yaw angles in degrees for the 4 overhead orbital positions (NW, SE, NE, SW). */
     static final float[] OVERHEAD_YAWS = {315f, 135f, 45f, 225f};
+    /** Human-readable labels for overhead orbital directions, matching {@link #OVERHEAD_YAWS}. */
     static final String[] OVERHEAD_LABELS = {
             "NW_to_SE", "SE_to_NW", "NE_to_SW", "SW_to_NE"
     };

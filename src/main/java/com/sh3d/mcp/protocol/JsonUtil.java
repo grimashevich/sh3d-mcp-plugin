@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * Утилиты JSON-парсинга и форматирования.
- * Переиспользуются в JsonProtocol (TCP) и JsonRpcProtocol (HTTP MCP).
+ * Переиспользуются в JsonRpcProtocol (HTTP MCP) и других компонентах.
  */
 public final class JsonUtil {
 

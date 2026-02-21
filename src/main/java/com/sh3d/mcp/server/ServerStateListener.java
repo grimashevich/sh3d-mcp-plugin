@@ -1,7 +1,7 @@
 package com.sh3d.mcp.server;
 
 /**
- * Listener for TCP server state changes.
+ * Listener for HTTP server state changes.
  */
 @FunctionalInterface
 public interface ServerStateListener {

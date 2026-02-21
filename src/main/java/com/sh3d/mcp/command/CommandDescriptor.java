@@ -14,7 +14,7 @@ public interface CommandDescriptor {
 
     /**
      * MCP tool name. Если null — используется action name из registry.
-     * Позволяет TCP-имя (create_walls) отличаться от MCP-имени (create_room).
+     * Позволяет registry-имя (create_walls) отличаться от MCP-имени (create_room).
      */
     default String getToolName() {
         return null;
@@ -26,7 +26,7 @@ public interface CommandDescriptor {
     String getDescription();
 
     /**
-     * JSON Schema параметров как Map (сериализуется через JsonProtocol).
+     * JSON Schema параметров как Map (сериализуется через JsonUtil).
      * Должен содержать "type": "object", "properties": {...}.
      */
     Map<String, Object> getSchema();
