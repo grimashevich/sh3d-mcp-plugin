@@ -228,4 +228,200 @@ class RequestTest {
         String result = req.getString("obj");
         assertNotNull(result);
     }
+
+    // ==================== Unrecognized keys tracking ====================
+
+    @Test
+    void testUnrecognizedKeysReturnsAllWhenNothingAccessed() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        params.put("y", 200);
+        params.put("z", 300);
+        Request req = new Request("test", params);
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(3, unknown.size());
+        assertTrue(unknown.contains("x"));
+        assertTrue(unknown.contains("y"));
+        assertTrue(unknown.contains("z"));
+    }
+
+    @Test
+    void testUnrecognizedKeysExcludesAccessedViaGetString() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Table");
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.getString("name");
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    @Test
+    void testUnrecognizedKeysExcludesAccessedViaGetFloat() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100.0);
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.getFloat("x");
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    @Test
+    void testUnrecognizedKeysExcludesAccessedViaGetBoolean() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("flag", true);
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.getBoolean("flag");
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    @Test
+    void testUnrecognizedKeysExcludesAccessedViaGetFloatWithDefault() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.getFloat("thickness", 10.0f); // key absent but still marked accessed
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    @Test
+    void testUnrecognizedKeysEmptyWhenAllAccessed() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Table");
+        params.put("x", 100.0);
+        Request req = new Request("test", params);
+
+        req.getString("name");
+        req.getFloat("x");
+
+        assertTrue(req.getUnrecognizedKeys().isEmpty());
+    }
+
+    @Test
+    void testUnrecognizedKeysEmptyWhenNoParams() {
+        Request req = new Request("test", Collections.emptyMap());
+        assertTrue(req.getUnrecognizedKeys().isEmpty());
+    }
+
+    @Test
+    void testMarkAccessedExcludesKey() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("custom", "value");
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.markAccessed("custom");
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    // ==================== TrackingMap: getParams() tracks access ====================
+
+    @Test
+    void testTrackingMapGetTracksAccess() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.getParams().get("x");
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    @Test
+    void testTrackingMapContainsKeyTracksAccess() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        params.put("extra", "ignored");
+        Request req = new Request("test", params);
+
+        req.getParams().containsKey("x");
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("extra"));
+    }
+
+    @Test
+    void testTrackingMapEntrySetMarksAllAccessed() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        params.put("y", 200);
+        Request req = new Request("test", params);
+
+        req.getParams().entrySet(); // iterating marks all accessed
+
+        assertTrue(req.getUnrecognizedKeys().isEmpty());
+    }
+
+    @Test
+    void testTrackingMapKeySetMarksAllAccessed() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        params.put("y", 200);
+        Request req = new Request("test", params);
+
+        req.getParams().keySet();
+
+        assertTrue(req.getUnrecognizedKeys().isEmpty());
+    }
+
+    @Test
+    void testTrackingMapIsReadOnly() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        Request req = new Request("test", params);
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> req.getParams().put("new", "val"));
+    }
+
+    @Test
+    void testTrackingMapSizeAndIsEmpty() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        Request req = new Request("test", params);
+
+        assertEquals(1, req.getParams().size());
+        assertFalse(req.getParams().isEmpty());
+
+        Request empty = new Request("test", Collections.emptyMap());
+        assertEquals(0, empty.getParams().size());
+        assertTrue(empty.getParams().isEmpty());
+    }
+
+    @Test
+    void testGetStringForAbsentKeyDoesNotPollute() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("x", 100);
+        Request req = new Request("test", params);
+
+        req.getString("missing"); // absent key, should not add to params
+
+        java.util.Set<String> unknown = req.getUnrecognizedKeys();
+        assertEquals(1, unknown.size());
+        assertTrue(unknown.contains("x"));
+    }
 }

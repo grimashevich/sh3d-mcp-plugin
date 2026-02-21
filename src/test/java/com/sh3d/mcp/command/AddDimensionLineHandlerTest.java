@@ -142,12 +142,40 @@ class AddDimensionLineHandlerTest {
     }
 
     @Test
-    void testMissingOffset() {
+    void testMissingOffsetUsesDefault25() {
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("xStart", 0.0);
         p.put("yStart", 0.0);
         p.put("xEnd", 500.0);
         p.put("yEnd", 0.0);
+        Response resp = exec(p);
+        assertTrue(resp.isOk());
+        assertEquals(25f, ((Number) resp.getData().get("offset")).floatValue(), 0.01f);
+        DimensionLine dim = new ArrayList<>(home.getDimensionLines()).get(0);
+        assertEquals(25f, dim.getOffset(), 0.01f);
+    }
+
+    @Test
+    void testExplicitOffsetOverridesDefault() {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("xStart", 0.0);
+        p.put("yStart", 0.0);
+        p.put("xEnd", 500.0);
+        p.put("yEnd", 0.0);
+        p.put("offset", 42.0);
+        Response resp = exec(p);
+        assertTrue(resp.isOk());
+        assertEquals(42f, ((Number) resp.getData().get("offset")).floatValue(), 0.01f);
+    }
+
+    @Test
+    void testNonNumericOffsetReturnsError() {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("xStart", 0.0);
+        p.put("yStart", 0.0);
+        p.put("xEnd", 500.0);
+        p.put("yEnd", 0.0);
+        p.put("offset", "abc");
         Response resp = exec(p);
         assertFalse(resp.isOk());
         assertTrue(resp.getMessage().contains("offset"));
@@ -194,9 +222,13 @@ class AddDimensionLineHandlerTest {
         assertTrue(props.containsKey("offset"));
         @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
-        assertEquals(5, required.size());
+        assertEquals(4, required.size());
         assertTrue(required.contains("xStart"));
-        assertTrue(required.contains("offset"));
+        assertFalse(required.contains("offset"));
+        // offset should have a default value in schema
+        @SuppressWarnings("unchecked")
+        Map<String, Object> offsetProp = (Map<String, Object>) props.get("offset");
+        assertEquals(25, offsetProp.get("default"));
     }
 
     private Response exec(Map<String, Object> params) {

@@ -201,6 +201,51 @@ class CheckpointManagerTest {
         assertTrue(ex.getMessage().contains("already the current position"));
     }
 
+    // --- 8b. restoreForce(id) allows restoring to current position ---
+
+    @Test
+    void testRestoreForceCurrentPositionSucceeds() {
+        Home home0 = new Home();
+        Home home1 = new Home();
+        manager.push(home0, "cp-0");
+        manager.push(home1, "cp-1");
+
+        assertEquals(1, manager.getCursor());
+
+        // Normal restore(1) would throw
+        assertThrows(IllegalArgumentException.class, () -> manager.restore(1));
+
+        // restoreForce(1) succeeds
+        Snapshot snap = manager.restoreForce(1);
+        assertSame(home1, snap.getHome());
+        assertEquals(1, manager.getCursor());
+    }
+
+    @Test
+    void testRestoreForceNonCurrentPosition() {
+        Home home0 = new Home();
+        manager.push(home0, "cp-0");
+        manager.push(new Home(), "cp-1");
+        manager.push(new Home(), "cp-2");
+
+        Snapshot snap = manager.restoreForce(0);
+        assertSame(home0, snap.getHome());
+        assertEquals(0, manager.getCursor());
+    }
+
+    @Test
+    void testRestoreForceOutOfRangeThrows() {
+        manager.push(new Home(), "cp-0");
+
+        assertThrows(IllegalArgumentException.class, () -> manager.restoreForce(5));
+        assertThrows(IllegalArgumentException.class, () -> manager.restoreForce(-1));
+    }
+
+    @Test
+    void testRestoreForceOnEmptyTimelineThrows() {
+        assertThrows(IllegalArgumentException.class, () -> manager.restoreForce(0));
+    }
+
     // --- 9. Forward history truncation: push after restore in the middle truncates forward ---
 
     @Test

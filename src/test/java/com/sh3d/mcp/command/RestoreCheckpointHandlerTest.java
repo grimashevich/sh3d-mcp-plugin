@@ -265,6 +265,76 @@ class RestoreCheckpointHandlerTest {
         assertEquals("cp-2", data.get("description"));
     }
 
+    // --- Force mode ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testForceRestoreCurrentCheckpoint_succeeds() {
+        createCheckpoint("cp-0");
+        createCheckpoint("cp-1");
+        assertEquals(1, checkpointManager.getCursor());
+
+        // Without force, restoring to current cursor fails
+        Response failResp = restoreWithId(1);
+        assertTrue(failResp.isError());
+
+        // With force, restoring to current cursor succeeds
+        Response resp = restoreWithIdAndForce(1, true);
+        assertFalse(resp.isError());
+
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        assertEquals(1, data.get("restoredTo"));
+        assertEquals("cp-1", data.get("description"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testForceRestoreNonCurrentCheckpoint_succeeds() {
+        createCheckpoint("cp-0");
+        createCheckpoint("cp-1");
+        createCheckpoint("cp-2");
+
+        // force=true to a non-current checkpoint should also work
+        Response resp = restoreWithIdAndForce(0, true);
+        assertFalse(resp.isError());
+
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        assertEquals(0, data.get("restoredTo"));
+        assertEquals("cp-0", data.get("description"));
+    }
+
+    @Test
+    void testForceFalseWithCurrentCheckpoint_errors() {
+        createCheckpoint("cp-0");
+        createCheckpoint("cp-1");
+
+        // force=false behaves like no force (still errors on current)
+        Response resp = restoreWithIdAndForce(1, false);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("already the current"));
+    }
+
+    @Test
+    void testForceWithOutOfRangeId_errors() {
+        createCheckpoint("cp-0");
+
+        Response resp = restoreWithIdAndForce(999, true);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("out of range"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaHasForceParam() {
+        Map<String, Object> schema = restoreHandler.getSchema();
+        Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+        assertTrue(props.containsKey("force"));
+
+        Map<String, Object> forceProp = (Map<String, Object>) props.get("force");
+        assertEquals("boolean", forceProp.get("type"));
+        assertEquals(false, forceProp.get("default"));
+    }
+
     // --- Descriptor ---
 
     @Test
@@ -311,5 +381,13 @@ class RestoreCheckpointHandlerTest {
     private Response restoreWithId(int id) {
         return restoreHandler.execute(
                 new Request("restore_checkpoint", Map.of("id", String.valueOf(id))), accessor);
+    }
+
+    private Response restoreWithIdAndForce(int id, boolean force) {
+        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        params.put("id", String.valueOf(id));
+        params.put("force", force);
+        return restoreHandler.execute(
+                new Request("restore_checkpoint", params), accessor);
     }
 }
