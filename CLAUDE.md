@@ -303,7 +303,7 @@ mvn test
 | [PRD.md](PRD.md) | Бизнес-требования |
 | [sh3d-plugin-spec.md](sh3d-plugin-spec.md) | Спецификация плагина |
 | [TO-DOS.md](TO-DOS.md) | TODO-лист и roadmap |
-| `../RESEARCH.md` | Исследование API SH3D, полный список фич |
+| [RESEARCH.md](RESEARCH.md) | Исследование API SH3D, полный список фич |
 
 ## Ссылки
 

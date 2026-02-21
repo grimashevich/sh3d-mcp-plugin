@@ -2,7 +2,7 @@
 
 Roadmap и текущие задачи. Плагин содержит встроенный MCP-сервер (Streamable HTTP).
 
-Детали API: [../RESEARCH.md](../RESEARCH.md)
+Детали API: [RESEARCH.md](RESEARCH.md)
 
 ---
 
