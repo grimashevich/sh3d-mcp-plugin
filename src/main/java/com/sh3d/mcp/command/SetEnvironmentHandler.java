@@ -8,6 +8,13 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.colorToHex;
+import static com.sh3d.mcp.command.FormatUtil.parseHexColor;
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.enumProp;
+import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -244,21 +251,8 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
 
     // --- Utilities ---
 
-    private static Integer parseHexColor(String hex) {
-        if (!hex.matches("^#[0-9A-Fa-f]{6}$")) return null;
-        return Integer.parseInt(hex.substring(1), 16);
-    }
-
-    private static String colorToHex(int color) {
-        return String.format("#%06X", color & 0xFFFFFF);
-    }
-
     private static String textureName(HomeTexture texture) {
         return texture != null ? texture.getName() : null;
-    }
-
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
     }
 
     // --- Descriptor ---
@@ -311,25 +305,4 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> nullableProp(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", Arrays.asList(type, "null"));
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> enumProp(String description, List<String> values) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", "string");
-        p.put("description", description);
-        p.put("enum", values);
-        return p;
-    }
 }

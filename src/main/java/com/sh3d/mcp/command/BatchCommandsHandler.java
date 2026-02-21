@@ -6,6 +6,8 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -187,10 +189,4 @@ public class BatchCommandsHandler implements CommandHandler, CommandDescriptor {
         return result;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
 }

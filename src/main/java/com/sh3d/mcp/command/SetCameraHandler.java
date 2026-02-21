@@ -7,6 +7,9 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.SchemaUtil.enumProp;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -188,18 +191,4 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> enumProp(String description, String... values) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", "string");
-        p.put("description", description);
-        p.put("enum", Arrays.asList(values));
-        return p;
-    }
 }

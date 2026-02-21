@@ -7,6 +7,12 @@ import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.colorToHex;
+import static com.sh3d.mcp.command.FormatUtil.parseHexColor;
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -245,11 +251,6 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         return null;
     }
 
-    private static Integer parseHexColor(String hex) {
-        if (!hex.matches("^#[0-9A-Fa-f]{6}$")) return null;
-        return Integer.parseInt(hex.substring(1), 16);
-    }
-
     private static String validateShininess(Map<String, Object> params) {
         String[] keys = {"shininess", "leftSideShininess", "rightSideShininess"};
         for (String key : keys) {
@@ -270,17 +271,6 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("__error", message);
         return m;
-    }
-
-    // --- Utilities ---
-
-    private static float round2(float v) {
-        return Math.round(v * 100f) / 100f;
-    }
-
-    private static String colorToHex(Integer color) {
-        if (color == null) return null;
-        return String.format("#%06X", color & 0xFFFFFF);
     }
 
     // --- Parsed colors holder ---
@@ -346,17 +336,4 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> nullableProp(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", Arrays.asList(type, "null"));
-        p.put("description", description);
-        return p;
-    }
 }

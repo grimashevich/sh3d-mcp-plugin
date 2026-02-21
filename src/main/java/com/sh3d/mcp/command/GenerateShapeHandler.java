@@ -29,6 +29,9 @@ import javax.vecmath.TexCoord2f;
 import com.sun.j3d.utils.geometry.GeometryInfo;
 import com.sun.j3d.utils.geometry.NormalGenerator;
 
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
@@ -480,10 +483,6 @@ public class GenerateShapeHandler implements CommandHandler, CommandDescriptor {
         return Integer.parseInt(obj.toString());
     }
 
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
     // ======================== COMMAND DESCRIPTOR ========================
 
     @Override
@@ -590,10 +589,4 @@ public class GenerateShapeHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
 }

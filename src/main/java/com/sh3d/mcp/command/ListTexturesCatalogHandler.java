@@ -7,6 +7,9 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,10 +82,6 @@ public class ListTexturesCatalogHandler implements CommandHandler, CommandDescri
         return Response.ok(data);
     }
 
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
     @Override
     public String getDescription() {
         return "Lists available textures in the Sweet Home 3D catalog. "
@@ -104,10 +103,4 @@ public class ListTexturesCatalogHandler implements CommandHandler, CommandDescri
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
 }

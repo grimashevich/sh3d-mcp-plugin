@@ -11,6 +11,10 @@ import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.SchemaUtil.enumProp;
+import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -247,7 +251,7 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("targetType", enumProp("string",
+        properties.put("targetType", enumProp(
                 "Type of object to apply texture to",
                 Arrays.asList("wall", "room")));
         properties.put("targetId", prop("string", "Object ID from get_state"));
@@ -267,25 +271,4 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> nullableProp(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", Arrays.asList(type, "null"));
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> enumProp(String type, String description, List<String> values) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        p.put("enum", values);
-        return p;
-    }
 }

@@ -7,6 +7,9 @@ import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.SchemaUtil.enumProp;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -146,10 +149,10 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("wall1Id", prop("string", "ID of the first wall (from get_state)"));
         properties.put("wall2Id", prop("string", "ID of the second wall (from get_state)"));
-        properties.put("wall1End", propEnum("string",
+        properties.put("wall1End", enumProp(
                 "Which endpoint of wall1 to connect: 'start' or 'end'. Auto-detected if omitted.",
                 Arrays.asList("start", "end")));
-        properties.put("wall2End", propEnum("string",
+        properties.put("wall2End", enumProp(
                 "Which endpoint of wall2 to connect: 'start' or 'end'. Auto-detected if omitted.",
                 Arrays.asList("start", "end")));
         schema.put("properties", properties);
@@ -158,16 +161,4 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> propEnum(String type, String description, List<String> values) {
-        Map<String, Object> p = prop(type, description);
-        p.put("enum", values);
-        return p;
-    }
 }
