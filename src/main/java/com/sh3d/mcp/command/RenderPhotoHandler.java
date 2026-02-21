@@ -21,6 +21,7 @@ import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -138,10 +139,11 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             qualityStr = "low";
         }
         qualityStr = qualityStr.toLowerCase();
-        if (!"low".equals(qualityStr) && !"high".equals(qualityStr)) {
-            return Response.error("Parameter 'quality' must be 'low' or 'high', got '" + qualityStr + "'");
+        if (!"low".equals(qualityStr) && !"medium".equals(qualityStr) && !"high".equals(qualityStr)) {
+            return Response.error("Parameter 'quality' must be 'low', 'medium', or 'high', got '" + qualityStr + "'");
         }
 
+        // medium uses LOW quality renderer but at 2x resolution, then downscales (supersampling)
         AbstractPhotoRenderer.Quality quality = "high".equals(qualityStr)
                 ? AbstractPhotoRenderer.Quality.HIGH
                 : AbstractPhotoRenderer.Quality.LOW;
@@ -210,9 +212,10 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             return clone;
         });
 
+        boolean supersample = "medium".equals(qualityStr);
         try {
             Map<String, Object> data = renderSingleImage(accessor.getHome(), camera,
-                    width, height, quality, filePath, format);
+                    width, height, quality, filePath, format, supersample);
             data.put("quality", qualityStr);
 
             LOG.info("Rendered photo " + width + "x" + height + " (" + qualityStr
@@ -377,8 +380,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                     }
                 }
 
+                boolean overheadSupersample = "medium".equals(qualityStr);
                 Map<String, Object> imageResult = renderSingleImage(
-                        renderHome, cam, width, height, quality, currentFilePath, format);
+                        renderHome, cam, width, height, quality, currentFilePath, format, overheadSupersample);
                 imageResult.put("index", i);
                 imageResult.put("direction", OVERHEAD_LABELS[i]);
 
@@ -673,11 +677,34 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                                                    AbstractPhotoRenderer.Quality quality,
                                                    String filePath,
                                                    String format) throws Exception {
+        return renderSingleImage(home, camera, width, height, quality, filePath, format, false);
+    }
+
+    private Map<String, Object> renderSingleImage(Home home, Camera camera,
+                                                   int width, int height,
+                                                   AbstractPhotoRenderer.Quality quality,
+                                                   String filePath,
+                                                   String format,
+                                                   boolean supersample) throws Exception {
         PhotoRenderer renderer = null;
         try {
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            // Supersampling: render at 2x resolution, then downscale with bicubic interpolation
+            int renderWidth = supersample ? Math.min(width * 2, MAX_DIMENSION) : width;
+            int renderHeight = supersample ? Math.min(height * 2, MAX_DIMENSION) : height;
+
+            BufferedImage image = new BufferedImage(renderWidth, renderHeight, BufferedImage.TYPE_INT_RGB);
             renderer = new PhotoRenderer(home, quality);
             renderer.render(image, camera, null);
+
+            if (supersample && (renderWidth != width || renderHeight != height)) {
+                BufferedImage downscaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = downscaled.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                g.drawImage(image, 0, 0, width, height, null);
+                g.dispose();
+                image = downscaled;
+            }
 
             Map<String, Object> result = new LinkedHashMap<>();
             int sizeBytes;
@@ -840,7 +867,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 + "Set hideWalls=false to show walls (useful for checking wall textures, doors, or windows).\n\n"
                 + "Standard mode: returns a single image from the current or specified camera position. "
                 + "If 'filePath' is provided, saves image(s) to disk and returns only metadata (no base64). "
-                + "Use quality 'low' for quick preview or 'high' for photo-realistic output.";
+                + "Use quality 'low' for quick preview, 'medium' for supersampled output "
+                + "(renders at 2x resolution then downscales — smoother than low, similar speed), "
+                + "or 'high' for photo-realistic ray-traced output.";
     }
 
     @Override
@@ -871,7 +900,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 true));
         properties.put("width", propWithDefault("integer", "Image width in pixels", DEFAULT_WIDTH));
         properties.put("height", propWithDefault("integer", "Image height in pixels", DEFAULT_HEIGHT));
-        Map<String, Object> qualityProp = enumProp("Quality: 'low' (fast preview) or 'high' (ray-traced)", "low", "high");
+        Map<String, Object> qualityProp = enumProp("Quality: 'low' (fast preview), 'medium' (supersampled — renders at 2x resolution then downscales for smoother output, same speed as low), or 'high' (ray-traced, slow)", "low", "medium", "high");
         qualityProp.put("default", "low");
         properties.put("quality", qualityProp);
         Map<String, Object> formatProp = enumProp(

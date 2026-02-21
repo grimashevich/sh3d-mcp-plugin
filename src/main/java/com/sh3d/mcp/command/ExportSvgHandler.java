@@ -5,7 +5,12 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -45,6 +50,27 @@ public class ExportSvgHandler implements CommandHandler, CommandDescriptor {
                 return out.toString("UTF-8");
             });
 
+            // filePath mode: save to disk and return metadata
+            String filePath = request.getString("filePath");
+            if (filePath != null && !filePath.trim().isEmpty()) {
+                Path path = Paths.get(filePath).toAbsolutePath().normalize();
+                if (!path.toString().toLowerCase().endsWith(".svg")) {
+                    path = Paths.get(path.toString() + ".svg");
+                }
+                Path parent = path.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+                Files.write(path, svgContent.getBytes("UTF-8"));
+
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("filePath", path.toString());
+                data.put("size_bytes", (int) Files.size(path));
+
+                LOG.info("Exported SVG plan to " + path + " (" + svgContent.length() + " chars)");
+                return Response.ok(data);
+            }
+
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("svg", svgContent);
             data.put("size_bytes", svgContent.getBytes("UTF-8").length);
@@ -62,14 +88,18 @@ public class ExportSvgHandler implements CommandHandler, CommandDescriptor {
         return "Exports the current 2D floor plan as SVG (Scalable Vector Graphics). "
                 + "Returns the SVG content as a string. Shows walls, furniture, rooms, labels, "
                 + "and dimension lines exactly as they appear in the plan view. "
-                + "No parameters required.";
+                + "If filePath is provided, saves the SVG to disk and returns only metadata.";
     }
 
     @Override
     public Map<String, Object> getSchema() {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
-        schema.put("properties", new LinkedHashMap<>());
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("filePath", prop("string",
+                "Absolute path to save the SVG file. Extension is auto-corrected to .svg. "
+                        + "If provided, returns metadata only (no SVG content in response)."));
+        schema.put("properties", properties);
         schema.put("required", Arrays.asList());
         return schema;
     }

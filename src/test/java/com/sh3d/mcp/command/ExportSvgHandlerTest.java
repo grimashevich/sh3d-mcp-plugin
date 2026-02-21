@@ -58,7 +58,7 @@ class ExportSvgHandlerTest {
 
         Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
         assertNotNull(properties);
-        assertTrue(properties.isEmpty(), "export_svg has no input parameters");
+        assertTrue(properties.containsKey("filePath"), "export_svg should have filePath parameter");
     }
 
     @Test
@@ -74,5 +74,33 @@ class ExportSvgHandlerTest {
     void testImplementsInterfaces() {
         assertTrue(handler instanceof CommandDescriptor);
         assertTrue(handler instanceof CommandHandler);
+    }
+
+    // --- filePath schema ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaContainsFilePath() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertTrue(properties.containsKey("filePath"), "Schema should have 'filePath' property");
+        Map<String, Object> filePathProp = (Map<String, Object>) properties.get("filePath");
+        assertEquals("string", filePathProp.get("type"));
+        assertNotNull(filePathProp.get("description"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testSchemaPropertiesNotEmpty() {
+        Map<String, Object> schema = handler.getSchema();
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertFalse(properties.isEmpty(), "export_svg now has filePath parameter");
+    }
+
+    @Test
+    void testDescriptionMentionsFilePath() {
+        String desc = handler.getDescription();
+        assertTrue(desc.contains("filePath") || desc.contains("file"),
+                "Description should mention file saving capability");
     }
 }
