@@ -317,27 +317,24 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                     OVERHEAD_YAWS[i], pitchDeg, fovDeg, width, height));
         }
 
-        // Сохранение и установка временных настроек окружения
-        Home home = accessor.getHome();
-        Map<Room, Integer> savedFloorColors = new LinkedHashMap<>();
-        Map<Wall, Float> savedWallHeights = new LinkedHashMap<>();
+        // Clone the Home to avoid mutating the live object (a parallel get_state
+        // call would see walls with height 1cm if we modified the live Home)
         boolean finalHideWalls = hideWalls;
-        accessor.runOnEDT(() -> {
+        Home renderHome = accessor.runOnEDT(() -> {
+            Home clone = accessor.getHome().clone();
             // Стены: уменьшить высоту до 1 см если hideWalls=true
             if (finalHideWalls) {
-                for (Wall wall : home.getWalls()) {
-                    savedWallHeights.put(wall, wall.getHeight());
+                for (Wall wall : clone.getWalls()) {
                     wall.setHeight(OVERHEAD_WALL_HEIGHT);
                 }
             }
             // Полы: серый цвет для комнат без текстур
-            for (Room room : home.getRooms()) {
+            for (Room room : clone.getRooms()) {
                 if (room.getFloorColor() == null && room.getFloorTexture() == null) {
-                    savedFloorColors.put(room, null);
                     room.setFloorColor(DEFAULT_FLOOR_COLOR);
                 }
             }
-            return null;
+            return clone;
         });
 
         // Render loop
@@ -358,7 +355,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 }
 
                 Map<String, Object> imageResult = renderSingleImage(
-                        home, cam, width, height, quality, currentFilePath, format);
+                        renderHome, cam, width, height, quality, currentFilePath, format);
                 imageResult.put("index", i);
                 imageResult.put("direction", OVERHEAD_LABELS[i]);
 
@@ -382,17 +379,6 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         } catch (Exception e) {
             LOG.log(Level.WARNING, "Overhead render failed", e);
             return Response.error("Overhead rendering failed: " + e.getMessage());
-        } finally {
-            // Восстановление настроек окружения
-            accessor.runOnEDT(() -> {
-                for (Map.Entry<Wall, Float> entry : savedWallHeights.entrySet()) {
-                    entry.getKey().setHeight(entry.getValue());
-                }
-                for (Map.Entry<Room, Integer> entry : savedFloorColors.entrySet()) {
-                    entry.getKey().setFloorColor(entry.getValue());
-                }
-                return null;
-            });
         }
 
         // Response

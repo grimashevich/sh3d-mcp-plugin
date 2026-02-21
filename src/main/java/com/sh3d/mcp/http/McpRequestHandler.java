@@ -37,6 +37,9 @@ public class McpRequestHandler implements HttpHandler {
     /** Версия MCP-протокола, поддерживаемая сервером */
     private static final String SUPPORTED_PROTOCOL_VERSION = "2025-03-26";
 
+    /** Maximum allowed request body size (10 MB). Bodies exceeding this limit result in HTTP 413. */
+    static final int MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024;
+
     private final CommandRegistry commandRegistry;
     private final HomeAccessor accessor;
     private final SessionManager sessionManager;
@@ -88,6 +91,12 @@ public class McpRequestHandler implements HttpHandler {
 
     private void handlePost(HttpExchange exchange) throws IOException {
         String body = readBody(exchange);
+        if (body == null) {
+            sendJson(exchange, 413, JsonRpcProtocol.formatError(null,
+                    JsonRpcProtocol.INVALID_REQUEST,
+                    "Request body too large (limit: " + MAX_REQUEST_BODY_SIZE + " bytes)"));
+            return;
+        }
         if (body.isEmpty()) {
             sendJson(exchange, 400, JsonRpcProtocol.formatError(null,
                     JsonRpcProtocol.PARSE_ERROR, "Empty request body"));
@@ -321,6 +330,11 @@ public class McpRequestHandler implements HttpHandler {
         return exchange.getRequestHeaders().getFirst("Mcp-Session-Id");
     }
 
+    /**
+     * Reads request body with a size limit of {@link #MAX_REQUEST_BODY_SIZE} bytes.
+     *
+     * @return the body string, or {@code null} if the body exceeds the limit
+     */
     private String readBody(HttpExchange exchange) throws IOException {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))) {
@@ -329,6 +343,9 @@ public class McpRequestHandler implements HttpHandler {
             int read;
             while ((read = reader.read(buffer)) != -1) {
                 sb.append(buffer, 0, read);
+                if (sb.length() > MAX_REQUEST_BODY_SIZE) {
+                    return null;
+                }
             }
             return sb.toString();
         }

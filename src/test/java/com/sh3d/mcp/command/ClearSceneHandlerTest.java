@@ -4,6 +4,7 @@ import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Label;
+import com.eteks.sweethome3d.model.Polyline;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.CheckpointManager;
@@ -46,6 +47,7 @@ class ClearSceneHandlerTest {
         assertEquals(0, data.get("deletedWalls"));
         assertEquals(0, data.get("deletedFurniture"));
         assertEquals(0, data.get("deletedRooms"));
+        assertEquals(0, data.get("deletedPolylines"));
         assertEquals(0, data.get("deletedLabels"));
         assertEquals(0, data.get("deletedDimensionLines"));
         assertEquals(0, data.get("totalDeleted"));
@@ -131,12 +133,28 @@ class ClearSceneHandlerTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void testClearPolylines() {
+        home.addPolyline(new Polyline(new float[][]{{0, 0}, {100, 100}, {200, 0}}));
+        home.addPolyline(new Polyline(new float[][]{{50, 50}, {150, 150}}));
+        assertEquals(2, home.getPolylines().size());
+
+        Response resp = execute();
+        assertFalse(resp.isError());
+
+        Map<String, Object> data = (Map<String, Object>) resp.getData();
+        assertEquals(2, data.get("deletedPolylines"));
+        assertTrue(home.getPolylines().isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void testClearMixedScene() {
         // Add various objects
         home.addWall(new Wall(0, 0, 500, 0, 10, 250));
         home.addWall(new Wall(500, 0, 500, 400, 10, 250));
         home.addWall(new Wall(500, 400, 0, 400, 10, 250));
         home.addRoom(new Room(new float[][]{{0, 0}, {500, 0}, {500, 400}, {0, 400}}));
+        home.addPolyline(new Polyline(new float[][]{{0, 0}, {500, 400}}));
         home.addLabel(new Label("Kitchen", 250, 200));
         home.addDimensionLine(new DimensionLine(0, 0, 500, 0, 20));
 
@@ -147,14 +165,16 @@ class ClearSceneHandlerTest {
         assertEquals(3, data.get("deletedWalls"));
         assertEquals(0, data.get("deletedFurniture"));
         assertEquals(1, data.get("deletedRooms"));
+        assertEquals(1, data.get("deletedPolylines"));
         assertEquals(1, data.get("deletedLabels"));
         assertEquals(1, data.get("deletedDimensionLines"));
-        assertEquals(6, data.get("totalDeleted"));
+        assertEquals(7, data.get("totalDeleted"));
 
         // Verify everything is empty
         assertTrue(home.getWalls().isEmpty());
         assertTrue(home.getFurniture().isEmpty());
         assertTrue(home.getRooms().isEmpty());
+        assertTrue(home.getPolylines().isEmpty());
         assertTrue(home.getLabels().isEmpty());
         assertTrue(home.getDimensionLines().isEmpty());
     }
@@ -181,10 +201,11 @@ class ClearSceneHandlerTest {
         assertTrue(data.containsKey("deletedWalls"));
         assertTrue(data.containsKey("deletedFurniture"));
         assertTrue(data.containsKey("deletedRooms"));
+        assertTrue(data.containsKey("deletedPolylines"));
         assertTrue(data.containsKey("deletedLabels"));
         assertTrue(data.containsKey("deletedDimensionLines"));
         assertTrue(data.containsKey("totalDeleted"));
-        assertEquals(6, data.size());
+        assertEquals(7, data.size());
     }
 
     // --- Auto-checkpoint ---
