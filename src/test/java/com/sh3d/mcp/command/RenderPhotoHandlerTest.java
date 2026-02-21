@@ -879,6 +879,86 @@ class RenderPhotoHandlerTest {
     }
 
     // ==========================================================
+    // Live Home not mutated during overhead render
+    // ==========================================================
+
+    @Test
+    void testOverheadDoesNotMutateLiveHomeWallHeights() {
+        addWalls(); // 4 walls with height 250
+        float originalHeight = 250.0f;
+        for (Wall w : home.getWalls()) {
+            assertEquals(originalHeight, w.getHeight(),
+                    "Precondition: wall height should be 250");
+        }
+
+        // Execute overhead — will fail at render stage (no Sunflow) but must not mutate live walls
+        try {
+            execute("view", "overhead");
+        } catch (Throwable ignored) {
+            // PhotoRenderer requires Sunflow which is not in test classpath
+        }
+
+        // Verify live Home walls are NOT mutated
+        for (Wall w : home.getWalls()) {
+            assertEquals(originalHeight, w.getHeight(), 0.001f,
+                    "Live Home wall height must not be mutated during overhead render");
+        }
+    }
+
+    @Test
+    void testOverheadDoesNotMutateLiveHomeFloorColors() {
+        addWalls();
+        Room room = new Room(new float[][]{{0, 0}, {500, 0}, {500, 400}, {0, 400}});
+        // No floor color or texture — overhead would set gray on clone
+        home.addRoom(room);
+        assertNull(room.getFloorColor(), "Precondition: floor color should be null");
+
+        try {
+            execute("view", "overhead");
+        } catch (Throwable ignored) {
+            // PhotoRenderer requires Sunflow which is not in test classpath
+        }
+
+        // Live room floor color should remain null
+        assertNull(room.getFloorColor(),
+                "Live Home room floor color must not be mutated during overhead render");
+    }
+
+    @Test
+    void testHomeCloneDoesNotAffectOriginalWalls() {
+        // Direct verification that Home.clone() wall modifications don't affect the original
+        addWalls();
+        float originalHeight = 250.0f;
+
+        Home clone = home.clone();
+        for (Wall w : clone.getWalls()) {
+            w.setHeight(RenderPhotoHandler.OVERHEAD_WALL_HEIGHT);
+        }
+
+        // Original walls must be unchanged
+        for (Wall w : home.getWalls()) {
+            assertEquals(originalHeight, w.getHeight(), 0.001f,
+                    "Original Home wall height must not be affected by clone modifications");
+        }
+    }
+
+    @Test
+    void testHomeCloneDoesNotAffectOriginalRoomFloorColor() {
+        Room room = new Room(new float[][]{{0, 0}, {500, 0}, {500, 400}, {0, 400}});
+        home.addRoom(room);
+        assertNull(room.getFloorColor());
+
+        Home clone = home.clone();
+        for (Room r : clone.getRooms()) {
+            r.setFloorColor(RenderPhotoHandler.DEFAULT_FLOOR_COLOR);
+        }
+
+        // Original room must be unchanged
+        assertNull(room.getFloorColor(),
+                "Original Home room floor color must not be affected by clone modifications");
+    }
+
+    // ==========================================================
     // Constants tests
     // ==========================================================
 

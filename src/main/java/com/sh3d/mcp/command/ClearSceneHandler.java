@@ -4,6 +4,7 @@ import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Label;
+import com.eteks.sweethome3d.model.Polyline;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.CheckpointManager;
@@ -46,15 +47,17 @@ public class ClearSceneHandler implements CommandHandler, CommandDescriptor {
             int walls = deleteAllWalls(home);
             int furniture = deleteAllFurniture(home);
             int rooms = deleteAllRooms(home);
+            int polylines = deleteAllPolylines(home);
             int labels = deleteAllLabels(home);
             int dimensionLines = deleteAllDimensionLines(home);
 
-            int total = walls + furniture + rooms + labels + dimensionLines;
+            int total = walls + furniture + rooms + polylines + labels + dimensionLines;
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("deletedWalls", walls);
             result.put("deletedFurniture", furniture);
             result.put("deletedRooms", rooms);
+            result.put("deletedPolylines", polylines);
             result.put("deletedLabels", labels);
             result.put("deletedDimensionLines", dimensionLines);
             result.put("totalDeleted", total);
@@ -88,6 +91,14 @@ public class ClearSceneHandler implements CommandHandler, CommandDescriptor {
         return rooms.size();
     }
 
+    private int deleteAllPolylines(Home home) {
+        var polylines = new ArrayList<>(home.getPolylines());
+        for (Polyline polyline : polylines) {
+            home.deletePolyline(polyline);
+        }
+        return polylines.size();
+    }
+
     private int deleteAllLabels(Home home) {
         var labels = new ArrayList<>(home.getLabels());
         for (Label label : labels) {
@@ -116,7 +127,7 @@ public class ClearSceneHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public String getDescription() {
-        return "Removes ALL objects from the scene: walls, furniture, rooms, labels, "
+        return "Removes ALL objects from the scene: walls, furniture, rooms, polylines, labels, "
                 + "and dimension lines. Returns the count of deleted objects by type. "
                 + "An automatic checkpoint is created before clearing, so you can use "
                 + "restore_checkpoint to undo. Levels are preserved; use delete_level to remove them.";

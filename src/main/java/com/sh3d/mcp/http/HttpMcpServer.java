@@ -31,7 +31,7 @@ public class HttpMcpServer {
     private static final Logger LOG = Logger.getLogger(HttpMcpServer.class.getName());
     private static final String MCP_ENDPOINT = "/mcp";
 
-    private int port;
+    private volatile int port;
     private final CommandRegistry commandRegistry;
     private final HomeAccessor accessor;
 
@@ -66,9 +66,12 @@ public class HttpMcpServer {
 
     /**
      * Останавливает HTTP MCP-сервер.
+     * Safe to call from any state (including STARTING — cancels startup).
      */
     public void stop() {
-        if (!transitionState(ServerState.RUNNING, ServerState.STOPPING)) {
+        // Try RUNNING -> STOPPING, or STARTING -> STOPPING, or force
+        if (!transitionState(ServerState.RUNNING, ServerState.STOPPING)
+                && !transitionState(ServerState.STARTING, ServerState.STOPPING)) {
             forceState(ServerState.STOPPING);
         }
 
@@ -135,27 +138,53 @@ public class HttpMcpServer {
 
     /** Performs the actual server startup on a background thread (binds socket, registers handler). */
     private void doStart() {
+        ExecutorService localExecutor = null;
+        HttpServer localServer = null;
         try {
-            executor = Executors.newCachedThreadPool(new DaemonThreadFactory("sh3d-mcp-http"));
-
-            httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
-            httpServer.setExecutor(executor);
-
-            McpRequestHandler requestHandler = new McpRequestHandler(commandRegistry, accessor);
-            httpServer.createContext(MCP_ENDPOINT, requestHandler);
-
-            httpServer.start();
-
-            if (!transitionState(ServerState.STARTING, ServerState.RUNNING)) {
-                httpServer.stop(0);
+            // Check that we are still in STARTING state (stop() may have run already)
+            if (state.get() != ServerState.STARTING) {
                 return;
             }
+
+            localExecutor = Executors.newCachedThreadPool(new DaemonThreadFactory("sh3d-mcp-http"));
+
+            // Re-check after potentially slow operations
+            if (state.get() != ServerState.STARTING) {
+                localExecutor.shutdownNow();
+                return;
+            }
+
+            localServer = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
+            localServer.setExecutor(localExecutor);
+
+            McpRequestHandler requestHandler = new McpRequestHandler(commandRegistry, accessor);
+            localServer.createContext(MCP_ENDPOINT, requestHandler);
+
+            localServer.start();
+
+            // Atomically transition STARTING -> RUNNING; if stop() already ran, tear down
+            if (!transitionState(ServerState.STARTING, ServerState.RUNNING)) {
+                localServer.stop(0);
+                localExecutor.shutdownNow();
+                return;
+            }
+
+            // Publish to volatile fields only after successful transition
+            this.executor = localExecutor;
+            this.httpServer = localServer;
 
             LOG.info("MCP HTTP server started on http://127.0.0.1:" + port + MCP_ENDPOINT);
 
         } catch (IOException e) {
             lastStartupError = e;
             LOG.log(Level.SEVERE, "Failed to start MCP HTTP server on port " + port, e);
+            // Clean up partially-created resources
+            if (localServer != null) {
+                localServer.stop(0);
+            }
+            if (localExecutor != null) {
+                localExecutor.shutdownNow();
+            }
             forceState(ServerState.STOPPED);
         }
     }

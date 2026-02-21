@@ -370,6 +370,50 @@ class McpRequestHandlerTest {
         assertTrue(response.contains("Method not allowed"));
     }
 
+    // === Body size limit ===
+
+    @Test
+    void testBodyExceedingLimitReturns413() throws Exception {
+        // Create a body larger than MAX_REQUEST_BODY_SIZE
+        int limit = McpRequestHandler.MAX_REQUEST_BODY_SIZE;
+        char[] bigChars = new char[limit + 100];
+        java.util.Arrays.fill(bigChars, 'x');
+        String bigBody = new String(bigChars);
+
+        HttpExchange exchange = createPostExchange(bigBody, null, null);
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(413), anyLong());
+        String response = responseBody.toString(StandardCharsets.UTF_8.name());
+        assertTrue(response.contains("too large"));
+    }
+
+    @Test
+    void testBodyAtExactLimitIsAccepted() throws Exception {
+        // A body exactly at the limit should be accepted (and then fail on invalid JSON)
+        int limit = McpRequestHandler.MAX_REQUEST_BODY_SIZE;
+        char[] exactChars = new char[limit];
+        java.util.Arrays.fill(exactChars, '{');
+        String exactBody = new String(exactChars);
+
+        HttpExchange exchange = createPostExchange(exactBody, null, null);
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        // Should NOT be 413 — body is within limit, but will fail JSON parsing (400)
+        verify(exchange).sendResponseHeaders(eq(400), anyLong());
+        String response = responseBody.toString(StandardCharsets.UTF_8.name());
+        assertTrue(response.contains("Invalid JSON"));
+    }
+
+    @Test
+    void testMaxRequestBodySizeIs10MB() {
+        assertEquals(10 * 1024 * 1024, McpRequestHandler.MAX_REQUEST_BODY_SIZE);
+    }
+
     // === Origin validation ===
 
     @Test
