@@ -1,6 +1,7 @@
 package com.sh3d.mcp.http;
 
 import com.sh3d.mcp.plugin.SH3DMcpPlugin;
+import com.sh3d.mcp.protocol.JsonUtil;
 import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.Test;
 
@@ -147,119 +148,163 @@ class JsonRpcProtocolTest {
     @Test
     void testFormatResultWithIntegerId() {
         String json = JsonRpcProtocol.formatResult(1, "ok");
-        assertTrue(json.contains("\"jsonrpc\":\"2.0\""));
-        assertTrue(json.contains("\"id\":1"));
-        assertTrue(json.contains("\"result\":\"ok\""));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals("2.0", parsed.get("jsonrpc"));
+        assertEquals(1, parsed.get("id"));
+        assertEquals("ok", parsed.get("result"));
     }
 
     @Test
     void testFormatResultWithStringId() {
         String json = JsonRpcProtocol.formatResult("abc", "done");
-        assertTrue(json.contains("\"id\":\"abc\""));
-        assertTrue(json.contains("\"result\":\"done\""));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals("abc", parsed.get("id"));
+        assertEquals("done", parsed.get("result"));
     }
 
     @Test
     void testFormatResultWithNullId() {
         String json = JsonRpcProtocol.formatResult(null, "value");
-        assertTrue(json.contains("\"id\":null"));
+        Map<String, Object> parsed = parseJson(json);
+        assertNull(parsed.get("id"));
+        assertEquals("value", parsed.get("result"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatResultWithMapResult() {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("key", "value");
         String json = JsonRpcProtocol.formatResult(1, result);
-        assertTrue(json.contains("\"result\":{\"key\":\"value\"}"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> parsedResult = (Map<String, Object>) parsed.get("result");
+        assertEquals("value", parsedResult.get("key"));
     }
 
     @Test
     void testFormatResultWithNullResult() {
         String json = JsonRpcProtocol.formatResult(1, null);
-        assertTrue(json.contains("\"result\":null"));
+        Map<String, Object> parsed = parseJson(json);
+        assertNull(parsed.get("result"));
     }
 
     // === formatError ===
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatErrorParseError() {
         String json = JsonRpcProtocol.formatError(null, JsonRpcProtocol.PARSE_ERROR, "Invalid JSON");
-        assertTrue(json.contains("\"jsonrpc\":\"2.0\""));
-        assertTrue(json.contains("\"id\":null"));
-        assertTrue(json.contains("\"code\":-32700"));
-        assertTrue(json.contains("\"message\":\"Invalid JSON\""));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals("2.0", parsed.get("jsonrpc"));
+        assertNull(parsed.get("id"));
+        Map<String, Object> error = (Map<String, Object>) parsed.get("error");
+        assertEquals(-32700, error.get("code"));
+        assertEquals("Invalid JSON", error.get("message"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatErrorInvalidRequest() {
         String json = JsonRpcProtocol.formatError(1, JsonRpcProtocol.INVALID_REQUEST, "Bad request");
-        assertTrue(json.contains("\"code\":-32600"));
-        assertTrue(json.contains("\"id\":1"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals(1, parsed.get("id"));
+        Map<String, Object> error = (Map<String, Object>) parsed.get("error");
+        assertEquals(-32600, error.get("code"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatErrorMethodNotFound() {
         String json = JsonRpcProtocol.formatError(2, JsonRpcProtocol.METHOD_NOT_FOUND, "Not found");
-        assertTrue(json.contains("\"code\":-32601"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals(-32601, ((Map<String, Object>) parsed.get("error")).get("code"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatErrorInvalidParams() {
         String json = JsonRpcProtocol.formatError(3, JsonRpcProtocol.INVALID_PARAMS, "Invalid params");
-        assertTrue(json.contains("\"code\":-32602"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals(-32602, ((Map<String, Object>) parsed.get("error")).get("code"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatErrorInternalError() {
         String json = JsonRpcProtocol.formatError(4, JsonRpcProtocol.INTERNAL_ERROR, "Internal error");
-        assertTrue(json.contains("\"code\":-32603"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals(-32603, ((Map<String, Object>) parsed.get("error")).get("code"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatErrorEscapesMessage() {
         String json = JsonRpcProtocol.formatError(1, JsonRpcProtocol.PARSE_ERROR, "Error with \"quotes\"");
-        assertTrue(json.contains("\\\"quotes\\\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> error = (Map<String, Object>) parsed.get("error");
+        assertEquals("Error with \"quotes\"", error.get("message"));
     }
 
     // === formatInitializeResult ===
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatInitializeResultContainsProtocolVersion() {
         String json = JsonRpcProtocol.formatInitializeResult(1, "2025-03-26");
-        assertTrue(json.contains("\"protocolVersion\":\"2025-03-26\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals("2025-03-26", result.get("protocolVersion"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatInitializeResultContainsCapabilities() {
         String json = JsonRpcProtocol.formatInitializeResult(1, "2025-03-26");
-        assertTrue(json.contains("\"capabilities\":{\"tools\":{\"listChanged\":true}}"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        Map<String, Object> capabilities = (Map<String, Object>) result.get("capabilities");
+        Map<String, Object> tools = (Map<String, Object>) capabilities.get("tools");
+        assertEquals(true, tools.get("listChanged"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatInitializeResultContainsServerInfo() {
         String json = JsonRpcProtocol.formatInitializeResult(1, "2025-03-26");
-        assertTrue(json.contains("\"serverInfo\":{\"name\":\"sweethome3d\",\"version\":\"" + SH3DMcpPlugin.PLUGIN_VERSION + "\"}"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        Map<String, Object> serverInfo = (Map<String, Object>) result.get("serverInfo");
+        assertEquals("sweethome3d", serverInfo.get("name"));
+        assertEquals(SH3DMcpPlugin.PLUGIN_VERSION, serverInfo.get("version"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatInitializeResultIsValidJsonRpc() {
         String json = JsonRpcProtocol.formatInitializeResult(42, "2025-03-26");
-        assertTrue(json.contains("\"jsonrpc\":\"2.0\""));
-        assertTrue(json.contains("\"id\":42"));
-        assertTrue(json.contains("\"result\":{"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals("2.0", parsed.get("jsonrpc"));
+        assertEquals(42, parsed.get("id"));
+        assertNotNull(parsed.get("result"));
+        assertInstanceOf(Map.class, parsed.get("result"));
     }
 
     // === formatToolsListResult ===
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolsListResultEmptyList() {
         String json = JsonRpcProtocol.formatToolsListResult(1, Collections.emptyList());
-        assertTrue(json.contains("\"tools\":[]"));
-        assertTrue(json.contains("\"jsonrpc\":\"2.0\""));
-        assertTrue(json.contains("\"id\":1"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals("2.0", parsed.get("jsonrpc"));
+        assertEquals(1, parsed.get("id"));
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> tools = (List<Object>) result.get("tools");
+        assertTrue(tools.isEmpty());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolsListResultWithTools() {
         List<Map<String, Object>> tools = new ArrayList<>();
         Map<String, Object> tool = new LinkedHashMap<>();
@@ -271,56 +316,77 @@ class JsonRpcProtocolTest {
         tools.add(tool);
 
         String json = JsonRpcProtocol.formatToolsListResult(1, tools);
-        assertTrue(json.contains("\"name\":\"create_wall\""));
-        assertTrue(json.contains("\"description\":\"Create a wall\""));
-        assertTrue(json.contains("\"inputSchema\":{\"type\":\"object\"}"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> parsedTools = (List<Object>) result.get("tools");
+        assertEquals(1, parsedTools.size());
+        Map<String, Object> parsedTool = (Map<String, Object>) parsedTools.get(0);
+        assertEquals("create_wall", parsedTool.get("name"));
+        assertEquals("Create a wall", parsedTool.get("description"));
+        Map<String, Object> parsedSchema = (Map<String, Object>) parsedTool.get("inputSchema");
+        assertEquals("object", parsedSchema.get("type"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolsListResultMultipleTools() {
         List<Map<String, Object>> tools = new ArrayList<>();
-
         Map<String, Object> tool1 = new LinkedHashMap<>();
         tool1.put("name", "tool_a");
         tools.add(tool1);
-
         Map<String, Object> tool2 = new LinkedHashMap<>();
         tool2.put("name", "tool_b");
         tools.add(tool2);
 
         String json = JsonRpcProtocol.formatToolsListResult(1, tools);
-        assertTrue(json.contains("\"tool_a\""));
-        assertTrue(json.contains("\"tool_b\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> parsedTools = (List<Object>) result.get("tools");
+        assertEquals(2, parsedTools.size());
+        assertEquals("tool_a", ((Map<String, Object>) parsedTools.get(0)).get("name"));
+        assertEquals("tool_b", ((Map<String, Object>) parsedTools.get(1)).get("name"));
     }
 
     // === formatToolCallResult ===
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultOkResponseTextContent() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("wallId", "wall-1");
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(1, response);
-        assertTrue(json.contains("\"jsonrpc\":\"2.0\""));
-        assertTrue(json.contains("\"id\":1"));
-        assertTrue(json.contains("\"isError\":false"));
-        assertTrue(json.contains("\"type\":\"text\""));
-        assertTrue(json.contains("\"text\":"));
-        assertTrue(json.contains("wallId"));
+        Map<String, Object> parsed = parseJson(json);
+        assertEquals("2.0", parsed.get("jsonrpc"));
+        assertEquals(1, parsed.get("id"));
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(false, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(1, content.size());
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
+        Map<String, Object> innerData = parseJson((String) textBlock.get("text"));
+        assertEquals("wall-1", innerData.get("wallId"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultErrorResponse() {
         Response response = Response.error("Wall not found");
 
         String json = JsonRpcProtocol.formatToolCallResult(2, response);
-        assertTrue(json.contains("\"isError\":true"));
-        assertTrue(json.contains("\"type\":\"text\""));
-        assertTrue(json.contains("Wall not found"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(true, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
+        assertEquals("Wall not found", textBlock.get("text"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultImageResponse() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("image", "iVBORw0KGgoAAAANSUhEUgAAAAE=");
@@ -328,46 +394,65 @@ class JsonRpcProtocolTest {
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(3, response);
-        assertTrue(json.contains("\"type\":\"image\""));
-        assertTrue(json.contains("\"data\":\"iVBORw0KGgoAAAANSUhEUgAAAAE=\""));
-        assertTrue(json.contains("\"mimeType\":\"image/png\""));
-        assertTrue(json.contains("\"isError\":false"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(false, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(1, content.size());
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(0);
+        assertEquals("image", imageBlock.get("type"));
+        assertEquals("iVBORw0KGgoAAAANSUhEUgAAAAE=", imageBlock.get("data"));
+        assertEquals("image/png", imageBlock.get("mimeType"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultImageResponseDefaultMimeType() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("image", "base64data");
-        // No mimeType key -- should default to image/png
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(4, response);
-        assertTrue(json.contains("\"mimeType\":\"image/png\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> content = (List<Object>) result.get("content");
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(0);
+        assertEquals("image/png", imageBlock.get("mimeType"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultOkWithNullData() {
         Response response = Response.ok(null);
 
         String json = JsonRpcProtocol.formatToolCallResult(5, response);
-        assertTrue(json.contains("\"isError\":false"));
-        assertTrue(json.contains("\"type\":\"text\""));
-        // null data serializes to some text representation
-        assertTrue(json.contains("\"text\":"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(false, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
+        assertNotNull(textBlock.get("text"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultOkWithEmptyData() {
         Response response = Response.ok(Collections.emptyMap());
 
         String json = JsonRpcProtocol.formatToolCallResult(6, response);
-        assertTrue(json.contains("\"isError\":false"));
-        assertTrue(json.contains("\"type\":\"text\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(false, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
     }
 
     // === formatToolCallResult: multi-content (_image, _images) ===
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultNewImageWithMetadata() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("width", 800);
@@ -378,43 +463,63 @@ class JsonRpcProtocolTest {
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(10, response);
-        // Metadata text block (inside escaped JSON string)
-        assertTrue(json.contains("\"type\":\"text\""), "Should have text block");
-        assertTrue(json.contains("width"), "Text should contain metadata key 'width'");
-        assertTrue(json.contains("height"), "Text should contain metadata key 'height'");
-        assertTrue(json.contains("size_bytes"), "Text should contain metadata key 'size_bytes'");
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(false, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(2, content.size());
+        // Text block with metadata
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
+        Map<String, Object> metadata = parseJson((String) textBlock.get("text"));
+        assertEquals(800, metadata.get("width"));
+        assertEquals(600, metadata.get("height"));
+        assertEquals(45000, metadata.get("size_bytes"));
+        assertFalse(metadata.containsKey("_image"));
+        assertFalse(metadata.containsKey("_mimeType"));
         // Image block
-        assertTrue(json.contains("\"type\":\"image\""), "Should have image block");
-        assertTrue(json.contains("\"data\":\"jpegBase64Data\""));
-        assertTrue(json.contains("\"mimeType\":\"image/jpeg\""));
-        assertTrue(json.contains("\"isError\":false"));
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(1);
+        assertEquals("image", imageBlock.get("type"));
+        assertEquals("jpegBase64Data", imageBlock.get("data"));
+        assertEquals("image/jpeg", imageBlock.get("mimeType"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultNewImageDefaultMimeType() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("_image", "pngBase64");
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(11, response);
-        assertTrue(json.contains("\"mimeType\":\"image/png\""), "Should default to image/png");
-        assertTrue(json.contains("\"data\":\"pngBase64\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> content = (List<Object>) result.get("content");
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(content.size() - 1);
+        assertEquals("image", imageBlock.get("type"));
+        assertEquals("image/png", imageBlock.get("mimeType"));
+        assertEquals("pngBase64", imageBlock.get("data"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultNewImageNoMetadata() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("_image", "onlyImage");
         data.put("_mimeType", "image/png");
-        // No non-underscore keys → no text block
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(12, response);
-        assertTrue(json.contains("\"type\":\"image\""));
-        assertFalse(json.contains("\"type\":\"text\""), "No text block when no metadata");
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(1, content.size(), "Should only have image block when no metadata");
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(0);
+        assertEquals("image", imageBlock.get("type"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultMultipleImages() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("view", "overhead");
@@ -433,32 +538,55 @@ class JsonRpcProtocolTest {
 
         Response response = Response.ok(data);
         String json = JsonRpcProtocol.formatToolCallResult(13, response);
-
-        // Metadata text block (inside escaped JSON string)
-        assertTrue(json.contains("overhead"), "Should contain view value");
-        assertTrue(json.contains("imageCount"), "Should contain imageCount key");
-        // Both image blocks
-        assertTrue(json.contains("\"img1base64\""));
-        assertTrue(json.contains("\"img2base64\""));
-        assertTrue(json.contains("\"isError\":false"));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        assertEquals(false, result.get("isError"));
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(3, content.size()); // text + 2 images
+        // Text block with metadata
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
+        Map<String, Object> metadata = parseJson((String) textBlock.get("text"));
+        assertEquals("overhead", metadata.get("view"));
+        assertEquals(2, metadata.get("imageCount"));
+        // Image blocks
+        Map<String, Object> imgBlock1 = (Map<String, Object>) content.get(1);
+        assertEquals("image", imgBlock1.get("type"));
+        assertEquals("img1base64", imgBlock1.get("data"));
+        Map<String, Object> imgBlock2 = (Map<String, Object>) content.get(2);
+        assertEquals("image", imgBlock2.get("type"));
+        assertEquals("img2base64", imgBlock2.get("data"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultMultipleImagesDefaultMimeType() {
         Map<String, Object> data = new LinkedHashMap<>();
         List<Map<String, Object>> images = new ArrayList<>();
         Map<String, Object> img = new LinkedHashMap<>();
         img.put("data", "noMimeImage");
-        // No mimeType → default image/png
         images.add(img);
         data.put("_images", images);
 
         Response response = Response.ok(data);
         String json = JsonRpcProtocol.formatToolCallResult(14, response);
-        assertTrue(json.contains("\"mimeType\":\"image/png\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> content = (List<Object>) result.get("content");
+        Map<String, Object> imageBlock = null;
+        for (Object c : content) {
+            Map<String, Object> block = (Map<String, Object>) c;
+            if ("image".equals(block.get("type"))) {
+                imageBlock = block;
+                break;
+            }
+        }
+        assertNotNull(imageBlock);
+        assertEquals("image/png", imageBlock.get("mimeType"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultUnderscoreKeysExcludedFromMetadata() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("format", "jpeg");
@@ -467,27 +595,40 @@ class JsonRpcProtocolTest {
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(15, response);
-        // Text block should have "format" but not "_image" or "_mimeType"
-        assertTrue(json.contains("format"), "Metadata should contain 'format'");
-        assertFalse(json.contains("_image"), "Metadata should NOT contain '_image' key");
-        assertFalse(json.contains("_mimeType"), "Metadata should NOT contain '_mimeType' key");
-        // Base64 data appears only in image block
-        int count = json.split("secretBase64", -1).length - 1;
-        assertEquals(1, count, "Base64 data should appear only in image block, not in text block");
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(2, content.size());
+        // Text block should have "format" but not underscore keys
+        Map<String, Object> textBlock = (Map<String, Object>) content.get(0);
+        assertEquals("text", textBlock.get("type"));
+        Map<String, Object> metadata = parseJson((String) textBlock.get("text"));
+        assertEquals("jpeg", metadata.get("format"));
+        assertFalse(metadata.containsKey("_image"), "Metadata should NOT contain '_image' key");
+        assertFalse(metadata.containsKey("_mimeType"), "Metadata should NOT contain '_mimeType' key");
+        // Image block should have the base64 data
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(1);
+        assertEquals("image", imageBlock.get("type"));
+        assertEquals("secretBase64", imageBlock.get("data"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFormatToolCallResultLegacyImageStillWorks() {
-        // Backward compatibility: old "image" key without underscore
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("image", "legacyBase64");
         data.put("mimeType", "image/png");
         Response response = Response.ok(data);
 
         String json = JsonRpcProtocol.formatToolCallResult(16, response);
-        assertTrue(json.contains("\"type\":\"image\""));
-        assertTrue(json.contains("\"data\":\"legacyBase64\""));
-        assertTrue(json.contains("\"mimeType\":\"image/png\""));
+        Map<String, Object> parsed = parseJson(json);
+        Map<String, Object> result = (Map<String, Object>) parsed.get("result");
+        List<Object> content = (List<Object>) result.get("content");
+        assertEquals(1, content.size());
+        Map<String, Object> imageBlock = (Map<String, Object>) content.get(0);
+        assertEquals("image", imageBlock.get("type"));
+        assertEquals("legacyBase64", imageBlock.get("data"));
+        assertEquals("image/png", imageBlock.get("mimeType"));
     }
 
     // === Error code constants ===
@@ -499,5 +640,12 @@ class JsonRpcProtocolTest {
         assertEquals(-32601, JsonRpcProtocol.METHOD_NOT_FOUND);
         assertEquals(-32602, JsonRpcProtocol.INVALID_PARAMS);
         assertEquals(-32603, JsonRpcProtocol.INTERNAL_ERROR);
+    }
+
+    // === Helper ===
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseJson(String json) {
+        return (Map<String, Object>) JsonUtil.parse(json);
     }
 }

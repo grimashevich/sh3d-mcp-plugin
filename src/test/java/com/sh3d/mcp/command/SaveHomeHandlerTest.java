@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,6 +84,34 @@ class SaveHomeHandlerTest {
         // Home.getName() == null для нового дома
         HomeAccessor accessor = new HomeAccessor(home, null);
         Request request = new Request("save_home", Collections.emptyMap());
+
+        Response response = handler.execute(request, accessor);
+
+        assertTrue(response.isError());
+        assertTrue(response.getMessage().contains("No file path"));
+    }
+
+    @Test
+    void testEmptyStringFilePathAndNewHome() {
+        Home home = new Home();
+        HomeAccessor accessor = new HomeAccessor(home, null);
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("filePath", "");
+        Request request = new Request("save_home", params);
+
+        Response response = handler.execute(request, accessor);
+
+        assertTrue(response.isError());
+        assertTrue(response.getMessage().contains("No file path"));
+    }
+
+    @Test
+    void testBlankFilePathAndNewHome() {
+        Home home = new Home();
+        HomeAccessor accessor = new HomeAccessor(home, null);
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("filePath", "   ");
+        Request request = new Request("save_home", params);
 
         Response response = handler.execute(request, accessor);
 

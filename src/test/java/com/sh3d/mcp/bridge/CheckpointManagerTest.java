@@ -564,9 +564,8 @@ class CheckpointManagerTest {
     }
 
     @Test
-    void testTimestampsAreNonDecreasing() throws InterruptedException {
+    void testTimestampsAreNonDecreasing() {
         manager.push(new Home(), "first");
-        Thread.sleep(2); // small delay to ensure different timestamps
         manager.push(new Home(), "second");
 
         List<SnapshotInfo> snapshots = manager.list();
