@@ -10,9 +10,7 @@ import com.sh3d.mcp.protocol.Response;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -341,22 +339,24 @@ public class McpRequestHandler implements HttpHandler {
 
     /**
      * Reads request body with a size limit of {@link #MAX_REQUEST_BODY_SIZE} bytes.
+     * Counts raw bytes (not characters) to enforce the limit correctly for multibyte UTF-8.
      *
      * @return the body string, or {@code null} if the body exceeds the limit
      */
     private String readBody(HttpExchange exchange) throws IOException {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder();
-            char[] buffer = new char[4096];
+        try (java.io.InputStream is = exchange.getRequestBody()) {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int totalBytes = 0;
             int read;
-            while ((read = reader.read(buffer)) != -1) {
-                sb.append(buffer, 0, read);
-                if (sb.length() > MAX_REQUEST_BODY_SIZE) {
+            while ((read = is.read(buffer)) != -1) {
+                totalBytes += read;
+                if (totalBytes > MAX_REQUEST_BODY_SIZE) {
                     return null;
                 }
+                baos.write(buffer, 0, read);
             }
-            return sb.toString();
+            return baos.toString(StandardCharsets.UTF_8.name());
         }
     }
 
