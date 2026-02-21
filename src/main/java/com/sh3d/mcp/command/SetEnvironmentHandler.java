@@ -10,6 +10,7 @@ import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.colorToHex;
 import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.FormatUtil.textureName;
 import static com.sh3d.mcp.command.SchemaUtil.enumProp;
 import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
@@ -218,12 +219,6 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
         result.put("drawingMode", env.getDrawingMode().name());
         result.put("allLevelsVisible", env.isAllLevelsVisible());
         return result;
-    }
-
-    // --- Utilities ---
-
-    private static String textureName(HomeTexture texture) {
-        return texture != null ? texture.getName() : null;
     }
 
     // --- Descriptor ---

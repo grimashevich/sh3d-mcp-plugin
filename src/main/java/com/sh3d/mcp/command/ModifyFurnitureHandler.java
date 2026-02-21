@@ -7,6 +7,7 @@ import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.colorToHex;
 import static com.sh3d.mcp.command.FormatUtil.round2;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
 
@@ -129,7 +130,7 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
             result.put("depth", round2(piece.getDepth()));
             result.put("height", round2(piece.getHeight()));
             Integer color = piece.getColor();
-            result.put("color", color != null ? String.format("#%06X", color & 0xFFFFFF) : null);
+            result.put("color", colorToHex(color));
             result.put("visible", piece.isVisible());
             result.put("mirrored", piece.isModelMirrored());
             return result;
