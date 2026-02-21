@@ -280,8 +280,10 @@ public class McpRequestHandler implements HttpHandler {
 
     /**
      * Валидирует сессию по Mcp-Session-Id header.
-     * Если сессия не найдена или истекла — автоматически создаёт новую.
-     * Возвращает null и отправляет ошибку только если заголовок отсутствует.
+     * <p>
+     * If the session expired but was previously created via handshake (known expired ID),
+     * it is auto-recreated. Truly unknown IDs are rejected with HTTP 404.
+     * Returns null and sends an error if the header is missing or the ID is unknown.
      */
     private McpSession validateSession(HttpExchange exchange) throws IOException {
         String sessionId = getSessionIdHeader(exchange);
@@ -292,10 +294,17 @@ public class McpRequestHandler implements HttpHandler {
         }
         McpSession session = sessionManager.getSession(sessionId);
         if (session == null) {
-            // Auto-recreate session reusing the same ID (avoids session leak)
-            session = sessionManager.createSessionWithId(sessionId, SUPPORTED_PROTOCOL_VERSION);
-            session.setInitialized(true);
-            LOG.warning("MCP session auto-recreated with same ID: " + sessionId);
+            if (sessionManager.isKnownExpired(sessionId)) {
+                // Auto-recreate only for previously known sessions
+                session = sessionManager.createSessionWithId(sessionId, SUPPORTED_PROTOCOL_VERSION);
+                session.setInitialized(true);
+                LOG.warning("MCP session auto-recreated with same ID: " + sessionId);
+            } else {
+                sendJson(exchange, 404, JsonRpcProtocol.formatError(null,
+                        JsonRpcProtocol.INVALID_REQUEST,
+                        "Unknown session: " + sessionId + ". Send initialize first."));
+                return null;
+            }
         }
         return session;
     }
