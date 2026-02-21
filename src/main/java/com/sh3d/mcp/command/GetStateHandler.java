@@ -5,7 +5,6 @@ import com.eteks.sweethome3d.model.DimensionLine;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomeEnvironment;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
-import com.eteks.sweethome3d.model.HomeTexture;
 import com.eteks.sweethome3d.model.Label;
 import com.eteks.sweethome3d.model.Level;
 import com.eteks.sweethome3d.model.ObserverCamera;
@@ -17,6 +16,7 @@ import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.colorToHex;
 import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.FormatUtil.textureName;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -302,12 +302,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
         bb.put("maxX", round2(maxX));
         bb.put("maxY", round2(maxY));
         return bb;
-    }
-
-    // --- Utilities ---
-
-    private static String textureName(HomeTexture texture) {
-        return texture != null ? texture.getName() : null;
     }
 
     // --- Descriptor ---

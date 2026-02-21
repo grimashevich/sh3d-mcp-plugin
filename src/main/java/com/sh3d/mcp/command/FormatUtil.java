@@ -1,5 +1,7 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.HomeTexture;
+
 /**
  * Static utility methods for formatting values in command handler responses.
  */
@@ -31,5 +33,12 @@ public final class FormatUtil {
     public static Integer parseHexColor(String hex) {
         if (!hex.matches("^#[0-9A-Fa-f]{6}$")) return null;
         return Integer.parseInt(hex.substring(1), 16);
+    }
+
+    /**
+     * Returns the name of a HomeTexture, or null if the texture is null.
+     */
+    public static String textureName(HomeTexture texture) {
+        return texture != null ? texture.getName() : null;
     }
 }

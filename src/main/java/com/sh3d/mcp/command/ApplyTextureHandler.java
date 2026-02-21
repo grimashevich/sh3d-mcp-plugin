@@ -11,6 +11,7 @@ import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.textureName;
 import static com.sh3d.mcp.command.SchemaUtil.enumProp;
 import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
@@ -222,10 +223,6 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         result.put("floorTexture", textureName(room.getFloorTexture()));
         result.put("ceilingTexture", textureName(room.getCeilingTexture()));
         return result;
-    }
-
-    private static String textureName(HomeTexture texture) {
-        return texture != null ? texture.getName() : null;
     }
 
     // --- Descriptor ---
