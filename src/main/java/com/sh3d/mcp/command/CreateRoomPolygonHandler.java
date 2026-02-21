@@ -123,11 +123,9 @@ public class CreateRoomPolygonHandler implements CommandHandler, CommandDescript
 
             home.addRoom(room);
 
-            int id = home.getRooms().indexOf(room);
-
             // Build response
             Map<String, Object> result = new LinkedHashMap<>();
-            result.put("id", id);
+            result.put("id", room.getId());
             result.put("name", room.getName());
             result.put("area", round2(room.getArea()));
             result.put("areaVisible", room.isAreaVisible());

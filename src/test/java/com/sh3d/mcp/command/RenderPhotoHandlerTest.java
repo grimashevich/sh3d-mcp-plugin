@@ -546,25 +546,17 @@ class RenderPhotoHandlerTest {
     }
 
     @Test
-    void testFocusOnInvalidId() {
+    void testFocusOnEmptyId() {
         addWalls();
-        Response resp = execute("view", "overhead", "focusOn", "furniture:abc");
+        Response resp = execute("view", "overhead", "focusOn", "furniture:");
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("numeric"));
-    }
-
-    @Test
-    void testFocusOnNegativeId() {
-        addWalls();
-        Response resp = execute("view", "overhead", "focusOn", "furniture:-1");
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains(">= 0"));
+        assertTrue(resp.getMessage().contains("empty"));
     }
 
     @Test
     void testFocusOnFurnitureNotFound() {
         addWalls();
-        Response resp = execute("view", "overhead", "focusOn", "furniture:999");
+        Response resp = execute("view", "overhead", "focusOn", "furniture:nonexistent");
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("not found"));
     }
@@ -572,7 +564,7 @@ class RenderPhotoHandlerTest {
     @Test
     void testFocusOnRoomNotFound() {
         addWalls();
-        Response resp = execute("view", "overhead", "focusOn", "room:999");
+        Response resp = execute("view", "overhead", "focusOn", "room:nonexistent");
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("not found"));
     }
@@ -590,7 +582,7 @@ class RenderPhotoHandlerTest {
         piece.setY(250);
         home.addPieceOfFurniture(piece);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", 0);
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", piece.getId());
         assertNotNull(bounds);
         // Центр bounds должен быть примерно в позиции мебели
         assertEquals(300, bounds.centerX, 60);
@@ -606,7 +598,7 @@ class RenderPhotoHandlerTest {
         Room room = new Room(points);
         home.addRoom(room);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", 0);
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", room.getId());
         assertNotNull(bounds);
         // Центр = (250, 225), но с padding bounds шире
         assertEquals(250, bounds.centerX, 1);
@@ -624,7 +616,7 @@ class RenderPhotoHandlerTest {
         piece.setY(200);
         home.addPieceOfFurniture(piece);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", 0);
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", piece.getId());
         assertNotNull(bounds);
         // С padding >= 200 с каждой стороны, ширина >= 400
         assertTrue(bounds.sceneWidth >= 400, "Padding should ensure minimum width, got " + bounds.sceneWidth);
@@ -633,19 +625,19 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testFocusBoundsFurnitureNotFound() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", 0);
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", "nonexistent");
         assertNull(bounds);
     }
 
     @Test
     void testFocusBoundsRoomNotFound() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", 0);
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", "nonexistent");
         assertNull(bounds);
     }
 
     @Test
     void testFocusBoundsInvalidType() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "wall", 0);
+        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "wall", "nonexistent");
         assertNull(bounds);
     }
 

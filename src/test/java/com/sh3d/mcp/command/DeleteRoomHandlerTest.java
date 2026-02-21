@@ -29,9 +29,9 @@ class DeleteRoomHandlerTest {
 
     @Test
     void testDeleteSingleRoom() {
-        addRoom("Kitchen", new float[][]{{0, 0}, {500, 0}, {500, 400}, {0, 400}});
+        Room room = addRoom("Kitchen", new float[][]{{0, 0}, {500, 0}, {500, 400}, {0, 400}});
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(room.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(0, home.getRooms().size());
@@ -39,9 +39,9 @@ class DeleteRoomHandlerTest {
 
     @Test
     void testResponseContainsDeletedInfo() {
-        addRoom("Living Room", new float[][]{{0, 0}, {600, 0}, {600, 500}, {0, 500}});
+        Room room = addRoom("Living Room", new float[][]{{0, 0}, {600, 0}, {600, 500}, {0, 500}});
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(room.getId()), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
@@ -56,9 +56,9 @@ class DeleteRoomHandlerTest {
 
     @Test
     void testResponseContainsPoints() {
-        addRoom("Hall", new float[][]{{100, 200}, {300, 200}, {300, 400}});
+        Room room = addRoom("Hall", new float[][]{{100, 200}, {300, 200}, {300, 400}});
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(room.getId()), accessor);
 
         assertTrue(resp.isOk());
         @SuppressWarnings("unchecked")
@@ -71,10 +71,10 @@ class DeleteRoomHandlerTest {
     @Test
     void testDeleteFromMultiple() {
         addRoom("Room A", new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
-        addRoom("Room B", new float[][]{{200, 0}, {300, 0}, {300, 100}, {200, 100}});
+        Room roomB = addRoom("Room B", new float[][]{{200, 0}, {300, 0}, {300, 100}, {200, 100}});
         addRoom("Room C", new float[][]{{400, 0}, {500, 0}, {500, 100}, {400, 100}});
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(roomB.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Room B", resp.getData().get("name"));
@@ -83,10 +83,10 @@ class DeleteRoomHandlerTest {
 
     @Test
     void testDeleteFirst() {
-        addRoom("First", new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
+        Room first = addRoom("First", new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
         addRoom("Second", new float[][]{{200, 0}, {300, 0}, {300, 100}, {200, 100}});
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(first.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("First", resp.getData().get("name"));
@@ -97,9 +97,9 @@ class DeleteRoomHandlerTest {
     @Test
     void testDeleteLast() {
         addRoom("First", new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
-        addRoom("Second", new float[][]{{200, 0}, {300, 0}, {300, 100}, {200, 100}});
+        Room second = addRoom("Second", new float[][]{{200, 0}, {300, 0}, {300, 100}, {200, 100}});
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(second.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Second", resp.getData().get("name"));
@@ -109,9 +109,9 @@ class DeleteRoomHandlerTest {
 
     @Test
     void testUnnamedRoom() {
-        addRoom(null, new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
+        Room room = addRoom(null, new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(room.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertNull(resp.getData().get("name"));
@@ -119,33 +119,22 @@ class DeleteRoomHandlerTest {
     }
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addRoom("Only", new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
 
-        Response resp = handler.execute(makeRequest(5), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-        assertEquals(1, home.getRooms().size());
-    }
-
-    @Test
-    void testNegativeId() {
-        addRoom("Only", new float[][]{{0, 0}, {100, 0}, {100, 100}, {0, 100}});
-
-        Response resp = handler.execute(makeRequest(-1), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
         assertEquals(1, home.getRooms().size());
     }
 
     @Test
     void testEmptyScene() {
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest("any-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
@@ -162,21 +151,26 @@ class DeleteRoomHandlerTest {
         assertTrue(props.containsKey("id"));
 
         @SuppressWarnings("unchecked")
+        Map<String, Object> idProp = (Map<String, Object>) props.get("id");
+        assertEquals("string", idProp.get("type"));
+
+        @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
         assertTrue(required.contains("id"));
     }
 
-    private void addRoom(String name, float[][] points) {
+    private Room addRoom(String name, float[][] points) {
         Room room = new Room(points);
         if (name != null) {
             room.setName(name);
         }
         home.addRoom(room);
+        return room;
     }
 
-    private Request makeRequest(int id) {
+    private Request makeRequest(String id) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         return new Request("delete_room", params);
     }
 }

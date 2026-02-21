@@ -140,8 +140,7 @@ class AddLevelHandlerTest {
         Response resp = handler.execute(makeRequest("Upper", 250, null, null), accessor);
 
         assertTrue(resp.isOk());
-        int id = ((Number) resp.getData().get("id")).intValue();
-        assertTrue(id >= 0);
+        assertTrue(resp.getData().get("id") instanceof String, "id should be a String");
     }
 
     @Test

@@ -30,12 +30,11 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testModifyPosition() {
-        addFurniture("Table", 100, 200);
+        HomePieceOfFurniture piece = addFurniture("Table", 100, 200);
 
-        Response resp = handler.execute(makeRequest(0, "x", 300.0, "y", 400.0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "x", 300.0, "y", 400.0), accessor);
 
         assertTrue(resp.isOk());
-        HomePieceOfFurniture piece = home.getFurniture().get(0);
         assertEquals(300f, piece.getX(), 0.01f);
         assertEquals(400f, piece.getY(), 0.01f);
 
@@ -45,12 +44,11 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testModifyAngle() {
-        addFurniture("Chair", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Chair", 0, 0);
 
-        Response resp = handler.execute(makeRequest(0, "angle", 90.0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "angle", 90.0), accessor);
 
         assertTrue(resp.isOk());
-        HomePieceOfFurniture piece = home.getFurniture().get(0);
         assertEquals(Math.toRadians(90), piece.getAngle(), 0.01);
 
         assertEquals(90.0, ((Number) resp.getData().get("angle")).doubleValue(), 0.5);
@@ -58,12 +56,11 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testModifyDimensions() {
-        addFurniture("Box", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Box", 0, 0);
 
-        Response resp = handler.execute(makeRequest(0, "width", 120.0, "depth", 80.0, "height", 75.0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "width", 120.0, "depth", 80.0, "height", 75.0), accessor);
 
         assertTrue(resp.isOk());
-        HomePieceOfFurniture piece = home.getFurniture().get(0);
         assertEquals(120f, piece.getWidth(), 0.01f);
         assertEquals(80f, piece.getDepth(), 0.01f);
         assertEquals(75f, piece.getHeight(), 0.01f);
@@ -71,46 +68,46 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testModifyElevation() {
-        addFurniture("Shelf", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Shelf", 0, 0);
 
-        Response resp = handler.execute(makeRequest(0, "elevation", 150.0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "elevation", 150.0), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(150f, home.getFurniture().get(0).getElevation(), 0.01f);
+        assertEquals(150f, piece.getElevation(), 0.01f);
         assertEquals(150.0, ((Number) resp.getData().get("elevation")).doubleValue(), 0.01);
     }
 
     @Test
     void testSetColor() {
-        addFurniture("Wall unit", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Wall unit", 0, 0);
 
-        Response resp = handler.execute(makeRequest(0, "color", "#FF0000"), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "color", "#FF0000"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0xFF0000, (int) home.getFurniture().get(0).getColor());
+        assertEquals(0xFF0000, (int) piece.getColor());
         assertEquals("#FF0000", resp.getData().get("color"));
     }
 
     @Test
     void testResetColor() {
-        addFurniture("Desk", 0, 0);
-        home.getFurniture().get(0).setColor(0x00FF00);
+        HomePieceOfFurniture piece = addFurniture("Desk", 0, 0);
+        piece.setColor(0x00FF00);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", piece.getId());
         params.put("color", null);
         Response resp = handler.execute(new Request("modify_furniture", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(home.getFurniture().get(0).getColor());
+        assertNull(piece.getColor());
         assertNull(resp.getData().get("color"));
     }
 
     @Test
     void testInvalidColorFormat() {
-        addFurniture("Chair", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Chair", 0, 0);
 
-        Response resp = handler.execute(makeRequest(0, "color", "red"), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "color", "red"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("color"));
@@ -118,52 +115,51 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testSetVisible() {
-        addFurniture("Lamp", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Lamp", 0, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", piece.getId());
         params.put("visible", false);
         Response resp = handler.execute(new Request("modify_furniture", params), accessor);
 
         assertTrue(resp.isOk());
-        assertFalse(home.getFurniture().get(0).isVisible());
+        assertFalse(piece.isVisible());
         assertEquals(false, resp.getData().get("visible"));
     }
 
     @Test
     void testSetMirrored() {
-        addFurniture("Sofa", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Sofa", 0, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", piece.getId());
         params.put("mirrored", true);
         Response resp = handler.execute(new Request("modify_furniture", params), accessor);
 
         assertTrue(resp.isOk());
-        assertTrue(home.getFurniture().get(0).isModelMirrored());
+        assertTrue(piece.isModelMirrored());
         assertEquals(true, resp.getData().get("mirrored"));
     }
 
     @Test
     void testModifyName() {
-        addFurniture("Old Name", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Old Name", 0, 0);
 
-        Response resp = handler.execute(makeRequest(0, "name", "New Name"), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "name", "New Name"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals("New Name", home.getFurniture().get(0).getName());
+        assertEquals("New Name", piece.getName());
         assertEquals("New Name", resp.getData().get("name"));
     }
 
     @Test
     void testPartialUpdateOnlyX() {
-        addFurniture("Table", 100, 200);
-        home.getFurniture().get(0).setAngle((float) Math.toRadians(45));
+        HomePieceOfFurniture piece = addFurniture("Table", 100, 200);
+        piece.setAngle((float) Math.toRadians(45));
 
-        Response resp = handler.execute(makeRequest(0, "x", 500.0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "x", 500.0), accessor);
 
         assertTrue(resp.isOk());
-        HomePieceOfFurniture piece = home.getFurniture().get(0);
         assertEquals(500f, piece.getX(), 0.01f);
         assertEquals(200f, piece.getY(), 0.01f);
         assertEquals(Math.toRadians(45), piece.getAngle(), 0.01);
@@ -171,10 +167,10 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testMultipleProperties() {
-        addFurniture("Chair", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Chair", 0, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", piece.getId());
         params.put("x", 250.0);
         params.put("y", 350.0);
         params.put("angle", 180.0);
@@ -183,7 +179,6 @@ class ModifyFurnitureHandlerTest {
         Response resp = handler.execute(new Request("modify_furniture", params), accessor);
 
         assertTrue(resp.isOk());
-        HomePieceOfFurniture piece = home.getFurniture().get(0);
         assertEquals(250f, piece.getX(), 0.01f);
         assertEquals(350f, piece.getY(), 0.01f);
         assertEquals(Math.toRadians(180), piece.getAngle(), 0.01);
@@ -192,31 +187,21 @@ class ModifyFurnitureHandlerTest {
     }
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addFurniture("Table", 0, 0);
 
-        Response resp = handler.execute(makeRequest(5, "x", 100.0), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id", "x", 100.0), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-    }
-
-    @Test
-    void testNegativeId() {
-        addFurniture("Table", 0, 0);
-
-        Response resp = handler.execute(makeRequest(-1, "x", 100.0), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testNoModifiableProperties() {
-        addFurniture("Table", 0, 0);
+        HomePieceOfFurniture piece = addFurniture("Table", 0, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", piece.getId());
         Response resp = handler.execute(new Request("modify_furniture", params), accessor);
 
         assertTrue(resp.isError());
@@ -225,21 +210,21 @@ class ModifyFurnitureHandlerTest {
 
     @Test
     void testEmptyScene() {
-        Response resp = handler.execute(makeRequest(0, "x", 100.0), accessor);
+        Response resp = handler.execute(makeRequest("any-id", "x", 100.0), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testResponseContainsAllFields() {
-        addFurniture("Table", 100, 200);
+        HomePieceOfFurniture piece = addFurniture("Table", 100, 200);
 
-        Response resp = handler.execute(makeRequest(0, "x", 300.0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId(), "x", 300.0), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertEquals(piece.getId(), data.get("id"));
         assertNotNull(data.get("name"));
         assertNotNull(data.get("x"));
         assertNotNull(data.get("y"));
@@ -264,6 +249,11 @@ class ModifyFurnitureHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> props = (Map<String, Object>) schema.get("properties");
         assertTrue(props.containsKey("id"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> idProp = (Map<String, Object>) props.get("id");
+        assertEquals("string", idProp.get("type"));
+
         assertTrue(props.containsKey("x"));
         assertTrue(props.containsKey("y"));
         assertTrue(props.containsKey("angle"));
@@ -278,18 +268,19 @@ class ModifyFurnitureHandlerTest {
         assertEquals(1, required.size());
     }
 
-    private void addFurniture(String name, float x, float y) {
+    private HomePieceOfFurniture addFurniture(String name, float x, float y) {
         HomePieceOfFurniture piece = new HomePieceOfFurniture(
                 new CatalogPieceOfFurniture(
                         name, null, null, 50f, 50f, 50f, true, false));
         piece.setX(x);
         piece.setY(y);
         home.addPieceOfFurniture(piece);
+        return piece;
     }
 
-    private Request makeRequest(int id, Object... keyValues) {
+    private Request makeRequest(String id, Object... keyValues) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         for (int i = 0; i < keyValues.length; i += 2) {
             params.put((String) keyValues[i], keyValues[i + 1]);
         }

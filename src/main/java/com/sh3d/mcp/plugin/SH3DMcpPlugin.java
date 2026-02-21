@@ -161,7 +161,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("add_label", new AddLabelHandler());
         registry.register("add_level", new AddLevelHandler());
         registry.register("apply_texture", new ApplyTextureHandler());
-        registry.register("clear_scene", new ClearSceneHandler());
+        registry.register("clear_scene", new ClearSceneHandler(checkpointManager));
         registry.register("connect_walls", new ConnectWallsHandler());
         registry.register("create_room_polygon", new CreateRoomPolygonHandler());
         registry.register("create_wall", new CreateWallHandler());
@@ -192,7 +192,7 @@ public class SH3DMcpPlugin extends Plugin {
         registry.register("set_selected_level", new SetSelectedLevelHandler());
         registry.register("store_camera", new StoreCameraHandler());
         registry.register("get_cameras", new GetCamerasHandler());
-        registry.register("batch_commands", new BatchCommandsHandler(registry));
+        registry.register("batch_commands", new BatchCommandsHandler(registry, checkpointManager));
         return registry;
     }
 }

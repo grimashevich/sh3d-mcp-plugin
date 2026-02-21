@@ -7,6 +7,7 @@ import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.TexturesCatalog;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -51,12 +52,9 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         }
 
         Map<String, Object> params = request.getParams();
-        if (!params.containsKey("targetId")) {
+        String targetId = request.getString("targetId");
+        if (targetId == null) {
             return Response.error("Missing required parameter 'targetId'");
-        }
-        int targetId = (int) request.getFloat("targetId");
-        if (targetId < 0) {
-            return Response.error("Parameter 'targetId' must be non-negative, got " + targetId);
         }
 
         String surface = request.getString("surface");
@@ -146,7 +144,7 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
 
         if (data == null) {
             String typeName = "wall".equals(targetType) ? "Wall" : "Room";
-            return Response.error(typeName + " not found: targetId " + targetId + " is out of range");
+            return Response.error(typeName + " not found: " + targetId);
         }
 
         if (data.containsKey("__error")) {
@@ -156,17 +154,15 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         return Response.ok(data);
     }
 
-    private Map<String, Object> applyToWall(HomeAccessor accessor, int targetId, String surface,
+    private Map<String, Object> applyToWall(HomeAccessor accessor, String targetId, String surface,
                                              HomeTexture texture, String texName, String texCategory) {
         return accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Wall> walls = new ArrayList<>(home.getWalls());
 
-            if (targetId >= walls.size()) {
+            Wall wall = ObjectResolver.findWall(home, targetId);
+            if (wall == null) {
                 return null;
             }
-
-            Wall wall = walls.get(targetId);
 
             if ("left".equals(surface) || "both".equals(surface)) {
                 wall.setLeftSideTexture(texture);
@@ -179,17 +175,15 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         });
     }
 
-    private Map<String, Object> applyToRoom(HomeAccessor accessor, int targetId, String surface,
+    private Map<String, Object> applyToRoom(HomeAccessor accessor, String targetId, String surface,
                                              HomeTexture texture, String texName, String texCategory) {
         return accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Room> rooms = home.getRooms();
 
-            if (targetId >= rooms.size()) {
+            Room room = ObjectResolver.findRoom(home, targetId);
+            if (room == null) {
                 return null;
             }
-
-            Room room = rooms.get(targetId);
 
             if ("floor".equals(surface) || "both".equals(surface)) {
                 room.setFloorTexture(texture);
@@ -204,7 +198,7 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
 
     // --- Response builders ---
 
-    private static Map<String, Object> buildWallResponse(int id, Wall wall, String surface,
+    private static Map<String, Object> buildWallResponse(String id, Wall wall, String surface,
                                                           String texName, String texCategory) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("targetType", "wall");
@@ -217,7 +211,7 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         return result;
     }
 
-    private static Map<String, Object> buildRoomResponse(int id, Room room, String surface,
+    private static Map<String, Object> buildRoomResponse(String id, Room room, String surface,
                                                           String texName, String texCategory) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("targetType", "room");
@@ -256,7 +250,7 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
         properties.put("targetType", enumProp("string",
                 "Type of object to apply texture to",
                 Arrays.asList("wall", "room")));
-        properties.put("targetId", prop("integer", "Object ID from get_state"));
+        properties.put("targetId", prop("string", "Object ID from get_state"));
         properties.put("surface", prop("string",
                 "Surface to apply texture to. Walls: 'left', 'right', 'both'. Rooms: 'floor', 'ceiling', 'both'"));
         properties.put("textureName", nullableProp("string",

@@ -3,10 +3,10 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,16 +21,10 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int wall1Id = (int) request.getFloat("wall1Id");
-        int wall2Id = (int) request.getFloat("wall2Id");
+        String wall1Id = request.getRequiredString("wall1Id");
+        String wall2Id = request.getRequiredString("wall2Id");
 
-        if (wall1Id < 0) {
-            return Response.error("Parameter 'wall1Id' must be non-negative, got " + wall1Id);
-        }
-        if (wall2Id < 0) {
-            return Response.error("Parameter 'wall2Id' must be non-negative, got " + wall2Id);
-        }
-        if (wall1Id == wall2Id) {
+        if (wall1Id.equals(wall2Id)) {
             return Response.error("Cannot connect a wall to itself (wall1Id == wall2Id == " + wall1Id + ")");
         }
 
@@ -46,19 +40,18 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Wall> walls = new ArrayList<>(home.getWalls());
+            Wall wall1 = ObjectResolver.findWall(home, wall1Id);
 
-            if (wall1Id >= walls.size()) {
+            if (wall1 == null) {
                 return null;
             }
-            if (wall2Id >= walls.size()) {
+
+            Wall wall2 = ObjectResolver.findWall(home, wall2Id);
+            if (wall2 == null) {
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("_error", "wall2");
                 return err;
             }
-
-            Wall wall1 = walls.get(wall1Id);
-            Wall wall2 = walls.get(wall2Id);
 
             String w1End = wall1EndParam;
             String w2End = wall2EndParam;
@@ -85,10 +78,10 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
         });
 
         if (data == null) {
-            return Response.error("Wall not found: wall1Id " + wall1Id + " is out of range");
+            return Response.error("Wall not found: wall1Id '" + wall1Id + "'");
         }
         if (data.containsKey("_error")) {
-            return Response.error("Wall not found: wall2Id " + wall2Id + " is out of range");
+            return Response.error("Wall not found: wall2Id '" + wall2Id + "'");
         }
 
         return Response.ok(data);
@@ -151,8 +144,8 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("wall1Id", prop("integer", "ID of the first wall (from get_state)"));
-        properties.put("wall2Id", prop("integer", "ID of the second wall (from get_state)"));
+        properties.put("wall1Id", prop("string", "ID of the first wall (from get_state)"));
+        properties.put("wall2Id", prop("string", "ID of the second wall (from get_state)"));
         properties.put("wall1End", propEnum("string",
                 "Which endpoint of wall1 to connect: 'start' or 'end'. Auto-detected if omitted.",
                 Arrays.asList("start", "end")));

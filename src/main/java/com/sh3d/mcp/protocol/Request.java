@@ -33,6 +33,17 @@ public class Request {
     }
 
     /**
+     * Возвращает строковый параметр. Бросает IllegalArgumentException если отсутствует.
+     */
+    public String getRequiredString(String key) {
+        String val = getString(key);
+        if (val == null) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
+        return val;
+    }
+
+    /**
      * Возвращает float-параметр. Бросает IllegalArgumentException если отсутствует.
      */
     public float getFloat(String key) {

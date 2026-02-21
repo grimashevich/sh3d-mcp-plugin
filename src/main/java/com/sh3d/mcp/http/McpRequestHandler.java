@@ -271,7 +271,8 @@ public class McpRequestHandler implements HttpHandler {
 
     /**
      * Валидирует сессию по Mcp-Session-Id header.
-     * Возвращает null и отправляет ошибку, если сессия не найдена.
+     * Если сессия не найдена или истекла — автоматически создаёт новую.
+     * Возвращает null и отправляет ошибку только если заголовок отсутствует.
      */
     private McpSession validateSession(HttpExchange exchange) throws IOException {
         String sessionId = getSessionIdHeader(exchange);
@@ -282,9 +283,10 @@ public class McpRequestHandler implements HttpHandler {
         }
         McpSession session = sessionManager.getSession(sessionId);
         if (session == null) {
-            sendJson(exchange, 404, JsonRpcProtocol.formatError(null,
-                    JsonRpcProtocol.INVALID_REQUEST, "Session not found or expired"));
-            return null;
+            // Auto-recreate session reusing the same ID (avoids session leak)
+            session = sessionManager.createSessionWithId(sessionId, SUPPORTED_PROTOCOL_VERSION);
+            session.setInitialized(true);
+            LOG.warning("MCP session auto-recreated with same ID: " + sessionId);
         }
         return session;
     }

@@ -40,6 +40,8 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         float x = request.getFloat("x");
         float y = request.getFloat("y");
         float angle = request.getFloat("angle", 0f);
+        boolean hasElevation = request.getParams().containsKey("elevation");
+        float elevation = hasElevation ? request.getFloat("elevation") : 0f;
 
         CatalogSearchUtil.FurnitureSearchResult searchResult =
                 CatalogSearchUtil.findFurniture(
@@ -59,19 +61,20 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
             piece.setX(x);
             piece.setY(y);
             piece.setAngle(angleRad);
+            if (hasElevation) {
+                piece.setElevation(elevation);
+            }
             accessor.getHome().addPieceOfFurniture(piece);
             return piece;
         });
 
-        // Индекс мебели в коллекции (совместимо с get_state)
-        int id = accessor.runOnEDT(() -> accessor.getHome().getFurniture().indexOf(placed));
-
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("id", id);
+        data.put("id", placed.getId());
         data.put("name", placed.getName());
         data.put("x", round2(placed.getX()));
         data.put("y", round2(placed.getY()));
         data.put("angle", round2(Math.toDegrees(placed.getAngle())));
+        data.put("elevation", round2(placed.getElevation()));
         data.put("width", round2(placed.getWidth()));
         data.put("depth", round2(placed.getDepth()));
         data.put("height", round2(placed.getHeight()));
@@ -111,6 +114,12 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         angleProp.put("description", "Rotation angle in degrees");
         angleProp.put("default", 0);
         properties.put("angle", angleProp);
+
+        Map<String, Object> elevationProp = new LinkedHashMap<>();
+        elevationProp.put("type", "number");
+        elevationProp.put("description", "Elevation above floor in cm (e.g., for wall-mounted items)");
+        elevationProp.put("default", 0);
+        properties.put("elevation", elevationProp);
 
         schema.put("properties", properties);
         schema.put("required", Arrays.asList("x", "y"));

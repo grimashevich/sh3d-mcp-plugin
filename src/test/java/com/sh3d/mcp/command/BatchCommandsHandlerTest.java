@@ -2,6 +2,7 @@ package com.sh3d.mcp.command;
 
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Wall;
+import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -21,6 +22,7 @@ class BatchCommandsHandlerTest {
 
     private BatchCommandsHandler handler;
     private CommandRegistry registry;
+    private CheckpointManager checkpointManager;
     private HomeAccessor accessor;
     private Home home;
 
@@ -28,12 +30,13 @@ class BatchCommandsHandlerTest {
     void setUp() {
         home = new Home();
         accessor = new HomeAccessor(home, null);
+        checkpointManager = new CheckpointManager();
         registry = new CommandRegistry();
         registry.register("ping", (req, acc) ->
                 Response.ok(Collections.singletonMap("pong", true)));
         registry.register("create_wall", new CreateWallHandler());
         registry.register("connect_walls", new ConnectWallsHandler());
-        handler = new BatchCommandsHandler(registry);
+        handler = new BatchCommandsHandler(registry, checkpointManager);
         registry.register("batch_commands", handler);
     }
 
@@ -106,10 +109,16 @@ class BatchCommandsHandlerTest {
     @Test
     @SuppressWarnings("unchecked")
     void testSequentialExecutionDependsOnPrior() {
+        // Pre-create walls to get stable IDs (UUIDs can't be predicted)
+        Wall w1 = new Wall(0, 0, 500, 0, 10);
+        Wall w2 = new Wall(500, 0, 500, 300, 10);
+        home.addWall(w1);
+        home.addWall(w2);
+
         List<Map<String, Object>> cmds = Arrays.asList(
-                cmd("create_wall", wallParams(0, 0, 500, 0)),
-                cmd("create_wall", wallParams(500, 0, 500, 300)),
-                cmd("connect_walls", connectParams(0, 1)));
+                cmd("create_wall", wallParams(0, 0, 100, 0)),
+                cmd("create_wall", wallParams(100, 0, 100, 100)),
+                cmd("connect_walls", connectParams(w1.getId(), w2.getId())));
 
         Response resp = executeBatch(cmds);
 
@@ -121,6 +130,17 @@ class BatchCommandsHandlerTest {
         List<Object> results = (List<Object>) data.get("results");
         Map<String, Object> connectResult = (Map<String, Object>) results.get(2);
         assertEquals("ok", connectResult.get("status"));
+    }
+
+    @Test
+    void testAutoCheckpointCreatedBeforeBatch() {
+        assertEquals(0, checkpointManager.size());
+
+        executeBatch(Arrays.asList(cmd("ping", null)));
+
+        assertEquals(1, checkpointManager.size());
+        assertTrue(checkpointManager.list().get(0).getDescription()
+                .startsWith("Auto: before batch_commands"));
     }
 
     @Test
@@ -418,10 +438,10 @@ class BatchCommandsHandlerTest {
         return p;
     }
 
-    private static Map<String, Object> connectParams(int wall1Id, int wall2Id) {
+    private static Map<String, Object> connectParams(String wall1Id, String wall2Id) {
         Map<String, Object> p = new LinkedHashMap<>();
-        p.put("wall1Id", (float) wall1Id);
-        p.put("wall2Id", (float) wall2Id);
+        p.put("wall1Id", wall1Id);
+        p.put("wall2Id", wall2Id);
         return p;
     }
 }

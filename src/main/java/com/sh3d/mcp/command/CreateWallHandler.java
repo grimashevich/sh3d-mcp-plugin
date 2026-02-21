@@ -6,10 +6,8 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,14 +48,10 @@ public class CreateWallHandler implements CommandHandler, CommandDescriptor {
             return wall;
         });
 
-        // Индекс стены в коллекции (совместимо с get_state)
-        List<Wall> walls = new ArrayList<>(accessor.runOnEDT(() -> accessor.getHome().getWalls()));
-        int id = walls.indexOf(created);
-
         float length = (float) Math.sqrt(dx * dx + dy * dy);
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("id", id);
+        data.put("id", created.getId());
         data.put("xStart", round2(xStart));
         data.put("yStart", round2(yStart));
         data.put("xEnd", round2(xEnd));
@@ -73,7 +67,7 @@ public class CreateWallHandler implements CommandHandler, CommandDescriptor {
         return "Creates a single wall between two points in Sweet Home 3D. "
                 + "Coordinates are in centimeters (e.g., 500 = 5 meters). "
                 + "X points right, Y points down. "
-                + "Returns the wall ID (index) for use with connect_walls, delete_wall, modify_wall.";
+                + "Returns the wall ID for use with connect_walls, delete_wall, modify_wall.";
     }
 
     @Override

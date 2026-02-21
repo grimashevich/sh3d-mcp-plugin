@@ -5,13 +5,12 @@ import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -37,13 +36,7 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
 
         // --- Validate wallId ---
         Map<String, Object> params = request.getParams();
-        if (!params.containsKey("wallId")) {
-            return Response.error("Missing required parameter: wallId");
-        }
-        int wallId = (int) request.getFloat("wallId");
-        if (wallId < 0) {
-            return Response.error("Parameter 'wallId' must be non-negative, got " + wallId);
-        }
+        String wallId = request.getRequiredString("wallId");
 
         // --- Validate position ---
         float position = request.getFloat("position", 0.5f);
@@ -72,13 +65,11 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         // --- Place in EDT ---
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Wall> walls = new ArrayList<>(home.getWalls());
+            Wall wall = ObjectResolver.findWall(home, wallId);
 
-            if (wallId >= walls.size()) {
+            if (wall == null) {
                 return null;
             }
-
-            Wall wall = walls.get(wallId);
 
             float xStart = wall.getXStart();
             float yStart = wall.getYStart();
@@ -90,6 +81,11 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
             float angle = (float) Math.atan2(yEnd - yStart, xEnd - xStart);
 
             HomePieceOfFurniture piece = new HomePieceOfFurniture(found);
+            // Auto-fit depth to wall thickness for proper rendering
+            float wallThickness = wall.getThickness();
+            if (piece.getDepth() < wallThickness) {
+                piece.setDepth(wallThickness);
+            }
             piece.setX(x);
             piece.setY(y);
             piece.setAngle(angle);
@@ -103,11 +99,8 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
 
             home.addPieceOfFurniture(piece);
 
-            // Индекс мебели в коллекции (совместимо с get_state)
-            int id = home.getFurniture().indexOf(piece);
-
             Map<String, Object> result = new LinkedHashMap<>();
-            result.put("id", id);
+            result.put("id", piece.getId());
             result.put("name", piece.getName());
             result.put("x", round2(piece.getX()));
             result.put("y", round2(piece.getY()));
@@ -124,7 +117,7 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         });
 
         if (data == null) {
-            return Response.error("Wall not found: wallId " + wallId + " is out of range");
+            return Response.error("Wall not found: " + wallId);
         }
 
         return Response.ok(data);
@@ -159,7 +152,7 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
         properties.put("catalogId", prop("string",
                 "Exact catalog ID for precise selection (bypasses name search). "
                         + "Use list_furniture_catalog to find catalog IDs"));
-        properties.put("wallId", prop("integer",
+        properties.put("wallId", prop("string",
                 "ID of the wall to place the door/window in (from get_state)"));
 
         Map<String, Object> positionProp = new LinkedHashMap<>();

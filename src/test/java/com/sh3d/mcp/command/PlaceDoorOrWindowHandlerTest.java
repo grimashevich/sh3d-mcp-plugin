@@ -84,11 +84,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPlaceDoorInWallCenter() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -101,11 +101,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testFurnitureAddedToHome() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -115,11 +115,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPlaceWindowWithElevation() {
-        addWall(0, 0, 400, 0);
+        Wall wall = addWall(0, 0, 400, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Double Window");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("elevation", 90.0);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -131,11 +131,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPlaceWithMirroredTrue() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("mirrored", true);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -147,11 +147,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testDefaultMirroredIsFalse() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -163,11 +163,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPlaceAtPositionZero() {
-        addWall(100, 200, 500, 200);
+        Wall wall = addWall(100, 200, 500, 200);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("position", 0.0);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -179,11 +179,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPlaceAtPositionOne() {
-        addWall(100, 200, 500, 200);
+        Wall wall = addWall(100, 200, 500, 200);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("position", 1.0);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -195,11 +195,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testCustomPosition() {
-        addWall(0, 0, 400, 0);
+        Wall wall = addWall(0, 0, 400, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("position", 0.25);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -213,11 +213,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testAngleHorizontalWall() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -227,11 +227,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testAngleVerticalWall() {
-        addWall(0, 0, 0, 300);
+        Wall wall = addWall(0, 0, 0, 300);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -241,11 +241,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testAngleDiagonalWall() {
-        addWall(0, 0, 300, 300);
+        Wall wall = addWall(0, 0, 300, 300);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -257,11 +257,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testCatalogFiltersOnlyDoorsWindows() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -271,11 +271,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testRegularFurnitureNotFoundAsDoorOrWindow() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Table");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -286,11 +286,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testCaseInsensitiveSearch() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "front door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -300,11 +300,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPartialNameMatch() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Window");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -316,10 +316,10 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testMissingNameReturnsError() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -329,11 +329,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testEmptyNameReturnsError() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -342,54 +342,39 @@ class PlaceDoorOrWindowHandlerTest {
     }
 
     @Test
-    void testMissingWallIdReturnsError() {
+    void testMissingWallIdThrowsException() {
         addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
 
-        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("wallId"));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> handler.execute(new Request("place_door_or_window", params), accessor));
+        assertTrue(ex.getMessage().contains("wallId"));
     }
 
     @Test
-    void testWallIdOutOfRangeReturnsError() {
+    void testWallIdNotFoundReturnsError() {
         addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 5.0);
+        params.put("wallId", "nonexistent-wall-id");
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
         assertEquals(0, home.getFurniture().size());
     }
 
     @Test
-    void testNegativeWallIdReturnsError() {
-        addWall(0, 0, 500, 0);
-
-        Map<String, Object> params = new LinkedHashMap<>();
-        params.put("name", "Front Door");
-        params.put("wallId", -1.0);
-
-        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
-    }
-
-    @Test
     void testPositionAboveOneReturnsError() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("position", 1.5);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -400,11 +385,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testPositionBelowZeroReturnsError() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         params.put("position", -0.1);
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -417,16 +402,16 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testMultiplePlacementsOnSameWall() {
-        addWall(0, 0, 600, 0);
+        Wall wall = addWall(0, 0, 600, 0);
 
         Map<String, Object> params1 = new LinkedHashMap<>();
         params1.put("name", "Front Door");
-        params1.put("wallId", 0.0);
+        params1.put("wallId", wall.getId());
         params1.put("position", 0.25);
 
         Map<String, Object> params2 = new LinkedHashMap<>();
         params2.put("name", "Double Window");
-        params2.put("wallId", 0.0);
+        params2.put("wallId", wall.getId());
         params2.put("position", 0.75);
 
         handler.execute(new Request("place_door_or_window", params1), accessor);
@@ -437,13 +422,69 @@ class PlaceDoorOrWindowHandlerTest {
         assertEquals(450f, home.getFurniture().get(1).getX(), 0.01f);
     }
 
+    // --- Auto-fit depth to wall thickness ---
+
     @Test
-    void testResponseContainsAllFields() {
-        addWall(0, 0, 500, 0);
+    void testDepthAutoFitToWallThickness() {
+        // Door depth (10) < wall thickness (default 10), so no change
+        Wall wall = addWall(0, 0, 500, 0); // thickness=10
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        // Door depth=10, wall thickness=10, no change needed
+        assertEquals(10.0, (double) resp.getData().get("depth"), 0.01);
+    }
+
+    @Test
+    void testDepthAutoFitWhenDoorThinnerThanWall() {
+        // Create wall with thickness=20, door depth=10 -> should be auto-fit to 20
+        Wall wall = new Wall(0, 0, 500, 0, 20);
+        wall.setHeight(250f);
+        home.addWall(wall);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", wall.getId());
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        // Door depth should be increased to wall thickness
+        assertEquals(20.0, (double) resp.getData().get("depth"), 0.01);
+        assertEquals(20f, home.getFurniture().get(0).getDepth(), 0.01f);
+    }
+
+    @Test
+    void testDepthNotReducedWhenDoorThickerThanWall() {
+        // Create wall with thickness=5, door depth=10 -> should stay 10
+        Wall wall = new Wall(0, 0, 500, 0, 5);
+        wall.setHeight(250f);
+        home.addWall(wall);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", wall.getId());
+
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+
+        assertTrue(resp.isOk());
+        // Door depth should NOT be reduced
+        assertEquals(10.0, (double) resp.getData().get("depth"), 0.01);
+        assertEquals(10f, home.getFurniture().get(0).getDepth(), 0.01f);
+    }
+
+    @Test
+    void testResponseContainsAllFields() {
+        Wall wall = addWall(0, 0, 500, 0);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("name", "Front Door");
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -465,11 +506,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testDefaultPositionIsCenter() {
-        addWall(0, 0, 400, 0);
+        Wall wall = addWall(0, 0, 400, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
         // no position param — should default to 0.5
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
@@ -481,11 +522,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testDoorNotFoundReturnsError() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "NonExistent Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -513,7 +554,8 @@ class PlaceDoorOrWindowHandlerTest {
         catalog.add(cat, door);       // exact match added SECOND
 
         Home localHome = new Home();
-        localHome.addWall(new Wall(0, 0, 500, 0, 10));
+        Wall wall = new Wall(0, 0, 500, 0, 10);
+        localHome.addWall(wall);
 
         UserPreferences prefs = mock(UserPreferences.class);
         when(prefs.getFurnitureCatalog()).thenReturn(catalog);
@@ -521,7 +563,7 @@ class PlaceDoorOrWindowHandlerTest {
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), localAccessor);
 
@@ -544,7 +586,8 @@ class PlaceDoorOrWindowHandlerTest {
         catalog.add(cat, door);
 
         Home localHome = new Home();
-        localHome.addWall(new Wall(0, 0, 500, 0, 10));
+        Wall wall = new Wall(0, 0, 500, 0, 10);
+        localHome.addWall(wall);
 
         UserPreferences prefs = mock(UserPreferences.class);
         when(prefs.getFurnitureCatalog()).thenReturn(catalog);
@@ -552,7 +595,7 @@ class PlaceDoorOrWindowHandlerTest {
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("catalogId", "door-001");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), localAccessor);
 
@@ -562,11 +605,11 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testCatalogIdNotFound() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("catalogId", "nonexistent");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
@@ -578,22 +621,24 @@ class PlaceDoorOrWindowHandlerTest {
 
     @Test
     void testResponseContainsId() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNotNull(resp.getData().get("id"), "Response must contain id");
-        assertEquals(0, resp.getData().get("id"));
+        Object id = resp.getData().get("id");
+        assertNotNull(id, "Response must contain id");
+        assertInstanceOf(String.class, id, "ID must be a string");
+        assertFalse(((String) id).isEmpty(), "ID must not be empty");
     }
 
     @Test
-    void testIdWithPreexistingFurniture() {
-        addWall(0, 0, 500, 0);
+    void testIdIsStableString() {
+        Wall wall = addWall(0, 0, 500, 0);
 
         // Добавляем мебель до вызова
         HomePieceOfFurniture existing = new HomePieceOfFurniture(
@@ -603,22 +648,27 @@ class PlaceDoorOrWindowHandlerTest {
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 
         assertTrue(resp.isOk());
-        int id = (int) resp.getData().get("id");
-        assertEquals(1, id, "ID should be 1 (offset by pre-existing furniture)");
-        assertEquals("Front Door", home.getFurniture().get(id).getName());
+        String id = (String) resp.getData().get("id");
+        assertNotEquals(existing.getId(), id, "New furniture must have different ID");
+
+        // Verify the returned ID matches the placed furniture
+        HomePieceOfFurniture placed = home.getFurniture().stream()
+                .filter(p -> p.getId().equals(id)).findFirst().orElse(null);
+        assertNotNull(placed);
+        assertEquals("Front Door", placed.getName());
     }
 
     @Test
     void testBothNameAndCatalogIdMissingReturnsError() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("wallId", 0.0);
+        params.put("wallId", wall.getId());
 
         Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
 

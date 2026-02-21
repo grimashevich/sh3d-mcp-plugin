@@ -30,9 +30,9 @@ class DeleteWallHandlerTest {
 
     @Test
     void testDeleteSingleWall() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(wall.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(0, home.getWalls().size());
@@ -40,9 +40,9 @@ class DeleteWallHandlerTest {
 
     @Test
     void testResponseContainsDeletedInfo() {
-        addWall(100, 200, 600, 200);
+        Wall wall = addWall(100, 200, 600, 200);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(wall.getId()), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
@@ -56,11 +56,11 @@ class DeleteWallHandlerTest {
 
     @Test
     void testDeleteFromMultiple() {
-        addWall(0, 0, 500, 0);     // wall 0
-        addWall(500, 0, 500, 400); // wall 1
-        addWall(500, 400, 0, 400); // wall 2
+        addWall(0, 0, 500, 0);
+        Wall w2 = addWall(500, 0, 500, 400);
+        addWall(500, 400, 0, 400);
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(w2.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(500f, ((Number) resp.getData().get("xStart")).floatValue(), 0.01f);
@@ -70,10 +70,10 @@ class DeleteWallHandlerTest {
 
     @Test
     void testDeleteFirst() {
-        addWall(0, 0, 500, 0);
+        Wall w1 = addWall(0, 0, 500, 0);
         addWall(500, 0, 500, 400);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(0f, ((Number) resp.getData().get("xStart")).floatValue(), 0.01f);
@@ -86,9 +86,9 @@ class DeleteWallHandlerTest {
     @Test
     void testDeleteLast() {
         addWall(0, 0, 500, 0);
-        addWall(500, 0, 500, 400);
+        Wall w2 = addWall(500, 0, 500, 400);
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(w2.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(500f, ((Number) resp.getData().get("xStart")).floatValue(), 0.01f);
@@ -99,33 +99,22 @@ class DeleteWallHandlerTest {
     }
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(5), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-        assertEquals(1, home.getWalls().size());
-    }
-
-    @Test
-    void testNegativeId() {
-        addWall(0, 0, 500, 0);
-
-        Response resp = handler.execute(makeRequest(-1), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
         assertEquals(1, home.getWalls().size());
     }
 
     @Test
     void testEmptyScene() {
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest("any-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
@@ -145,14 +134,15 @@ class DeleteWallHandlerTest {
         assertTrue(required.contains("id"));
     }
 
-    private void addWall(float xStart, float yStart, float xEnd, float yEnd) {
+    private Wall addWall(float xStart, float yStart, float xEnd, float yEnd) {
         Wall wall = new Wall(xStart, yStart, xEnd, yEnd, 10, 250);
         home.addWall(wall);
+        return wall;
     }
 
-    private Request makeRequest(int id) {
+    private Request makeRequest(String id) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         return new Request("delete_wall", params);
     }
 }

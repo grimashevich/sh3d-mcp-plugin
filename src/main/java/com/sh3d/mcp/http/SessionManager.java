@@ -26,6 +26,17 @@ public class SessionManager {
     }
 
     /**
+     * Создаёт сессию с указанным ID (для авто-пересоздания expired-сессий).
+     * Если сессия с таким ID уже существует, она заменяется.
+     */
+    public McpSession createSessionWithId(String sessionId, String protocolVersion) {
+        cleanupExpired();
+        McpSession session = new McpSession(sessionId, protocolVersion);
+        sessions.put(sessionId, session);
+        return session;
+    }
+
+    /**
      * Возвращает сессию по ID или null, если не найдена / истекла.
      */
     public McpSession getSession(String sessionId) {

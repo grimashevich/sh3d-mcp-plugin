@@ -61,18 +61,17 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureToWallLeftSide() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeWallRequest(0, "left", "White Plaster"), accessor);
+        Response resp = handler.execute(makeWallRequest(wall.getId(), "left", "White Plaster"), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
         assertNotNull(wall.getLeftSideTexture());
         assertEquals("White Plaster", wall.getLeftSideTexture().getName());
         assertNull(wall.getRightSideTexture());
 
         assertEquals("wall", resp.getData().get("targetType"));
-        assertEquals(0, resp.getData().get("targetId"));
+        assertEquals(wall.getId(), resp.getData().get("targetId"));
         assertEquals("left", resp.getData().get("surface"));
         assertEquals("White Plaster", resp.getData().get("textureName"));
         assertEquals("Walls", resp.getData().get("textureCategory"));
@@ -84,12 +83,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureToWallRightSide() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeWallRequest(0, "right", "White Plaster"), accessor);
+        Response resp = handler.execute(makeWallRequest(wall.getId(), "right", "White Plaster"), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
         assertNull(wall.getLeftSideTexture());
         assertNotNull(wall.getRightSideTexture());
         assertEquals("White Plaster", wall.getRightSideTexture().getName());
@@ -100,12 +98,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureToWallBothSides() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeWallRequest(0, "both", "Red Brick"), accessor);
+        Response resp = handler.execute(makeWallRequest(wall.getId(), "both", "Red Brick"), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
         assertNotNull(wall.getLeftSideTexture());
         assertNotNull(wall.getRightSideTexture());
         assertEquals("Red Brick", wall.getLeftSideTexture().getName());
@@ -118,18 +115,17 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureToRoomFloor() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRoomRequest(0, "floor", "Oak Parquet"), accessor);
+        Response resp = handler.execute(makeRoomRequest(room.getId(), "floor", "Oak Parquet"), accessor);
 
         assertTrue(resp.isOk());
-        Room room = getRoom(0);
         assertNotNull(room.getFloorTexture());
         assertEquals("Oak Parquet", room.getFloorTexture().getName());
         assertNull(room.getCeilingTexture());
 
         assertEquals("room", resp.getData().get("targetType"));
-        assertEquals(0, resp.getData().get("targetId"));
+        assertEquals(room.getId(), resp.getData().get("targetId"));
         assertEquals("floor", resp.getData().get("surface"));
         assertEquals("Oak Parquet", resp.getData().get("textureName"));
         assertEquals("Floors", resp.getData().get("textureCategory"));
@@ -141,12 +137,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureToRoomCeiling() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRoomRequest(0, "ceiling", "White Plaster"), accessor);
+        Response resp = handler.execute(makeRoomRequest(room.getId(), "ceiling", "White Plaster"), accessor);
 
         assertTrue(resp.isOk());
-        Room room = getRoom(0);
         assertNull(room.getFloorTexture());
         assertNotNull(room.getCeilingTexture());
         assertEquals("White Plaster", room.getCeilingTexture().getName());
@@ -156,12 +151,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureToRoomBoth() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRoomRequest(0, "both", "Oak Parquet"), accessor);
+        Response resp = handler.execute(makeRoomRequest(room.getId(), "both", "Oak Parquet"), accessor);
 
         assertTrue(resp.isOk());
-        Room room = getRoom(0);
         assertNotNull(room.getFloorTexture());
         assertNotNull(room.getCeilingTexture());
         assertEquals("Oak Parquet", room.getFloorTexture().getName());
@@ -172,58 +166,57 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testResetWallTexture() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
         // First apply a texture
-        handler.execute(makeWallRequest(0, "both", "Red Brick"), accessor);
-        assertNotNull(getWall(0).getLeftSideTexture());
+        handler.execute(makeWallRequest(wall.getId(), "both", "Red Brick"), accessor);
+        assertNotNull(wall.getLeftSideTexture());
 
         // Then reset
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "both");
         params.put("textureName", null);
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getWall(0).getLeftSideTexture());
-        assertNull(getWall(0).getRightSideTexture());
+        assertNull(wall.getLeftSideTexture());
+        assertNull(wall.getRightSideTexture());
         assertNull(resp.getData().get("textureName"));
     }
 
     @Test
     void testResetRoomFloorTexture() {
-        addRoom();
-        handler.execute(makeRoomRequest(0, "floor", "Oak Parquet"), accessor);
-        assertNotNull(getRoom(0).getFloorTexture());
+        Room room = addRoom();
+        handler.execute(makeRoomRequest(room.getId(), "floor", "Oak Parquet"), accessor);
+        assertNotNull(room.getFloorTexture());
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "room");
-        params.put("targetId", 0.0);
+        params.put("targetId", room.getId());
         params.put("surface", "floor");
         params.put("textureName", null);
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getRoom(0).getFloorTexture());
+        assertNull(room.getFloorTexture());
     }
 
     // --- Category disambiguation ---
 
     @Test
     void testCategoryDisambiguation() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         // "Red Brick" exists in both Walls and Floors categories.
-        // Without category filter, finds first by catalog order (Floors before Walls alphabetically).
-        Response resp1 = handler.execute(makeWallRequest(0, "left", "Red Brick"), accessor);
+        Response resp1 = handler.execute(makeWallRequest(wall.getId(), "left", "Red Brick"), accessor);
         assertTrue(resp1.isOk());
         assertEquals("Floors", resp1.getData().get("textureCategory"));
 
-        // With category filter "Walls", should find the Walls one specifically
+        // With category filter "Walls"
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "right");
         params.put("textureName", "Red Brick");
         params.put("textureCategory", "Walls");
@@ -237,47 +230,47 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testApplyTextureWithAngle() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "left");
         params.put("textureName", "Red Brick");
         params.put("angle", 45.0);
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
 
         assertTrue(resp.isOk());
-        HomeTexture texture = getWall(0).getLeftSideTexture();
+        HomeTexture texture = wall.getLeftSideTexture();
         assertNotNull(texture);
         assertEquals(Math.toRadians(45), texture.getAngle(), 0.01);
     }
 
     @Test
     void testApplyTextureWithScale() {
-        addRoom();
+        Room room = addRoom();
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "room");
-        params.put("targetId", 0.0);
+        params.put("targetId", room.getId());
         params.put("surface", "floor");
         params.put("textureName", "Oak Parquet");
         params.put("scale", 2.0);
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
 
         assertTrue(resp.isOk());
-        HomeTexture texture = getRoom(0).getFloorTexture();
+        HomeTexture texture = room.getFloorTexture();
         assertNotNull(texture);
         assertEquals(2.0f, texture.getScale(), 0.01f);
     }
 
     @Test
     void testApplyTextureWithAngleAndScale() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "left");
         params.put("textureName", "Red Brick");
         params.put("angle", 90.0);
@@ -285,7 +278,7 @@ class ApplyTextureHandlerTest {
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
 
         assertTrue(resp.isOk());
-        HomeTexture texture = getWall(0).getLeftSideTexture();
+        HomeTexture texture = wall.getLeftSideTexture();
         assertNotNull(texture);
         assertEquals(Math.toRadians(90), texture.getAngle(), 0.01);
         assertEquals(1.5f, texture.getScale(), 0.01f);
@@ -295,9 +288,9 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testTextureNotFound() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeWallRequest(0, "left", "NonExistent"), accessor);
+        Response resp = handler.execute(makeWallRequest(wall.getId(), "left", "NonExistent"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("Texture not found"));
@@ -307,11 +300,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testTextureNotFoundWithCategory() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "left");
         params.put("textureName", "NonExistent");
         params.put("textureCategory", "SomeCategory");
@@ -324,7 +317,7 @@ class ApplyTextureHandlerTest {
     @Test
     void testMissingTargetType() {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("targetId", 0.0);
+        params.put("targetId", "some-id");
         params.put("surface", "left");
         params.put("textureName", "Red Brick");
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
@@ -337,7 +330,7 @@ class ApplyTextureHandlerTest {
     void testInvalidTargetType() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "furniture");
-        params.put("targetId", 0.0);
+        params.put("targetId", "some-id");
         params.put("surface", "left");
         params.put("textureName", "Red Brick");
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
@@ -360,25 +353,12 @@ class ApplyTextureHandlerTest {
     }
 
     @Test
-    void testNegativeTargetId() {
-        Map<String, Object> params = new LinkedHashMap<>();
-        params.put("targetType", "wall");
-        params.put("targetId", -1.0);
-        params.put("surface", "left");
-        params.put("textureName", "Red Brick");
-        Response resp = handler.execute(new Request("apply_texture", params), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
-    }
-
-    @Test
     void testMissingSurface() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("textureName", "Red Brick");
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
 
@@ -388,9 +368,9 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testInvalidSurfaceForWall() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeWallRequest(0, "floor", "Red Brick"), accessor);
+        Response resp = handler.execute(makeWallRequest(wall.getId(), "floor", "Red Brick"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("floor"));
@@ -399,9 +379,9 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testInvalidSurfaceForRoom() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRoomRequest(0, "left", "Oak Parquet"), accessor);
+        Response resp = handler.execute(makeRoomRequest(room.getId(), "left", "Oak Parquet"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("left"));
@@ -410,11 +390,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testMissingTextureName() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "left");
         // textureName intentionally omitted
         Response resp = handler.execute(new Request("apply_texture", params), accessor);
@@ -424,40 +404,40 @@ class ApplyTextureHandlerTest {
     }
 
     @Test
-    void testWallIdOutOfRange() {
+    void testWallIdNotFound() {
         // No walls added
-        Response resp = handler.execute(makeWallRequest(0, "left", "Red Brick"), accessor);
+        Response resp = handler.execute(makeWallRequest("nonexistent-id", "left", "Red Brick"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
-    void testRoomIdOutOfRange() {
+    void testRoomIdNotFound() {
         // No rooms added
-        Response resp = handler.execute(makeRoomRequest(0, "floor", "Oak Parquet"), accessor);
+        Response resp = handler.execute(makeRoomRequest("nonexistent-id", "floor", "Oak Parquet"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
-    void testWallIdOutOfRangeWithExistingWalls() {
+    void testWallIdNotFoundWithExistingWalls() {
         addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeWallRequest(5, "left", "Red Brick"), accessor);
+        Response resp = handler.execute(makeWallRequest("nonexistent-id", "left", "Red Brick"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testInvalidScale() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "left");
         params.put("textureName", "Red Brick");
         params.put("scale", -1.0);
@@ -470,11 +450,11 @@ class ApplyTextureHandlerTest {
 
     @Test
     void testZeroScale() {
-        addWall(0, 0, 500, 0);
+        Wall wall = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", 0.0);
+        params.put("targetId", wall.getId());
         params.put("surface", "left");
         params.put("textureName", "Red Brick");
         params.put("scale", 0.0);
@@ -509,6 +489,10 @@ class ApplyTextureHandlerTest {
         assertTrue(properties.containsKey("scale"));
 
         @SuppressWarnings("unchecked")
+        Map<String, Object> targetIdProp = (Map<String, Object>) properties.get("targetId");
+        assertEquals("string", targetIdProp.get("type"));
+
+        @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
         assertTrue(required.contains("targetType"));
         assertTrue(required.contains("targetId"));
@@ -519,40 +503,34 @@ class ApplyTextureHandlerTest {
 
     // --- Helpers ---
 
-    private void addWall(float xStart, float yStart, float xEnd, float yEnd) {
+    private Wall addWall(float xStart, float yStart, float xEnd, float yEnd) {
         Wall wall = new Wall(xStart, yStart, xEnd, yEnd, 10f, 250f);
         home.addWall(wall);
+        return wall;
     }
 
-    private Wall getWall(int index) {
-        return new ArrayList<>(home.getWalls()).get(index);
-    }
-
-    private void addRoom() {
+    private Room addRoom() {
         float[][] polygon = {
                 {0, 0}, {500, 0}, {500, 400}, {0, 400}
         };
         Room room = new Room(polygon);
         home.addRoom(room);
+        return room;
     }
 
-    private Room getRoom(int index) {
-        return home.getRooms().get(index);
-    }
-
-    private Request makeWallRequest(int id, String surface, String textureName) {
+    private Request makeWallRequest(String id, String surface, String textureName) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "wall");
-        params.put("targetId", (double) id);
+        params.put("targetId", id);
         params.put("surface", surface);
         params.put("textureName", textureName);
         return new Request("apply_texture", params);
     }
 
-    private Request makeRoomRequest(int id, String surface, String textureName) {
+    private Request makeRoomRequest(String id, String surface, String textureName) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("targetType", "room");
-        params.put("targetId", (double) id);
+        params.put("targetId", id);
         params.put("surface", surface);
         params.put("textureName", textureName);
         return new Request("apply_texture", params);

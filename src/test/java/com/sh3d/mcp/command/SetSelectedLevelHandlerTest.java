@@ -30,10 +30,10 @@ class SetSelectedLevelHandlerTest {
     @Test
     void testSelectLevel() {
         addLevel("Ground", 0, 12, 250);
-        addLevel("Upper", 250, 12, 250);
+        Level upper = addLevel("Upper", 250, 12, 250);
         home.setSelectedLevel(home.getLevels().get(0));
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(upper.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Upper", resp.getData().get("name"));
@@ -42,11 +42,11 @@ class SetSelectedLevelHandlerTest {
 
     @Test
     void testSelectFirst() {
-        addLevel("Ground", 0, 12, 250);
+        Level ground = addLevel("Ground", 0, 12, 250);
         addLevel("Upper", 250, 12, 250);
         home.setSelectedLevel(home.getLevels().get(1));
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(ground.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Ground", resp.getData().get("name"));
@@ -55,13 +55,13 @@ class SetSelectedLevelHandlerTest {
 
     @Test
     void testResponseContainsLevelData() {
-        addLevel("Test Floor", 100, 15, 300);
+        Level level = addLevel("Test Floor", 100, 15, 300);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(level.getId()), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, ((Number) data.get("id")).intValue());
+        assertTrue(data.get("id") instanceof String, "id should be a String");
         assertEquals("Test Floor", data.get("name"));
         assertEquals(100.0, ((Number) data.get("elevation")).doubleValue(), 0.01);
         assertEquals(300.0, ((Number) data.get("height")).doubleValue(), 0.01);
@@ -70,41 +70,31 @@ class SetSelectedLevelHandlerTest {
 
     @Test
     void testSelectSameLevel() {
-        addLevel("Only", 0, 12, 250);
+        Level only = addLevel("Only", 0, 12, 250);
         home.setSelectedLevel(home.getLevels().get(0));
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(only.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Only", resp.getData().get("name"));
     }
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addLevel("Ground", 0, 12, 250);
 
-        Response resp = handler.execute(makeRequest(5), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-    }
-
-    @Test
-    void testNegativeId() {
-        addLevel("Ground", 0, 12, 250);
-
-        Response resp = handler.execute(makeRequest(-1), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testEmptyLevels() {
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest("any-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
@@ -112,7 +102,7 @@ class SetSelectedLevelHandlerTest {
         Level level = addLevel("Floor", 0, 12, 250);
         level.setViewable(false);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(level.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertFalse((Boolean) resp.getData().get("viewable"));
@@ -132,6 +122,10 @@ class SetSelectedLevelHandlerTest {
         assertTrue(props.containsKey("id"));
 
         @SuppressWarnings("unchecked")
+        Map<String, Object> idProp = (Map<String, Object>) props.get("id");
+        assertEquals("string", idProp.get("type"));
+
+        @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
         assertTrue(required.contains("id"));
     }
@@ -142,9 +136,9 @@ class SetSelectedLevelHandlerTest {
         return level;
     }
 
-    private Request makeRequest(int id) {
+    private Request makeRequest(String id) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         return new Request("set_selected_level", params);
     }
 }

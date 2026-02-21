@@ -3,38 +3,31 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Обработчик команды "delete_wall".
- * Удаляет стену из сцены по ID (индексу из get_state).
+ * Удаляет стену из сцены по стабильному ID.
  */
 public class DeleteWallHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int id = (int) request.getFloat("id");
-
-        if (id < 0) {
-            return Response.error("Parameter 'id' must be non-negative, got " + id);
-        }
+        String id = request.getRequiredString("id");
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Wall> walls = new ArrayList<>(home.getWalls());
+            Wall wall = ObjectResolver.findWall(home, id);
 
-            if (id >= walls.size()) {
+            if (wall == null) {
                 return null;
             }
-
-            Wall wall = walls.get(id);
 
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("xStart", round2(wall.getXStart()));
@@ -48,7 +41,7 @@ public class DeleteWallHandler implements CommandHandler, CommandDescriptor {
         });
 
         if (data == null) {
-            return Response.error("Wall not found: id " + id + " is out of range");
+            return Response.error("Wall not found: id '" + id + "'");
         }
 
         data.put("message", "Wall deleted (id " + id + ")");
@@ -58,8 +51,7 @@ public class DeleteWallHandler implements CommandHandler, CommandDescriptor {
     @Override
     public String getDescription() {
         return "Deletes a wall from the scene by its ID. "
-                + "Use get_state to find wall IDs before deleting. "
-                + "Note: after deletion, remaining wall IDs may shift.";
+                + "Use get_state to find wall IDs before deleting.";
     }
 
     @Override
@@ -68,7 +60,7 @@ public class DeleteWallHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("id", prop("integer", "Wall ID from get_state"));
+        properties.put("id", prop("string", "Wall ID from get_state"));
         schema.put("properties", properties);
 
         schema.put("required", Arrays.asList("id"));

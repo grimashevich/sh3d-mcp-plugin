@@ -10,6 +10,7 @@ import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -238,7 +239,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         // Парсинг focusOn
         String focusOn = request.getString("focusOn");
         String focusType = null;
-        int focusId = -1;
+        String focusId = null;
 
         if (focusOn != null) {
             String[] parts = focusOn.split(":", 2);
@@ -251,14 +252,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 return Response.error("Parameter 'focusOn' must start with 'furniture:' or 'room:', "
                         + "got '" + focusOn + "'");
             }
-            try {
-                focusId = Integer.parseInt(parts[1].trim());
-            } catch (NumberFormatException e) {
-                return Response.error("Parameter 'focusOn' requires numeric ID after ':', "
-                        + "got '" + parts[1].trim() + "'");
-            }
-            if (focusId < 0) {
-                return Response.error("Parameter 'focusOn' ID must be >= 0, got " + focusId);
+            focusId = parts[1].trim();
+            if (focusId.isEmpty()) {
+                return Response.error("Parameter 'focusOn' requires an ID after ':', got empty string");
             }
         }
 
@@ -295,7 +291,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             bounds = computeFocusBounds(accessor, focusType, focusId);
             if (bounds == null) {
                 String label = focusType.substring(0, 1).toUpperCase() + focusType.substring(1);
-                return Response.error(label + " with ID " + focusId + " not found");
+                return Response.error(label + " not found: " + focusId);
             }
         } else {
             bounds = computeSceneBounds(accessor);
@@ -534,7 +530,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     }
 
     /** Package-private для тестов. Вычисляет bounds конкретного объекта + padding. */
-    SceneBounds computeFocusBounds(HomeAccessor accessor, String type, int id) {
+    SceneBounds computeFocusBounds(HomeAccessor accessor, String type, String id) {
         return accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
             float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
@@ -542,11 +538,10 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             float maxZ = 0;
 
             if ("furniture".equals(type)) {
-                List<HomePieceOfFurniture> furniture = home.getFurniture();
-                if (id >= furniture.size()) {
+                HomePieceOfFurniture piece = ObjectResolver.findFurniture(home, id);
+                if (piece == null) {
                     return null;
                 }
-                HomePieceOfFurniture piece = furniture.get(id);
                 float[][] pts = piece.getPoints();
                 for (float[] pt : pts) {
                     minX = Math.min(minX, pt[0]);
@@ -556,11 +551,10 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 }
                 maxZ = piece.getElevation() + piece.getHeight();
             } else if ("room".equals(type)) {
-                List<Room> rooms = home.getRooms();
-                if (id >= rooms.size()) {
+                Room room = ObjectResolver.findRoom(home, id);
+                if (room == null) {
                     return null;
                 }
-                Room room = rooms.get(id);
                 float[][] pts = room.getPoints();
                 for (float[] pt : pts) {
                     minX = Math.min(minX, pt[0]);

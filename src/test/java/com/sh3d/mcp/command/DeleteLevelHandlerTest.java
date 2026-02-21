@@ -33,9 +33,9 @@ class DeleteLevelHandlerTest {
 
     @Test
     void testDeleteSingleLevel() {
-        addLevel("Ground", 0, 12, 250);
+        Level ground = addLevel("Ground", 0, 12, 250);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(ground.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(0, home.getLevels().size());
@@ -43,9 +43,9 @@ class DeleteLevelHandlerTest {
 
     @Test
     void testResponseContainsLevelInfo() {
-        addLevel("Ground Floor", 0, 12, 250);
+        Level ground = addLevel("Ground Floor", 0, 12, 250);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(ground.getId()), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
@@ -58,10 +58,10 @@ class DeleteLevelHandlerTest {
     @Test
     void testDeleteFromMultiple() {
         addLevel("Ground", 0, 12, 250);
-        addLevel("Upper", 250, 12, 250);
+        Level upper = addLevel("Upper", 250, 12, 250);
         addLevel("Attic", 500, 10, 180);
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(upper.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Upper", resp.getData().get("name"));
@@ -70,10 +70,10 @@ class DeleteLevelHandlerTest {
 
     @Test
     void testDeleteFirst() {
-        addLevel("First", 0, 12, 250);
+        Level first = addLevel("First", 0, 12, 250);
         addLevel("Second", 250, 12, 250);
 
-        handler.execute(makeRequest(0), accessor);
+        handler.execute(makeRequest(first.getId()), accessor);
 
         assertEquals(1, home.getLevels().size());
         assertEquals("Second", home.getLevels().get(0).getName());
@@ -82,9 +82,9 @@ class DeleteLevelHandlerTest {
     @Test
     void testDeleteLast() {
         addLevel("First", 0, 12, 250);
-        addLevel("Second", 250, 12, 250);
+        Level second = addLevel("Second", 250, 12, 250);
 
-        handler.execute(makeRequest(1), accessor);
+        handler.execute(makeRequest(second.getId()), accessor);
 
         assertEquals(1, home.getLevels().size());
         assertEquals("First", home.getLevels().get(0).getName());
@@ -103,7 +103,7 @@ class DeleteLevelHandlerTest {
         home.addWall(wallOnUpper);
         wallOnUpper.setLevel(upper);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(ground.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(1, ((Number) resp.getData().get("deletedWalls")).intValue());
@@ -118,7 +118,7 @@ class DeleteLevelHandlerTest {
         home.addRoom(room);
         room.setLevel(ground);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(ground.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(1, ((Number) resp.getData().get("deletedRooms")).intValue());
@@ -133,7 +133,7 @@ class DeleteLevelHandlerTest {
         home.addLabel(label);
         label.setLevel(ground);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(ground.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(1, ((Number) resp.getData().get("deletedLabels")).intValue());
@@ -143,10 +143,10 @@ class DeleteLevelHandlerTest {
     @Test
     void testRemainingLevelsCount() {
         addLevel("A", 0, 12, 250);
-        addLevel("B", 250, 12, 250);
+        Level b = addLevel("B", 250, 12, 250);
         addLevel("C", 500, 12, 250);
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(b.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(2, ((Number) resp.getData().get("remainingLevels")).intValue());
@@ -154,9 +154,9 @@ class DeleteLevelHandlerTest {
 
     @Test
     void testDeletedObjectCountsZero() {
-        addLevel("Empty", 0, 12, 250);
+        Level empty = addLevel("Empty", 0, 12, 250);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(empty.getId()), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
@@ -168,33 +168,22 @@ class DeleteLevelHandlerTest {
     }
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addLevel("Only", 0, 12, 250);
 
-        Response resp = handler.execute(makeRequest(5), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-        assertEquals(1, home.getLevels().size());
-    }
-
-    @Test
-    void testNegativeId() {
-        addLevel("Only", 0, 12, 250);
-
-        Response resp = handler.execute(makeRequest(-1), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
         assertEquals(1, home.getLevels().size());
     }
 
     @Test
     void testEmptyLevels() {
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest("any-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
@@ -212,6 +201,10 @@ class DeleteLevelHandlerTest {
         assertTrue(props.containsKey("id"));
 
         @SuppressWarnings("unchecked")
+        Map<String, Object> idProp = (Map<String, Object>) props.get("id");
+        assertEquals("string", idProp.get("type"));
+
+        @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
         assertTrue(required.contains("id"));
     }
@@ -222,9 +215,9 @@ class DeleteLevelHandlerTest {
         return level;
     }
 
-    private Request makeRequest(int id) {
+    private Request makeRequest(String id) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         return new Request("delete_level", params);
     }
 }

@@ -216,7 +216,8 @@ class CreateRoomPolygonHandlerTest {
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertNotNull(data.get("id"));
+        assertTrue(data.get("id") instanceof String, "id should be a String");
         assertEquals("Test Room", data.get("name"));
         assertNotNull(data.get("area"));
         assertNotNull(data.get("areaVisible"));

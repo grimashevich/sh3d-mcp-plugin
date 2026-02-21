@@ -29,9 +29,9 @@ class DeleteFurnitureHandlerTest {
 
     @Test
     void testDeleteSingleFurniture() {
-        addFurniture("Table", 100, 200);
+        HomePieceOfFurniture piece = addFurniture("Table", 100, 200);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(0, home.getFurniture().size());
@@ -39,9 +39,9 @@ class DeleteFurnitureHandlerTest {
 
     @Test
     void testResponseContainsDeletedInfo() {
-        addFurniture("Sofa", 150, 250);
+        HomePieceOfFurniture piece = addFurniture("Sofa", 150, 250);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(piece.getId()), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
@@ -54,10 +54,10 @@ class DeleteFurnitureHandlerTest {
     @Test
     void testDeleteFromMultiple() {
         addFurniture("Chair", 0, 0);
-        addFurniture("Table", 100, 100);
+        HomePieceOfFurniture table = addFurniture("Table", 100, 100);
         addFurniture("Lamp", 200, 200);
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(table.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("Table", resp.getData().get("name"));
@@ -70,10 +70,10 @@ class DeleteFurnitureHandlerTest {
 
     @Test
     void testDeleteFirst() {
-        addFurniture("A", 0, 0);
+        HomePieceOfFurniture a = addFurniture("A", 0, 0);
         addFurniture("B", 100, 100);
 
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest(a.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("A", resp.getData().get("name"));
@@ -84,9 +84,9 @@ class DeleteFurnitureHandlerTest {
     @Test
     void testDeleteLast() {
         addFurniture("A", 0, 0);
-        addFurniture("B", 100, 100);
+        HomePieceOfFurniture b = addFurniture("B", 100, 100);
 
-        Response resp = handler.execute(makeRequest(1), accessor);
+        Response resp = handler.execute(makeRequest(b.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("B", resp.getData().get("name"));
@@ -95,33 +95,22 @@ class DeleteFurnitureHandlerTest {
     }
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addFurniture("Table", 0, 0);
 
-        Response resp = handler.execute(makeRequest(5), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-        assertEquals(1, home.getFurniture().size());
-    }
-
-    @Test
-    void testNegativeId() {
-        addFurniture("Table", 0, 0);
-
-        Response resp = handler.execute(makeRequest(-1), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
         assertEquals(1, home.getFurniture().size());
     }
 
     @Test
     void testEmptyScene() {
-        Response resp = handler.execute(makeRequest(0), accessor);
+        Response resp = handler.execute(makeRequest("any-id"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
@@ -137,22 +126,27 @@ class DeleteFurnitureHandlerTest {
         assertTrue(props.containsKey("id"));
 
         @SuppressWarnings("unchecked")
+        Map<String, Object> idProp = (Map<String, Object>) props.get("id");
+        assertEquals("string", idProp.get("type"));
+
+        @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
         assertTrue(required.contains("id"));
     }
 
-    private void addFurniture(String name, float x, float y) {
+    private HomePieceOfFurniture addFurniture(String name, float x, float y) {
         HomePieceOfFurniture piece = new HomePieceOfFurniture(
                 new com.eteks.sweethome3d.model.CatalogPieceOfFurniture(
                         name, null, null, 50f, 50f, 50f, true, false));
         piece.setX(x);
         piece.setY(y);
         home.addPieceOfFurniture(piece);
+        return piece;
     }
 
-    private Request makeRequest(int id) {
+    private Request makeRequest(String id) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         return new Request("delete_furniture", params);
     }
 }

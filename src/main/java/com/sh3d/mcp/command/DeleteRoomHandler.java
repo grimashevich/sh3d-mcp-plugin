@@ -3,6 +3,7 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Room;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -14,27 +15,24 @@ import java.util.Map;
 
 /**
  * Обработчик команды "delete_room".
- * Удаляет комнату из сцены по ID (индексу из get_state).
+ * Удаляет комнату из сцены по стабильному ID.
  */
 public class DeleteRoomHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int id = (int) request.getFloat("id");
-
-        if (id < 0) {
-            return Response.error("Parameter 'id' must be non-negative, got " + id);
+        String id = request.getString("id");
+        if (id == null || id.trim().isEmpty()) {
+            return Response.error("Missing required parameter 'id'");
         }
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Room> rooms = home.getRooms();
 
-            if (id >= rooms.size()) {
+            Room room = ObjectResolver.findRoom(home, id);
+            if (room == null) {
                 return null;
             }
-
-            Room room = rooms.get(id);
 
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("name", room.getName());
@@ -57,7 +55,7 @@ public class DeleteRoomHandler implements CommandHandler, CommandDescriptor {
         });
 
         if (data == null) {
-            return Response.error("Room not found: id " + id + " is out of range");
+            return Response.error("Room not found: " + id);
         }
 
         String name = data.get("name") != null ? "'" + data.get("name") + "'" : "(unnamed)";
@@ -69,7 +67,6 @@ public class DeleteRoomHandler implements CommandHandler, CommandDescriptor {
     public String getDescription() {
         return "Deletes a room from the scene by its ID. "
                 + "Use get_state to find room IDs before deleting. "
-                + "Note: after deletion, remaining room IDs may shift. "
                 + "Walls are NOT deleted — only the room polygon is removed.";
     }
 
@@ -79,7 +76,7 @@ public class DeleteRoomHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("id", prop("integer", "Room ID from get_state"));
+        properties.put("id", prop("string", "Room ID from get_state"));
         schema.put("properties", properties);
 
         schema.put("required", Arrays.asList("id"));

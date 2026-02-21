@@ -31,61 +31,61 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testSetName() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "name", "Kitchen"), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "name", "Kitchen"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals("Kitchen", getRoom(0).getName());
+        assertEquals("Kitchen", room.getName());
         assertEquals("Kitchen", resp.getData().get("name"));
     }
 
     @Test
     void testSetNameToNull() {
-        addRoom();
-        getRoom(0).setName("Old Name");
+        Room room = addRoom();
+        room.setName("Old Name");
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", room.getId());
         params.put("name", null);
         Response resp = handler.execute(new Request("modify_room", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getRoom(0).getName());
+        assertNull(room.getName());
     }
 
     // --- Visibility ---
 
     @Test
     void testSetFloorVisible() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "floorVisible", false), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "floorVisible", false), accessor);
 
         assertTrue(resp.isOk());
-        assertFalse(getRoom(0).isFloorVisible());
+        assertFalse(room.isFloorVisible());
         assertEquals(false, resp.getData().get("floorVisible"));
     }
 
     @Test
     void testSetCeilingVisible() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "ceilingVisible", false), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "ceilingVisible", false), accessor);
 
         assertTrue(resp.isOk());
-        assertFalse(getRoom(0).isCeilingVisible());
+        assertFalse(room.isCeilingVisible());
         assertEquals(false, resp.getData().get("ceilingVisible"));
     }
 
     @Test
     void testSetAreaVisible() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "areaVisible", true), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "areaVisible", true), accessor);
 
         assertTrue(resp.isOk());
-        assertTrue(getRoom(0).isAreaVisible());
+        assertTrue(room.isAreaVisible());
         assertEquals(true, resp.getData().get("areaVisible"));
     }
 
@@ -93,61 +93,61 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testSetFloorColor() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "floorColor", "#CCBB99"), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "floorColor", "#CCBB99"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0xCCBB99, (int) getRoom(0).getFloorColor());
+        assertEquals(0xCCBB99, (int) room.getFloorColor());
         assertEquals("#CCBB99", resp.getData().get("floorColor"));
     }
 
     @Test
     void testSetCeilingColor() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "ceilingColor", "#FFFFFF"), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "ceilingColor", "#FFFFFF"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0xFFFFFF, (int) getRoom(0).getCeilingColor());
+        assertEquals(0xFFFFFF, (int) room.getCeilingColor());
         assertEquals("#FFFFFF", resp.getData().get("ceilingColor"));
     }
 
     @Test
     void testClearFloorColor() {
-        addRoom();
-        getRoom(0).setFloorColor(0xFF0000);
+        Room room = addRoom();
+        room.setFloorColor(0xFF0000);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", room.getId());
         params.put("floorColor", null);
         Response resp = handler.execute(new Request("modify_room", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getRoom(0).getFloorColor());
+        assertNull(room.getFloorColor());
         assertNull(resp.getData().get("floorColor"));
     }
 
     @Test
     void testClearCeilingColor() {
-        addRoom();
-        getRoom(0).setCeilingColor(0x00FF00);
+        Room room = addRoom();
+        room.setCeilingColor(0x00FF00);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", room.getId());
         params.put("ceilingColor", null);
         Response resp = handler.execute(new Request("modify_room", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getRoom(0).getCeilingColor());
+        assertNull(room.getCeilingColor());
         assertNull(resp.getData().get("ceilingColor"));
     }
 
     @Test
     void testInvalidFloorColorFormat() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "floorColor", "red"), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "floorColor", "red"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("floorColor"));
@@ -155,9 +155,9 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testInvalidCeilingColorFormat() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "ceilingColor", "#GGG"), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "ceilingColor", "#GGG"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("ceilingColor"));
@@ -167,31 +167,31 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testSetFloorShininess() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "floorShininess", 0.5), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "floorShininess", 0.5), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0.5f, getRoom(0).getFloorShininess(), 0.01f);
+        assertEquals(0.5f, room.getFloorShininess(), 0.01f);
         assertEquals(0.5, ((Number) resp.getData().get("floorShininess")).doubleValue(), 0.01);
     }
 
     @Test
     void testSetCeilingShininess() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "ceilingShininess", 0.8), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "ceilingShininess", 0.8), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0.8f, getRoom(0).getCeilingShininess(), 0.01f);
+        assertEquals(0.8f, room.getCeilingShininess(), 0.01f);
         assertEquals(0.8, ((Number) resp.getData().get("ceilingShininess")).doubleValue(), 0.01);
     }
 
     @Test
     void testFloorShininessOutOfRange() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "floorShininess", 1.5), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "floorShininess", 1.5), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("floorShininess"));
@@ -200,9 +200,9 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testCeilingShininessNegative() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "ceilingShininess", -0.1), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "ceilingShininess", -0.1), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("ceilingShininess"));
@@ -211,39 +211,29 @@ class ModifyRoomHandlerTest {
     // --- ID validation ---
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addRoom();
 
-        Response resp = handler.execute(makeRequest(5, "name", "Test"), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id", "name", "Test"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-    }
-
-    @Test
-    void testNegativeId() {
-        addRoom();
-
-        Response resp = handler.execute(makeRequest(-1, "name", "Test"), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testEmptyScene() {
-        Response resp = handler.execute(makeRequest(0, "name", "Test"), accessor);
+        Response resp = handler.execute(makeRequest("any-id", "name", "Test"), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testNoModifiableProperties() {
-        addRoom();
+        Room room = addRoom();
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", room.getId());
         Response resp = handler.execute(new Request("modify_room", params), accessor);
 
         assertTrue(resp.isError());
@@ -254,12 +244,11 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testPartialUpdatePreservesOtherProperties() {
-        addRoom();
-        Room room = getRoom(0);
+        Room room = addRoom();
         room.setFloorColor(0xFF0000);
         room.setName("Original");
 
-        Response resp = handler.execute(makeRequest(0, "ceilingShininess", 0.7), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "ceilingShininess", 0.7), accessor);
 
         assertTrue(resp.isOk());
         assertEquals(0xFF0000, (int) room.getFloorColor());
@@ -269,10 +258,10 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testMultiplePropertiesAtOnce() {
-        addRoom();
+        Room room = addRoom();
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", room.getId());
         params.put("name", "Living Room");
         params.put("floorColor", "#CCBB99");
         params.put("ceilingColor", "#FFFFFF");
@@ -281,7 +270,6 @@ class ModifyRoomHandlerTest {
         Response resp = handler.execute(new Request("modify_room", params), accessor);
 
         assertTrue(resp.isOk());
-        Room room = getRoom(0);
         assertEquals("Living Room", room.getName());
         assertEquals(0xCCBB99, (int) room.getFloorColor());
         assertEquals(0xFFFFFF, (int) room.getCeilingColor());
@@ -293,13 +281,14 @@ class ModifyRoomHandlerTest {
 
     @Test
     void testResponseContainsAllFields() {
-        addRoom();
+        Room room = addRoom();
 
-        Response resp = handler.execute(makeRequest(0, "name", "Test Room"), accessor);
+        Response resp = handler.execute(makeRequest(room.getId(), "name", "Test Room"), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertNotNull(data.get("id"));
+        assertTrue(data.get("id") instanceof String, "id should be a String");
         assertEquals("Test Room", data.get("name"));
         assertNotNull(data.get("area"));
         assertTrue(data.containsKey("areaVisible"));
@@ -331,6 +320,11 @@ class ModifyRoomHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> props = (Map<String, Object>) schema.get("properties");
         assertTrue(props.containsKey("id"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> idProp = (Map<String, Object>) props.get("id");
+        assertEquals("string", idProp.get("type"));
+
         assertTrue(props.containsKey("name"));
         assertTrue(props.containsKey("floorVisible"));
         assertTrue(props.containsKey("ceilingVisible"));
@@ -348,21 +342,18 @@ class ModifyRoomHandlerTest {
 
     // --- Helpers ---
 
-    private void addRoom() {
+    private Room addRoom() {
         float[][] polygon = {
                 {0, 0}, {500, 0}, {500, 400}, {0, 400}
         };
         Room room = new Room(polygon);
         home.addRoom(room);
+        return room;
     }
 
-    private Room getRoom(int index) {
-        return home.getRooms().get(index);
-    }
-
-    private Request makeRequest(int id, Object... keyValues) {
+    private Request makeRequest(String id, Object... keyValues) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         for (int i = 0; i < keyValues.length; i += 2) {
             params.put((String) keyValues[i], keyValues[i + 1]);
         }

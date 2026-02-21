@@ -8,7 +8,6 @@ import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,52 +27,130 @@ class ModifyWallHandlerTest {
         accessor = new HomeAccessor(home, null);
     }
 
+    // --- Coordinates ---
+
+    @Test
+    void testModifyXStart() {
+        Wall w = addWall(0, 0, 500, 0);
+
+        Response resp = handler.execute(makeRequest(w.getId(), "xStart", 100.0), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(100f, w.getXStart(), 0.01f);
+        assertEquals(100.0, ((Number) resp.getData().get("xStart")).doubleValue(), 0.01);
+    }
+
+    @Test
+    void testModifyYStart() {
+        Wall w = addWall(0, 0, 500, 0);
+
+        Response resp = handler.execute(makeRequest(w.getId(), "yStart", 50.0), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(50f, w.getYStart(), 0.01f);
+    }
+
+    @Test
+    void testModifyXEnd() {
+        Wall w = addWall(0, 0, 500, 0);
+
+        Response resp = handler.execute(makeRequest(w.getId(), "xEnd", 600.0), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(600f, w.getXEnd(), 0.01f);
+    }
+
+    @Test
+    void testModifyYEnd() {
+        Wall w = addWall(0, 0, 500, 0);
+
+        Response resp = handler.execute(makeRequest(w.getId(), "yEnd", 300.0), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(300f, w.getYEnd(), 0.01f);
+    }
+
+    @Test
+    void testModifyAllCoordinates() {
+        Wall w = addWall(0, 0, 500, 0);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("id", w.getId());
+        params.put("xStart", 100.0);
+        params.put("yStart", 200.0);
+        params.put("xEnd", 600.0);
+        params.put("yEnd", 400.0);
+        Response resp = handler.execute(new Request("modify_wall", params), accessor);
+
+        assertTrue(resp.isOk());
+        assertEquals(100f, w.getXStart(), 0.01f);
+        assertEquals(200f, w.getYStart(), 0.01f);
+        assertEquals(600f, w.getXEnd(), 0.01f);
+        assertEquals(400f, w.getYEnd(), 0.01f);
+    }
+
+    @Test
+    void testCoordinatesInSchemaNotRequired() {
+        Map<String, Object> schema = handler.getSchema();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+        assertTrue(props.containsKey("xStart"));
+        assertTrue(props.containsKey("yStart"));
+        assertTrue(props.containsKey("xEnd"));
+        assertTrue(props.containsKey("yEnd"));
+
+        @SuppressWarnings("unchecked")
+        List<String> required = (List<String>) schema.get("required");
+        assertFalse(required.contains("xStart"));
+        assertFalse(required.contains("yStart"));
+        assertFalse(required.contains("xEnd"));
+        assertFalse(required.contains("yEnd"));
+    }
+
     // --- Height ---
 
     @Test
     void testModifyHeight() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "height", 300.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "height", 300.0), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
-        assertEquals(300f, wall.getHeight(), 0.01f);
+        assertEquals(300f, w.getHeight(), 0.01f);
         assertEquals(300.0, ((Number) resp.getData().get("height")).doubleValue(), 0.01);
     }
 
     @Test
     void testModifyHeightAtEnd() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "heightAtEnd", 200.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "heightAtEnd", 200.0), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
-        assertEquals(200f, wall.getHeightAtEnd(), 0.01f);
+        assertEquals(200f, w.getHeightAtEnd(), 0.01f);
         assertEquals(200.0, ((Number) resp.getData().get("heightAtEnd")).doubleValue(), 0.01);
     }
 
     @Test
     void testClearHeightAtEnd() {
-        addWall(0, 0, 500, 0);
-        getWall(0).setHeightAtEnd(200f);
+        Wall w = addWall(0, 0, 500, 0);
+        w.setHeightAtEnd(200f);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         params.put("heightAtEnd", null);
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getWall(0).getHeightAtEnd());
+        assertNull(w.getHeightAtEnd());
         assertNull(resp.getData().get("heightAtEnd"));
     }
 
     @Test
     void testInvalidHeight() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "height", -10.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "height", -10.0), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("height"));
@@ -84,20 +161,20 @@ class ModifyWallHandlerTest {
 
     @Test
     void testModifyThickness() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "thickness", 20.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "thickness", 20.0), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(20f, getWall(0).getThickness(), 0.01f);
+        assertEquals(20f, w.getThickness(), 0.01f);
         assertEquals(20.0, ((Number) resp.getData().get("thickness")).doubleValue(), 0.01);
     }
 
     @Test
     void testInvalidThickness() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "thickness", 0.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "thickness", 0.0), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("thickness"));
@@ -108,27 +185,27 @@ class ModifyWallHandlerTest {
 
     @Test
     void testSetArcExtent() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "arcExtent", 45.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "arcExtent", 45.0), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(Math.toRadians(45), getWall(0).getArcExtent(), 0.01);
+        assertEquals(Math.toRadians(45), w.getArcExtent(), 0.01);
         assertEquals(45.0, ((Number) resp.getData().get("arcExtent")).doubleValue(), 0.5);
     }
 
     @Test
     void testClearArcExtent() {
-        addWall(0, 0, 500, 0);
-        getWall(0).setArcExtent((float) Math.toRadians(30));
+        Wall w = addWall(0, 0, 500, 0);
+        w.setArcExtent((float) Math.toRadians(30));
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         params.put("arcExtent", null);
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getWall(0).getArcExtent());
+        assertNull(w.getArcExtent());
         assertNull(resp.getData().get("arcExtent"));
     }
 
@@ -136,106 +213,103 @@ class ModifyWallHandlerTest {
 
     @Test
     void testSetLeftSideColor() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "leftSideColor", "#FF0000"), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "leftSideColor", "#FF0000"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0xFF0000, (int) getWall(0).getLeftSideColor());
+        assertEquals(0xFF0000, (int) w.getLeftSideColor());
         assertEquals("#FF0000", resp.getData().get("leftSideColor"));
     }
 
     @Test
     void testSetRightSideColor() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "rightSideColor", "#00FF00"), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "rightSideColor", "#00FF00"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0x00FF00, (int) getWall(0).getRightSideColor());
+        assertEquals(0x00FF00, (int) w.getRightSideColor());
         assertEquals("#00FF00", resp.getData().get("rightSideColor"));
     }
 
     @Test
     void testSetTopColor() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "topColor", "#0000FF"), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "topColor", "#0000FF"), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0x0000FF, (int) getWall(0).getTopColor());
+        assertEquals(0x0000FF, (int) w.getTopColor());
         assertEquals("#0000FF", resp.getData().get("topColor"));
     }
 
     @Test
     void testColorShortcutSetsBothSidesAndTop() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "color", "#AABBCC"), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "color", "#AABBCC"), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
-        assertEquals(0xAABBCC, (int) wall.getLeftSideColor());
-        assertEquals(0xAABBCC, (int) wall.getRightSideColor());
-        assertEquals(0xAABBCC, (int) wall.getTopColor());
+        assertEquals(0xAABBCC, (int) w.getLeftSideColor());
+        assertEquals(0xAABBCC, (int) w.getRightSideColor());
+        assertEquals(0xAABBCC, (int) w.getTopColor());
     }
 
     @Test
     void testColorShortcutClearsAll() {
-        addWall(0, 0, 500, 0);
-        Wall wall = getWall(0);
-        wall.setLeftSideColor(0xFF0000);
-        wall.setRightSideColor(0x00FF00);
-        wall.setTopColor(0x0000FF);
+        Wall w = addWall(0, 0, 500, 0);
+        w.setLeftSideColor(0xFF0000);
+        w.setRightSideColor(0x00FF00);
+        w.setTopColor(0x0000FF);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         params.put("color", null);
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getWall(0).getLeftSideColor());
-        assertNull(getWall(0).getRightSideColor());
-        assertNull(getWall(0).getTopColor());
+        assertNull(w.getLeftSideColor());
+        assertNull(w.getRightSideColor());
+        assertNull(w.getTopColor());
     }
 
     @Test
     void testIndividualColorOverridesShortcut() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         params.put("color", "#AAAAAA");
         params.put("leftSideColor", "#FF0000");
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
-        assertEquals(0xFF0000, (int) wall.getLeftSideColor());
-        assertEquals(0xAAAAAA, (int) wall.getRightSideColor());
-        assertEquals(0xAAAAAA, (int) wall.getTopColor());
+        assertEquals(0xFF0000, (int) w.getLeftSideColor());
+        assertEquals(0xAAAAAA, (int) w.getRightSideColor());
+        assertEquals(0xAAAAAA, (int) w.getTopColor());
     }
 
     @Test
     void testClearLeftSideColor() {
-        addWall(0, 0, 500, 0);
-        getWall(0).setLeftSideColor(0xFF0000);
+        Wall w = addWall(0, 0, 500, 0);
+        w.setLeftSideColor(0xFF0000);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         params.put("leftSideColor", null);
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isOk());
-        assertNull(getWall(0).getLeftSideColor());
+        assertNull(w.getLeftSideColor());
         assertNull(resp.getData().get("leftSideColor"));
     }
 
     @Test
     void testInvalidColorFormat() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "leftSideColor", "red"), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "leftSideColor", "red"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("leftSideColor"));
@@ -243,9 +317,9 @@ class ModifyWallHandlerTest {
 
     @Test
     void testInvalidColorShortcut() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "color", "invalid"), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "color", "invalid"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("color"));
@@ -255,42 +329,41 @@ class ModifyWallHandlerTest {
 
     @Test
     void testSetLeftSideShininess() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "leftSideShininess", 0.5), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "leftSideShininess", 0.5), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0.5f, getWall(0).getLeftSideShininess(), 0.01f);
+        assertEquals(0.5f, w.getLeftSideShininess(), 0.01f);
         assertEquals(0.5, ((Number) resp.getData().get("leftSideShininess")).doubleValue(), 0.01);
     }
 
     @Test
     void testSetRightSideShininess() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "rightSideShininess", 0.8), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "rightSideShininess", 0.8), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(0.8f, getWall(0).getRightSideShininess(), 0.01f);
+        assertEquals(0.8f, w.getRightSideShininess(), 0.01f);
     }
 
     @Test
     void testShininessShortcutSetsBothSides() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "shininess", 0.7), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "shininess", 0.7), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
-        assertEquals(0.7f, wall.getLeftSideShininess(), 0.01f);
-        assertEquals(0.7f, wall.getRightSideShininess(), 0.01f);
+        assertEquals(0.7f, w.getLeftSideShininess(), 0.01f);
+        assertEquals(0.7f, w.getRightSideShininess(), 0.01f);
     }
 
     @Test
     void testShininessOutOfRange() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "shininess", 1.5), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "shininess", 1.5), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("shininess"));
@@ -299,9 +372,9 @@ class ModifyWallHandlerTest {
 
     @Test
     void testShininessNegative() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, "leftSideShininess", -0.1), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "leftSideShininess", -0.1), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("leftSideShininess"));
@@ -310,39 +383,29 @@ class ModifyWallHandlerTest {
     // --- ID validation ---
 
     @Test
-    void testIdOutOfRange() {
+    void testIdNotFound() {
         addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(5, "height", 300.0), accessor);
+        Response resp = handler.execute(makeRequest("nonexistent-id", "height", 300.0), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
-    }
-
-    @Test
-    void testNegativeId() {
-        addWall(0, 0, 500, 0);
-
-        Response resp = handler.execute(makeRequest(-1, "height", 300.0), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("non-negative"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testEmptyScene() {
-        Response resp = handler.execute(makeRequest(0, "height", 300.0), accessor);
+        Response resp = handler.execute(makeRequest("any-id", "height", 300.0), accessor);
 
         assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testNoModifiableProperties() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isError());
@@ -353,23 +416,22 @@ class ModifyWallHandlerTest {
 
     @Test
     void testPartialUpdatePreservesOtherProperties() {
-        addWall(0, 0, 500, 0);
-        Wall wall = getWall(0);
-        wall.setLeftSideColor(0xFF0000);
+        Wall w = addWall(0, 0, 500, 0);
+        w.setLeftSideColor(0xFF0000);
 
-        Response resp = handler.execute(makeRequest(0, "height", 300.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "height", 300.0), accessor);
 
         assertTrue(resp.isOk());
-        assertEquals(300f, wall.getHeight(), 0.01f);
-        assertEquals(0xFF0000, (int) wall.getLeftSideColor());
+        assertEquals(300f, w.getHeight(), 0.01f);
+        assertEquals(0xFF0000, (int) w.getLeftSideColor());
     }
 
     @Test
     void testMultiplePropertiesAtOnce() {
-        addWall(0, 0, 500, 0);
+        Wall w = addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", 0.0);
+        params.put("id", w.getId());
         params.put("height", 300.0);
         params.put("thickness", 15.0);
         params.put("color", "#FF5500");
@@ -377,26 +439,25 @@ class ModifyWallHandlerTest {
         Response resp = handler.execute(new Request("modify_wall", params), accessor);
 
         assertTrue(resp.isOk());
-        Wall wall = getWall(0);
-        assertEquals(300f, wall.getHeight(), 0.01f);
-        assertEquals(15f, wall.getThickness(), 0.01f);
-        assertEquals(0xFF5500, (int) wall.getLeftSideColor());
-        assertEquals(0xFF5500, (int) wall.getRightSideColor());
-        assertEquals(0.5f, wall.getLeftSideShininess(), 0.01f);
-        assertEquals(0.5f, wall.getRightSideShininess(), 0.01f);
+        assertEquals(300f, w.getHeight(), 0.01f);
+        assertEquals(15f, w.getThickness(), 0.01f);
+        assertEquals(0xFF5500, (int) w.getLeftSideColor());
+        assertEquals(0xFF5500, (int) w.getRightSideColor());
+        assertEquals(0.5f, w.getLeftSideShininess(), 0.01f);
+        assertEquals(0.5f, w.getRightSideShininess(), 0.01f);
     }
 
     // --- Response format ---
 
     @Test
     void testResponseContainsAllFields() {
-        addWall(100, 200, 600, 200);
+        Wall w = addWall(100, 200, 600, 200);
 
-        Response resp = handler.execute(makeRequest(0, "height", 300.0), accessor);
+        Response resp = handler.execute(makeRequest(w.getId(), "height", 300.0), accessor);
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertEquals(w.getId(), data.get("id"));
         assertNotNull(data.get("xStart"));
         assertNotNull(data.get("yStart"));
         assertNotNull(data.get("xEnd"));
@@ -445,18 +506,15 @@ class ModifyWallHandlerTest {
 
     // --- Helpers ---
 
-    private void addWall(float xStart, float yStart, float xEnd, float yEnd) {
+    private Wall addWall(float xStart, float yStart, float xEnd, float yEnd) {
         Wall wall = new Wall(xStart, yStart, xEnd, yEnd, 10, 250);
         home.addWall(wall);
+        return wall;
     }
 
-    private Wall getWall(int index) {
-        return new ArrayList<>(home.getWalls()).get(index);
-    }
-
-    private Request makeRequest(int id, Object... keyValues) {
+    private Request makeRequest(String id, Object... keyValues) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("id", (double) id);
+        params.put("id", id);
         for (int i = 0; i < keyValues.length; i += 2) {
             params.put((String) keyValues[i], keyValues[i + 1]);
         }

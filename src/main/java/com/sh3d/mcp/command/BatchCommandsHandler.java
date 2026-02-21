@@ -1,5 +1,7 @@
 package com.sh3d.mcp.command;
 
+import com.eteks.sweethome3d.model.Home;
+import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -10,23 +12,30 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Мета-команда "batch_commands".
  * Выполняет массив команд последовательно с collect-all стратегией:
  * все команды выполняются независимо от ошибок отдельных.
  *
+ * <p>Перед выполнением автоматически создаёт checkpoint для возможности отката.
+ *
  * EDT: зависит от sub-команд (каждый handler управляет своим EDT-доступом).
  */
 public class BatchCommandsHandler implements CommandHandler, CommandDescriptor {
 
+    private static final Logger LOG = Logger.getLogger(BatchCommandsHandler.class.getName());
     private static final int MAX_BATCH_SIZE = 50;
     private static final String ACTION_NAME = "batch_commands";
 
     private final CommandRegistry registry;
+    private final CheckpointManager checkpointManager;
 
-    public BatchCommandsHandler(CommandRegistry registry) {
+    public BatchCommandsHandler(CommandRegistry registry, CheckpointManager checkpointManager) {
         this.registry = registry;
+        this.checkpointManager = checkpointManager;
     }
 
     @Override
@@ -47,6 +56,9 @@ public class BatchCommandsHandler implements CommandHandler, CommandDescriptor {
             return Response.error("Batch size " + commandsList.size()
                     + " exceeds maximum of " + MAX_BATCH_SIZE);
         }
+
+        // Auto-checkpoint before batch execution
+        autoCheckpoint(accessor, commandsList.size());
 
         List<Object> results = new ArrayList<>();
         int succeeded = 0;
@@ -150,6 +162,20 @@ public class BatchCommandsHandler implements CommandHandler, CommandDescriptor {
         schema.put("properties", properties);
         schema.put("required", Arrays.asList("commands"));
         return schema;
+    }
+
+    private void autoCheckpoint(HomeAccessor accessor, int commandCount) {
+        if (checkpointManager == null) {
+            return;
+        }
+        try {
+            Home clonedHome = accessor.runOnEDT(() -> accessor.getHome().clone());
+            checkpointManager.push(clonedHome,
+                    "Auto: before batch_commands (" + commandCount + " commands)");
+            LOG.info("Auto-checkpoint created before batch_commands (" + commandCount + " commands)");
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "Failed to create auto-checkpoint before batch_commands", e);
+        }
     }
 
     private static Map<String, Object> errorResult(int index, String action, String message) {

@@ -3,10 +3,10 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
+import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * Обработчик команды "modify_wall".
- * Изменяет свойства стены по ID (индексу из get_state).
+ * Изменяет свойства стены по стабильному ID.
  *
  * Стороны стены определяются направлением от (xStart,yStart) к (xEnd,yEnd):
  * - Left side — сторона слева при движении от start к end
@@ -23,6 +23,7 @@ import java.util.Map;
 public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
 
     private static final List<String> MODIFIABLE_KEYS = Arrays.asList(
+            "xStart", "yStart", "xEnd", "yEnd",
             "height", "heightAtEnd", "thickness", "arcExtent",
             "leftSideColor", "rightSideColor", "topColor", "color",
             "leftSideShininess", "rightSideShininess", "shininess"
@@ -30,17 +31,14 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        int id = (int) request.getFloat("id");
-
-        if (id < 0) {
-            return Response.error("Parameter 'id' must be non-negative, got " + id);
-        }
+        String id = request.getRequiredString("id");
 
         Map<String, Object> params = request.getParams();
         boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);
         if (!hasModifiable) {
             return Response.error("No modifiable properties provided. "
-                    + "Supported: height, heightAtEnd, thickness, arcExtent, "
+                    + "Supported: xStart, yStart, xEnd, yEnd, "
+                    + "height, heightAtEnd, thickness, arcExtent, "
                     + "leftSideColor, rightSideColor, topColor, color, "
                     + "leftSideShininess, rightSideShininess, shininess");
         }
@@ -59,13 +57,25 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            List<Wall> walls = new ArrayList<>(home.getWalls());
+            Wall wall = ObjectResolver.findWall(home, id);
 
-            if (id >= walls.size()) {
+            if (wall == null) {
                 return null;
             }
 
-            Wall wall = walls.get(id);
+            // Coordinates
+            if (params.containsKey("xStart")) {
+                wall.setXStart(request.getFloat("xStart"));
+            }
+            if (params.containsKey("yStart")) {
+                wall.setYStart(request.getFloat("yStart"));
+            }
+            if (params.containsKey("xEnd")) {
+                wall.setXEnd(request.getFloat("xEnd"));
+            }
+            if (params.containsKey("yEnd")) {
+                wall.setYEnd(request.getFloat("yEnd"));
+            }
 
             // Height
             if (params.containsKey("height")) {
@@ -150,7 +160,7 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         });
 
         if (data == null) {
-            return Response.error("Wall not found: id " + id + " is out of range");
+            return Response.error("Wall not found: id '" + id + "'");
         }
 
         // Check for inline error
@@ -161,7 +171,7 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         return Response.ok(data);
     }
 
-    private static Map<String, Object> buildResponse(int id, Wall wall) {
+    private static Map<String, Object> buildResponse(String id, Wall wall) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", id);
         result.put("xStart", round2(wall.getXStart()));
@@ -305,7 +315,11 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("id", prop("integer", "Wall ID from get_state"));
+        properties.put("id", prop("string", "Wall ID from get_state"));
+        properties.put("xStart", prop("number", "New X coordinate of wall start point in cm"));
+        properties.put("yStart", prop("number", "New Y coordinate of wall start point in cm"));
+        properties.put("xEnd", prop("number", "New X coordinate of wall end point in cm"));
+        properties.put("yEnd", prop("number", "New Y coordinate of wall end point in cm"));
         properties.put("height", prop("number", "Wall height in cm (e.g. 250 for 2.5m)"));
         properties.put("heightAtEnd", nullableProp("number",
                 "Height at end point in cm for sloped walls (null = same as height)"));

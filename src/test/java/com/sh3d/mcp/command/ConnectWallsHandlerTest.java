@@ -32,7 +32,7 @@ class ConnectWallsHandlerTest {
         Wall w1 = addWall(0, 0, 500, 0);
         Wall w2 = addWall(500, 0, 500, 300);
 
-        Response resp = handler.execute(makeRequest(0, 1, "end", "start"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "end", "start"), accessor);
 
         assertTrue(resp.isOk());
         assertSame(w2, w1.getWallAtEnd());
@@ -46,7 +46,7 @@ class ConnectWallsHandlerTest {
         Wall w1 = addWall(500, 0, 500, 300);
         Wall w2 = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequest(0, 1, "start", "end"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "start", "end"), accessor);
 
         assertTrue(resp.isOk());
         assertSame(w2, w1.getWallAtStart());
@@ -58,7 +58,7 @@ class ConnectWallsHandlerTest {
         Wall w1 = addWall(0, 0, 500, 0);
         Wall w2 = addWall(0, 0, 0, 300);
 
-        Response resp = handler.execute(makeRequest(0, 1, "start", "start"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "start", "start"), accessor);
 
         assertTrue(resp.isOk());
         assertSame(w2, w1.getWallAtStart());
@@ -70,7 +70,7 @@ class ConnectWallsHandlerTest {
         Wall w1 = addWall(0, 0, 500, 300);
         Wall w2 = addWall(800, 600, 500, 300);
 
-        Response resp = handler.execute(makeRequest(0, 1, "end", "end"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "end", "end"), accessor);
 
         assertTrue(resp.isOk());
         assertSame(w2, w1.getWallAtEnd());
@@ -79,11 +79,10 @@ class ConnectWallsHandlerTest {
 
     @Test
     void testAutoDetectEndToStart() {
-        // w1 ends at (500,0), w2 starts at (500,0) — closest pair is end-start
         Wall w1 = addWall(0, 0, 500, 0);
         Wall w2 = addWall(500, 0, 500, 300);
 
-        Response resp = handler.execute(makeRequestAutoDetect(0, 1), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect(w1.getId(), w2.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("end", resp.getData().get("wall1End"));
@@ -94,11 +93,10 @@ class ConnectWallsHandlerTest {
 
     @Test
     void testAutoDetectStartToStart() {
-        // Both walls start at (0,0) — closest pair is start-start
         Wall w1 = addWall(0, 0, 500, 0);
         Wall w2 = addWall(0, 0, 0, 300);
 
-        Response resp = handler.execute(makeRequestAutoDetect(0, 1), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect(w1.getId(), w2.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("start", resp.getData().get("wall1End"));
@@ -109,11 +107,10 @@ class ConnectWallsHandlerTest {
 
     @Test
     void testAutoDetectEndToEnd() {
-        // Both walls end at (500,300) — closest pair is end-end
         Wall w1 = addWall(0, 0, 500, 300);
         Wall w2 = addWall(800, 600, 500, 300);
 
-        Response resp = handler.execute(makeRequestAutoDetect(0, 1), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect(w1.getId(), w2.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("end", resp.getData().get("wall1End"));
@@ -122,11 +119,10 @@ class ConnectWallsHandlerTest {
 
     @Test
     void testAutoDetectStartToEnd() {
-        // w1 starts at (500,0), w2 ends at (500,0) — closest pair is start-end
         Wall w1 = addWall(500, 0, 500, 300);
         Wall w2 = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequestAutoDetect(0, 1), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect(w1.getId(), w2.getId()), accessor);
 
         assertTrue(resp.isOk());
         assertEquals("start", resp.getData().get("wall1End"));
@@ -134,32 +130,32 @@ class ConnectWallsHandlerTest {
     }
 
     @Test
-    void testWall1IdOutOfRange() {
-        addWall(0, 0, 500, 0);
+    void testWall1IdNotFound() {
+        Wall w1 = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequestAutoDetect(5, 0), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect("nonexistent", w1.getId()), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("wall1Id"));
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
-    void testWall2IdOutOfRange() {
-        addWall(0, 0, 500, 0);
+    void testWall2IdNotFound() {
+        Wall w1 = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequestAutoDetect(0, 5), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect(w1.getId(), "nonexistent"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("wall2Id"));
-        assertTrue(resp.getMessage().contains("out of range"));
+        assertTrue(resp.getMessage().contains("not found"));
     }
 
     @Test
     void testSameWallIdError() {
-        addWall(0, 0, 500, 0);
+        Wall w1 = addWall(0, 0, 500, 0);
 
-        Response resp = handler.execute(makeRequestAutoDetect(0, 0), accessor);
+        Response resp = handler.execute(makeRequestAutoDetect(w1.getId(), w1.getId()), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("itself"));
@@ -167,10 +163,10 @@ class ConnectWallsHandlerTest {
 
     @Test
     void testInvalidWall1End() {
-        addWall(0, 0, 500, 0);
-        addWall(500, 0, 500, 300);
+        Wall w1 = addWall(0, 0, 500, 0);
+        Wall w2 = addWall(500, 0, 500, 300);
 
-        Response resp = handler.execute(makeRequest(0, 1, "middle", "start"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "middle", "start"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("wall1End"));
@@ -179,10 +175,10 @@ class ConnectWallsHandlerTest {
 
     @Test
     void testInvalidWall2End() {
-        addWall(0, 0, 500, 0);
-        addWall(500, 0, 500, 300);
+        Wall w1 = addWall(0, 0, 500, 0);
+        Wall w2 = addWall(500, 0, 500, 300);
 
-        Response resp = handler.execute(makeRequest(0, 1, "end", "top"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "end", "top"), accessor);
 
         assertTrue(resp.isError());
         assertTrue(resp.getMessage().contains("wall2End"));
@@ -194,28 +190,25 @@ class ConnectWallsHandlerTest {
         Wall w1 = addWall(0, 0, 500, 0);
         Wall w2 = addWall(500, 0, 500, 300);
 
-        handler.execute(makeRequest(0, 1, "end", "start"), accessor);
+        handler.execute(makeRequest(w1.getId(), w2.getId(), "end", "start"), accessor);
 
-        // Двусторонняя проверка
         assertSame(w2, w1.getWallAtEnd());
         assertSame(w1, w2.getWallAtStart());
-        // Другие концы не затронуты
         assertNull(w1.getWallAtStart());
         assertNull(w2.getWallAtEnd());
     }
 
     @Test
     void testResponseContainsMessage() {
-        addWall(0, 0, 500, 0);
-        addWall(500, 0, 500, 300);
+        Wall w1 = addWall(0, 0, 500, 0);
+        Wall w2 = addWall(500, 0, 500, 300);
 
-        Response resp = handler.execute(makeRequest(0, 1, "end", "start"), accessor);
+        Response resp = handler.execute(makeRequest(w1.getId(), w2.getId(), "end", "start"), accessor);
 
         assertTrue(resp.isOk());
         String message = (String) resp.getData().get("message");
         assertNotNull(message);
-        assertTrue(message.contains("wall 0"));
-        assertTrue(message.contains("wall 1"));
+        assertTrue(message.contains("connected"));
     }
 
     @Test
@@ -242,30 +235,6 @@ class ConnectWallsHandlerTest {
         assertFalse(required.contains("wall2End"));
     }
 
-    @Test
-    void testNegativeWall1Id() {
-        addWall(0, 0, 500, 0);
-        addWall(500, 0, 500, 300);
-
-        Response resp = handler.execute(makeRequest(-1, 1, "end", "start"), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("wall1Id"));
-        assertTrue(resp.getMessage().contains("non-negative"));
-    }
-
-    @Test
-    void testNegativeWall2Id() {
-        addWall(0, 0, 500, 0);
-        addWall(500, 0, 500, 300);
-
-        Response resp = handler.execute(makeRequest(0, -1, "end", "start"), accessor);
-
-        assertTrue(resp.isError());
-        assertTrue(resp.getMessage().contains("wall2Id"));
-        assertTrue(resp.getMessage().contains("non-negative"));
-    }
-
     // --- Helpers ---
 
     private Wall addWall(float xStart, float yStart, float xEnd, float yEnd) {
@@ -275,16 +244,16 @@ class ConnectWallsHandlerTest {
         return wall;
     }
 
-    private Request makeRequest(int wall1Id, int wall2Id, String wall1End, String wall2End) {
+    private Request makeRequest(String wall1Id, String wall2Id, String wall1End, String wall2End) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("wall1Id", (double) wall1Id);
-        params.put("wall2Id", (double) wall2Id);
+        params.put("wall1Id", wall1Id);
+        params.put("wall2Id", wall2Id);
         if (wall1End != null) params.put("wall1End", wall1End);
         if (wall2End != null) params.put("wall2End", wall2End);
         return new Request("connect_walls", params);
     }
 
-    private Request makeRequestAutoDetect(int wall1Id, int wall2Id) {
+    private Request makeRequestAutoDetect(String wall1Id, String wall2Id) {
         return makeRequest(wall1Id, wall2Id, null, null);
     }
 }
