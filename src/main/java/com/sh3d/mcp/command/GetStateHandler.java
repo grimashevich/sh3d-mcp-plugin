@@ -36,6 +36,8 @@ import java.util.Map;
  */
 public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
+    private final SceneBoundsCalculator boundsCalculator = new SceneBoundsCalculator();
+
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
         Map<String, Object> data = accessor.runOnEDT(() -> {
@@ -90,11 +92,21 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
             // --- Environment ---
             result.put("environment", buildEnvironment(home.getEnvironment()));
 
-            // --- Bounding box ---
-            result.put("boundingBox", buildBoundingBox(home.getWalls()));
-
             return result;
         });
+
+        // --- Bounding box (via SceneBoundsCalculator, includes walls + furniture + rooms) ---
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
+        if (bounds != null) {
+            Map<String, Object> bb = new LinkedHashMap<>();
+            bb.put("minX", round2(bounds.minX));
+            bb.put("minY", round2(bounds.minY));
+            bb.put("maxX", round2(bounds.maxX));
+            bb.put("maxY", round2(bounds.maxY));
+            data.put("boundingBox", bb);
+        } else {
+            data.put("boundingBox", null);
+        }
 
         return Response.ok(data);
     }
@@ -280,28 +292,6 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
         info.put("drawingMode", env.getDrawingMode().name());
         info.put("allLevelsVisible", env.isAllLevelsVisible());
         return info;
-    }
-
-    // --- Bounding box ---
-
-    private Map<String, Object> buildBoundingBox(Collection<Wall> walls) {
-        if (walls.isEmpty()) {
-            return null;
-        }
-        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
-        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
-        for (Wall w : walls) {
-            minX = Math.min(minX, Math.min(w.getXStart(), w.getXEnd()));
-            minY = Math.min(minY, Math.min(w.getYStart(), w.getYEnd()));
-            maxX = Math.max(maxX, Math.max(w.getXStart(), w.getXEnd()));
-            maxY = Math.max(maxY, Math.max(w.getYStart(), w.getYEnd()));
-        }
-        Map<String, Object> bb = new LinkedHashMap<>();
-        bb.put("minX", round2(minX));
-        bb.put("minY", round2(minY));
-        bb.put("maxX", round2(maxX));
-        bb.put("maxY", round2(maxY));
-        return bb;
     }
 
     // --- Descriptor ---

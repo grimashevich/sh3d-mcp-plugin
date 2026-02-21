@@ -2,10 +2,7 @@ package com.sh3d.mcp.command;
 
 import com.eteks.sweethome3d.model.Camera;
 import com.eteks.sweethome3d.model.Home;
-import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.ObserverCamera;
-import com.eteks.sweethome3d.model.Room;
-import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
@@ -38,6 +35,8 @@ import java.util.logging.Logger;
 public class SetCameraHandler implements CommandHandler, CommandDescriptor {
 
     private static final Logger LOG = Logger.getLogger(SetCameraHandler.class.getName());
+
+    private final SceneBoundsCalculator boundsCalculator = new SceneBoundsCalculator();
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
@@ -95,14 +94,14 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
 
         // For target="center", compute scene center as lookAt
         if (target != null) {
-            float[] center = computeSceneCenter(accessor);
-            if (center == null) {
+            SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
+            if (bounds == null) {
                 return Response.error("Cannot compute scene center: scene is empty (no walls, furniture, or rooms)");
             }
             lookAt = new LinkedHashMap<>();
-            lookAt.put("x", (double) center[0]);
-            lookAt.put("y", (double) center[1]);
-            lookAt.put("z", (double) center[2]);
+            lookAt.put("x", (double) bounds.centerX);
+            lookAt.put("y", (double) bounds.centerY);
+            lookAt.put("z", (double) (bounds.maxZ / 2));
         }
 
         Map<String, Object> finalLookAt = lookAt;
@@ -209,68 +208,6 @@ public class SetCameraHandler implements CommandHandler, CommandDescriptor {
 
         LOG.info("Camera restored from stored '" + name + "'");
         return Response.ok(result);
-    }
-
-    /**
-     * Computes the center of the scene (average of bounding box of all walls, furniture, rooms).
-     * Returns [centerX, centerY, centerZ] or null if the scene is empty.
-     */
-    static float[] computeSceneCenter(HomeAccessor accessor) {
-        return accessor.runOnEDT(() -> {
-            Home home = accessor.getHome();
-            float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
-            float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
-            float maxZ = 0;
-            boolean hasContent = false;
-
-            for (Wall wall : home.getWalls()) {
-                float[][] points = wall.getPoints();
-                for (float[] pt : points) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                Float wallHeight = wall.getHeight();
-                float h = wallHeight != null ? wallHeight : home.getWallHeight();
-                maxZ = Math.max(maxZ, h);
-                hasContent = true;
-            }
-
-            for (HomePieceOfFurniture piece : home.getFurniture()) {
-                if (!piece.isVisible()) continue;
-                float[][] pts = piece.getPoints();
-                for (float[] pt : pts) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                maxZ = Math.max(maxZ, piece.getElevation() + piece.getHeight());
-                hasContent = true;
-            }
-
-            for (Room room : home.getRooms()) {
-                float[][] points = room.getPoints();
-                for (float[] pt : points) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                hasContent = true;
-            }
-
-            if (!hasContent) {
-                return null;
-            }
-
-            return new float[]{
-                    (minX + maxX) / 2,
-                    (minY + maxY) / 2,
-                    maxZ / 2
-            };
-        });
     }
 
     private static Map<String, Object> buildCameraInfo(Camera cam, String mode) {

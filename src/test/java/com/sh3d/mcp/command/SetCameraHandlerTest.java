@@ -394,28 +394,29 @@ class SetCameraHandlerTest {
         assertTrue(desc.contains("target") || desc.contains("TARGET"));
     }
 
-    // --- computeSceneCenter ---
+    // --- scene center via SceneBoundsCalculator ---
 
     @Test
-    void testComputeSceneCenterWithWalls() {
+    void testSceneBoundsWithWalls() {
         home.addWall(new Wall(0, 0, 500, 0, 10, 250));
         home.addWall(new Wall(500, 0, 500, 400, 10, 250));
         home.addWall(new Wall(500, 400, 0, 400, 10, 250));
         home.addWall(new Wall(0, 400, 0, 0, 10, 250));
 
-        float[] center = SetCameraHandler.computeSceneCenter(accessor);
-        assertNotNull(center);
-        assertEquals(3, center.length);
-        // Center should be approximately (250, 200, 125) — walls have thickness so bounds vary slightly
-        assertEquals(250.0, center[0], 10.0);
-        assertEquals(200.0, center[1], 10.0);
-        assertTrue(center[2] > 0, "Z center should be > 0");
+        SceneBoundsCalculator calculator = new SceneBoundsCalculator();
+        SceneBounds bounds = calculator.computeSceneBounds(accessor);
+        assertNotNull(bounds);
+        // Center should be approximately (250, 200) — walls have thickness so bounds vary slightly
+        assertEquals(250.0, bounds.centerX, 10.0);
+        assertEquals(200.0, bounds.centerY, 10.0);
+        assertTrue(bounds.maxZ > 0, "maxZ should be > 0");
     }
 
     @Test
-    void testComputeSceneCenterEmptyScene() {
-        float[] center = SetCameraHandler.computeSceneCenter(accessor);
-        assertNull(center);
+    void testSceneBoundsEmptyScene() {
+        SceneBoundsCalculator calculator = new SceneBoundsCalculator();
+        SceneBounds bounds = calculator.computeSceneBounds(accessor);
+        assertNull(bounds);
     }
 
     // --- Helper ---

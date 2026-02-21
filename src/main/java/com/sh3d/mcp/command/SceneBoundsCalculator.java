@@ -39,6 +39,9 @@ class SceneBoundsCalculator {
                     continue;
                 }
                 float[][] points = wall.getPoints();
+                if (points == null) {
+                    continue;
+                }
                 for (float[] pt : points) {
                     minX = Math.min(minX, pt[0]);
                     minY = Math.min(minY, pt[1]);
@@ -64,6 +67,9 @@ class SceneBoundsCalculator {
                     for (HomePieceOfFurniture child : ((HomeFurnitureGroup) piece).getFurniture()) {
                         if (child.isVisible()) {
                             float[][] pts = child.getPoints();
+                            if (pts == null) {
+                                continue;
+                            }
                             for (float[] pt : pts) {
                                 minX = Math.min(minX, pt[0]);
                                 minY = Math.min(minY, pt[1]);
@@ -76,6 +82,9 @@ class SceneBoundsCalculator {
                     }
                 } else {
                     float[][] pts = piece.getPoints();
+                    if (pts == null) {
+                        continue;
+                    }
                     for (float[] pt : pts) {
                         minX = Math.min(minX, pt[0]);
                         minY = Math.min(minY, pt[1]);
@@ -93,6 +102,9 @@ class SceneBoundsCalculator {
                     continue;
                 }
                 float[][] points = room.getPoints();
+                if (points == null) {
+                    continue;
+                }
                 for (float[] pt : points) {
                     minX = Math.min(minX, pt[0]);
                     minY = Math.min(minY, pt[1]);
