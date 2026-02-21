@@ -151,54 +151,60 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
             }
         }
 
-        // --- Capture for lambda ---
-        final boolean hasGroundColor = groundColorResult != null;
-        final int finalGroundColor = hasGroundColor ? groundColorResult.value : 0;
-        final boolean hasSkyColor = skyColorResult != null;
-        final int finalSkyColor = hasSkyColor ? skyColorResult.value : 0;
-        final boolean hasLightColor = lightColorResult != null;
-        final int finalLightColor = hasLightColor ? lightColorResult.value : 0;
-        final boolean hasCeilingLightColor = ceilingLightColorResult != null;
-        final int finalCeilingLightColor = hasCeilingLightColor ? ceilingLightColorResult.value : 0;
-        final float finalWallsAlpha = hasWallsAlpha ? wallsAlpha : 0f;
-        final HomeEnvironment.DrawingMode finalDrawingMode = drawingMode;
-        final boolean finalAllLevelsVisible = allLevelsVisible != null && allLevelsVisible;
-        final HomeTexture finalGroundTexture = groundTexture;
-        final boolean doClearGroundTexture = clearGroundTexture;
-        final HomeTexture finalSkyTexture = skyTexture;
-        final boolean doClearSkyTexture = clearSkyTexture;
+        // --- Capture all parsed values into a single object for the lambda ---
+        EnvironmentParams ep = new EnvironmentParams();
+        ep.hasGroundColor = groundColorResult != null;
+        ep.groundColor = ep.hasGroundColor ? groundColorResult.value : 0;
+        ep.hasSkyColor = skyColorResult != null;
+        ep.skyColor = ep.hasSkyColor ? skyColorResult.value : 0;
+        ep.hasLightColor = lightColorResult != null;
+        ep.lightColor = ep.hasLightColor ? lightColorResult.value : 0;
+        ep.hasCeilingLightColor = ceilingLightColorResult != null;
+        ep.ceilingLightColor = ep.hasCeilingLightColor ? ceilingLightColorResult.value : 0;
+        ep.hasWallsAlpha = hasWallsAlpha;
+        ep.wallsAlpha = hasWallsAlpha ? wallsAlpha : 0f;
+        ep.hasDrawingMode = hasDrawingMode;
+        ep.drawingMode = drawingMode;
+        ep.hasAllLevelsVisible = hasAllLevelsVisible;
+        ep.allLevelsVisible = allLevelsVisible != null && allLevelsVisible;
+        ep.hasGroundTexture = hasGroundTexture;
+        ep.groundTexture = groundTexture;
+        ep.clearGroundTexture = clearGroundTexture;
+        ep.hasSkyTexture = hasSkyTexture;
+        ep.skyTexture = skyTexture;
+        ep.clearSkyTexture = clearSkyTexture;
 
         // --- EDT mutations ---
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
             HomeEnvironment env = home.getEnvironment();
 
-            if (hasGroundColor) {
-                env.setGroundColor(finalGroundColor);
+            if (ep.hasGroundColor) {
+                env.setGroundColor(ep.groundColor);
             }
-            if (hasGroundTexture) {
-                env.setGroundTexture(doClearGroundTexture ? null : finalGroundTexture);
+            if (ep.hasGroundTexture) {
+                env.setGroundTexture(ep.clearGroundTexture ? null : ep.groundTexture);
             }
-            if (hasSkyColor) {
-                env.setSkyColor(finalSkyColor);
+            if (ep.hasSkyColor) {
+                env.setSkyColor(ep.skyColor);
             }
-            if (hasSkyTexture) {
-                env.setSkyTexture(doClearSkyTexture ? null : finalSkyTexture);
+            if (ep.hasSkyTexture) {
+                env.setSkyTexture(ep.clearSkyTexture ? null : ep.skyTexture);
             }
-            if (hasLightColor) {
-                env.setLightColor(finalLightColor);
+            if (ep.hasLightColor) {
+                env.setLightColor(ep.lightColor);
             }
-            if (hasCeilingLightColor) {
-                env.setCeillingLightColor(finalCeilingLightColor);
+            if (ep.hasCeilingLightColor) {
+                env.setCeillingLightColor(ep.ceilingLightColor);
             }
-            if (hasWallsAlpha) {
-                env.setWallsAlpha(finalWallsAlpha);
+            if (ep.hasWallsAlpha) {
+                env.setWallsAlpha(ep.wallsAlpha);
             }
-            if (hasDrawingMode) {
-                env.setDrawingMode(finalDrawingMode);
+            if (ep.hasDrawingMode) {
+                env.setDrawingMode(ep.drawingMode);
             }
-            if (hasAllLevelsVisible) {
-                env.setAllLevelsVisible(finalAllLevelsVisible);
+            if (ep.hasAllLevelsVisible) {
+                env.setAllLevelsVisible(ep.allLevelsVisible);
             }
 
             return buildResponse(env);
@@ -271,4 +277,27 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
         return schema;
     }
 
+    /** Groups all parsed environment parameters for clean capture in the EDT lambda. */
+    private static class EnvironmentParams {
+        boolean hasGroundColor;
+        int groundColor;
+        boolean hasSkyColor;
+        int skyColor;
+        boolean hasLightColor;
+        int lightColor;
+        boolean hasCeilingLightColor;
+        int ceilingLightColor;
+        boolean hasWallsAlpha;
+        float wallsAlpha;
+        boolean hasDrawingMode;
+        HomeEnvironment.DrawingMode drawingMode;
+        boolean hasAllLevelsVisible;
+        boolean allLevelsVisible;
+        boolean hasGroundTexture;
+        HomeTexture groundTexture;
+        boolean clearGroundTexture;
+        boolean hasSkyTexture;
+        HomeTexture skyTexture;
+        boolean clearSkyTexture;
+    }
 }

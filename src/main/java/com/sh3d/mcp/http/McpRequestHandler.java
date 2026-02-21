@@ -43,9 +43,14 @@ public class McpRequestHandler implements HttpHandler {
     private final SessionManager sessionManager;
 
     public McpRequestHandler(CommandRegistry commandRegistry, HomeAccessor accessor) {
+        this(commandRegistry, accessor, new SessionManager());
+    }
+
+    public McpRequestHandler(CommandRegistry commandRegistry, HomeAccessor accessor,
+                             SessionManager sessionManager) {
         this.commandRegistry = commandRegistry;
         this.accessor = accessor;
-        this.sessionManager = new SessionManager();
+        this.sessionManager = sessionManager;
     }
 
     @Override

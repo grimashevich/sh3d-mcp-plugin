@@ -6,9 +6,13 @@ import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.server.ServerState;
 import com.sh3d.mcp.server.ServerStateListener;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,6 +35,7 @@ public class HttpMcpServer {
 
     private static final Logger LOG = Logger.getLogger(HttpMcpServer.class.getName());
     private static final String MCP_ENDPOINT = "/mcp";
+    private static final String HEALTH_ENDPOINT = "/health";
 
     static final int CORE_POOL_SIZE = 4;
     static final int MAX_POOL_SIZE = 16;
@@ -167,6 +172,7 @@ public class HttpMcpServer {
 
             McpRequestHandler requestHandler = new McpRequestHandler(commandRegistry, accessor);
             localServer.createContext(MCP_ENDPOINT, requestHandler);
+            localServer.createContext(HEALTH_ENDPOINT, new HealthHandler());
 
             localServer.start();
 
@@ -218,6 +224,32 @@ public class HttpMcpServer {
                 listener.onStateChanged(oldState, newState);
             } catch (Exception e) {
                 LOG.log(Level.WARNING, "State listener error", e);
+            }
+        }
+    }
+
+    /**
+     * Lightweight health check handler: GET /health returns HTTP 200 with {"status":"ok"}.
+     * No JSON-RPC overhead, no session required.
+     */
+    private static class HealthHandler implements HttpHandler {
+
+        private static final byte[] RESPONSE = "{\"status\":\"ok\"}".getBytes(StandardCharsets.UTF_8);
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            try {
+                if (!"GET".equals(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(405, -1);
+                    return;
+                }
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+                exchange.sendResponseHeaders(200, RESPONSE.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(RESPONSE);
+                }
+            } finally {
+                exchange.close();
             }
         }
     }
