@@ -11,6 +11,7 @@ import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,13 +27,14 @@ class ListFurnitureCatalogHandlerTest {
     private HomeAccessor accessor;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         handler = new ListFurnitureCatalogHandler();
 
         FurnitureCatalog catalog = new FurnitureCatalog();
 
         FurnitureCategory livingRoom = new FurnitureCategory("Living Room");
         FurnitureCategory bedroom = new FurnitureCategory("Bedroom");
+        FurnitureCategory doors = new FurnitureCategory("Doors and windows");
 
         CatalogPieceOfFurniture table = new CatalogPieceOfFurniture(
                 "Dining Table", null, null, 120f, 80f, 75f, true, false);
@@ -40,10 +42,14 @@ class ListFurnitureCatalogHandlerTest {
                 "Office Chair", null, null, 50f, 50f, 90f, true, false);
         CatalogPieceOfFurniture bed = new CatalogPieceOfFurniture(
                 "Double Bed", null, null, 160f, 200f, 50f, true, false);
+        CatalogPieceOfFurniture frontDoor = new CatalogPieceOfFurniture(
+                "Front Door", null, null, 87f, 10f, 210f, false, false);
+        setDoorOrWindow(frontDoor, true);
 
         catalog.add(livingRoom, table);
         catalog.add(livingRoom, chair);
         catalog.add(bedroom, bed);
+        catalog.add(doors, frontDoor);
 
         UserPreferences prefs = mock(UserPreferences.class);
         when(prefs.getFurnitureCatalog()).thenReturn(catalog);
@@ -58,7 +64,7 @@ class ListFurnitureCatalogHandlerTest {
 
         assertTrue(resp.isOk());
         List<?> furniture = (List<?>) resp.getData().get("furniture");
-        assertEquals(3, furniture.size());
+        assertEquals(4, furniture.size());
     }
 
     @Test
@@ -218,7 +224,7 @@ class ListFurnitureCatalogHandlerTest {
 
         assertTrue(resp.isOk());
         List<?> furniture = (List<?>) resp.getData().get("furniture");
-        assertEquals(3, furniture.size());
+        assertEquals(4, furniture.size());
     }
 
     @Test
@@ -231,7 +237,7 @@ class ListFurnitureCatalogHandlerTest {
 
         assertTrue(resp.isOk());
         List<?> furniture = (List<?>) resp.getData().get("furniture");
-        assertEquals(3, furniture.size());
+        assertEquals(4, furniture.size());
     }
 
     @Test
@@ -244,7 +250,7 @@ class ListFurnitureCatalogHandlerTest {
 
         assertTrue(resp.isOk());
         List<?> furniture = (List<?>) resp.getData().get("furniture");
-        assertEquals(3, furniture.size());
+        assertEquals(4, furniture.size());
     }
 
     @Test
@@ -284,6 +290,158 @@ class ListFurnitureCatalogHandlerTest {
         assertNull(item.get("catalogId"));
     }
 
+    // ==================== isDoorOrWindow field ====================
+
+    @Test
+    void testIsDoorOrWindowFieldPresent() {
+        Request req = new Request("list_furniture_catalog", Collections.emptyMap());
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        // Every item must have isDoorOrWindow
+        for (Object obj : furniture) {
+            Map<?, ?> item = (Map<?, ?>) obj;
+            assertNotNull(item.get("isDoorOrWindow"), "isDoorOrWindow field must be present");
+            assertInstanceOf(Boolean.class, item.get("isDoorOrWindow"));
+        }
+    }
+
+    @Test
+    void testIsDoorOrWindowTrueForDoor() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("query", "Front Door");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertEquals(true, item.get("isDoorOrWindow"));
+    }
+
+    @Test
+    void testIsDoorOrWindowFalseForFurniture() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("query", "Dining Table");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertEquals(false, item.get("isDoorOrWindow"));
+    }
+
+    // ==================== type filter ====================
+
+    @Test
+    void testTypeFilterFurnitureOnly() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("type", "furniture");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(3, furniture.size());
+        for (Object obj : furniture) {
+            Map<?, ?> item = (Map<?, ?>) obj;
+            assertEquals(false, item.get("isDoorOrWindow"));
+        }
+    }
+
+    @Test
+    void testTypeFilterDoorOrWindowOnly() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("type", "doorOrWindow");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertEquals("Front Door", item.get("name"));
+        assertEquals(true, item.get("isDoorOrWindow"));
+    }
+
+    @Test
+    void testTypeFilterAllReturnsEverything() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("type", "all");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(4, furniture.size());
+    }
+
+    @Test
+    void testTypeFilterCaseInsensitive() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("type", "DOORORWINDOW");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+    }
+
+    @Test
+    void testTypeFilterInvalidReturnsError() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("type", "invalid");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertFalse(resp.isOk());
+        assertTrue(resp.getMessage().contains("'type'"));
+    }
+
+    @Test
+    void testTypeFilterCombinedWithQuery() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("query", "door");
+        params.put("type", "doorOrWindow");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(1, furniture.size());
+        Map<?, ?> item = (Map<?, ?>) furniture.get(0);
+        assertEquals("Front Door", item.get("name"));
+    }
+
+    @Test
+    void testTypeFilterCombinedWithCategory() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("category", "Living");
+        params.put("type", "furniture");
+
+        Request req = new Request("list_furniture_catalog", params);
+        Response resp = handler.execute(req, accessor);
+
+        assertTrue(resp.isOk());
+        List<?> furniture = (List<?>) resp.getData().get("furniture");
+        assertEquals(2, furniture.size());
+    }
+
+    // ==================== null names handling ====================
+
     @Test
     void testNullNamesInCatalogAreSkipped() {
         CatalogPieceOfFurniture normalPiece = mock(CatalogPieceOfFurniture.class);
@@ -322,5 +480,14 @@ class ListFurnitureCatalogHandlerTest {
         Map<?, ?> item = (Map<?, ?>) furniture.get(0);
         assertEquals("Sink", item.get("name"));
         assertEquals("Kitchen", item.get("category"));
+    }
+
+    // ==================== Helpers ====================
+
+    private static void setDoorOrWindow(CatalogPieceOfFurniture piece, boolean value)
+            throws Exception {
+        Field field = CatalogPieceOfFurniture.class.getDeclaredField("doorOrWindow");
+        field.setAccessible(true);
+        field.set(piece, value);
     }
 }

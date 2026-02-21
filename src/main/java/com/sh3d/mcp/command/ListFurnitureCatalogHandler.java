@@ -8,6 +8,7 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.enumProp;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
 
 import java.util.ArrayList;
@@ -23,9 +24,10 @@ import java.util.Map;
  * Параметры:
  *   query    — поисковый запрос по имени (string, опционально)
  *   category — фильтр по категории (string, опционально)
+ *   type     — фильтр по типу: "all" (default), "furniture", "doorOrWindow" (опционально)
  *
  * Ответ:
- *   furniture — массив [{name, category, width, depth, height}, ...]
+ *   furniture — массив [{name, category, width, depth, height, isDoorOrWindow}, ...]
  *
  * EDT: не требуется (каталог read-only, thread-safe)
  * </pre>
@@ -36,8 +38,19 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
     public Response execute(Request request, HomeAccessor accessor) {
         String query = request.getString("query");
         String categoryFilter = request.getString("category");
+        String typeFilter = request.getString("type");
         String lowerQuery = query != null ? query.toLowerCase() : null;
         String lowerCategory = categoryFilter != null ? categoryFilter.toLowerCase() : null;
+
+        if (typeFilter != null) {
+            String lowerType = typeFilter.toLowerCase();
+            if (!"all".equals(lowerType) && !"furniture".equals(lowerType)
+                    && !"doororwindow".equals(lowerType)) {
+                return Response.error("Parameter 'type' must be 'all', 'furniture', "
+                        + "or 'doorOrWindow', got '" + typeFilter + "'");
+            }
+            typeFilter = lowerType;
+        }
 
         FurnitureCatalog catalog = accessor.getFurnitureCatalog();
         List<Object> results = new ArrayList<>();
@@ -60,6 +73,11 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
                         && !pieceName.toLowerCase().contains(lowerQuery)) {
                     continue;
                 }
+                if (typeFilter != null && !"all".equals(typeFilter)) {
+                    boolean isDoorOrWindow = piece.isDoorOrWindow();
+                    if ("furniture".equals(typeFilter) && isDoorOrWindow) continue;
+                    if ("doororwindow".equals(typeFilter) && !isDoorOrWindow) continue;
+                }
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("name", pieceName);
                 String pieceId = piece.getId();
@@ -70,6 +88,7 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
                 item.put("width", round2(piece.getWidth()));
                 item.put("depth", round2(piece.getDepth()));
                 item.put("height", round2(piece.getHeight()));
+                item.put("isDoorOrWindow", piece.isDoorOrWindow());
                 results.add(item);
             }
         }
@@ -82,11 +101,12 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
     @Override
     public String getDescription() {
         return "Lists furniture in the Sweet Home 3D catalog. "
-                + "Can filter by name query and/or category. "
-                + "Returns furniture names, categories, and dimensions. "
+                + "Can filter by name query, category, and/or type (furniture vs doors/windows). "
+                + "Returns furniture names, categories, dimensions, and isDoorOrWindow flag. "
                 + "TIP: Call list_categories first to see available categories, "
                 + "then use the category filter here to browse a specific category. "
-                + "Use query for direct name search when you know what you're looking for.";
+                + "Use query for direct name search when you know what you're looking for. "
+                + "Use type='doorOrWindow' to list only doors and windows for place_door_or_window.";
     }
 
     @Override
@@ -97,6 +117,10 @@ public class ListFurnitureCatalogHandler implements CommandHandler, CommandDescr
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("query", prop("string", "Search query for furniture name"));
         properties.put("category", prop("string", "Filter by category name"));
+        properties.put("type", enumProp(
+                "Filter by type: 'all' (default), 'furniture' (excludes doors/windows), "
+                        + "'doorOrWindow' (only doors and windows)",
+                "all", "furniture", "doorOrWindow"));
         schema.put("properties", properties);
 
         return schema;

@@ -281,6 +281,75 @@ class CatalogSearchUtilTest {
         assertFalse(result.isFound());
     }
 
+    // ==================== Alias fallback ====================
+
+    @Test
+    void testAliasFallbackFindsAlternative() throws Exception {
+        // Add "Siphon bathtub" — searching "bath" won't substring-match
+        // because "bath" IS contained in "bathtub", so it matches.
+        // Let's create a scenario where direct match fails but alias works:
+        // Search "tv" -> catalog has "Television set"
+        FurnitureCategory media = new FurnitureCategory("Media");
+        CatalogPieceOfFurniture tvSet = createPiece(
+                "Television set", 120f, 30f, 80f, true);
+        furnitureCatalog.add(media, tvSet);
+
+        // Direct search "tv" won't find "Television set" (no substring "tv" in "Television set")
+        // But alias "tv" -> ["tv", "television"] will match "television" substring
+        CatalogSearchUtil.FurnitureSearchResult result =
+                CatalogSearchUtil.findFurniture(furnitureCatalog, "tv", null, null);
+
+        assertTrue(result.isFound());
+        assertEquals("Television set", result.getFound().getName());
+    }
+
+    @Test
+    void testDirectMatchPrioritizedOverAlias() {
+        // "door" directly matches "Door" (exact) — alias should not be tried
+        CatalogSearchUtil.FurnitureSearchResult result =
+                CatalogSearchUtil.findFurniture(furnitureCatalog, "door", null, null);
+
+        assertTrue(result.isFound());
+        assertEquals("Door", result.getFound().getName());
+    }
+
+    @Test
+    void testAliasNotTriedWhenSubstringMatches() {
+        // "table" substring-matches "Dining Table" — alias not needed
+        CatalogSearchUtil.FurnitureSearchResult result =
+                CatalogSearchUtil.findFurniture(furnitureCatalog, "table", null, null);
+
+        assertTrue(result.isFound());
+        assertTrue(result.getFound().getName().contains("Table"));
+    }
+
+    @Test
+    void testAliasWithFilterApplied() throws Exception {
+        // Add "Television set" as regular furniture
+        FurnitureCategory media = new FurnitureCategory("Media");
+        CatalogPieceOfFurniture tvSet = createPiece(
+                "Television set", 120f, 30f, 80f, true);
+        furnitureCatalog.add(media, tvSet);
+
+        // Search "tv" with isDoorOrWindow filter — should not find TV (it's furniture)
+        CatalogSearchUtil.FurnitureSearchResult result =
+                CatalogSearchUtil.findFurniture(
+                        furnitureCatalog, "tv", null,
+                        CatalogPieceOfFurniture::isDoorOrWindow);
+
+        assertFalse(result.isFound());
+    }
+
+    @Test
+    void testNoAliasForUnknownTerm() {
+        // "helicopter" has no alias — should remain not found
+        CatalogSearchUtil.FurnitureSearchResult result =
+                CatalogSearchUtil.findFurniture(furnitureCatalog, "helicopter", null, null);
+
+        assertFalse(result.isFound());
+        assertFalse(result.isError());
+    }
+
     // ==================== Helpers ====================
 
     private static CatalogPieceOfFurniture createPiece(

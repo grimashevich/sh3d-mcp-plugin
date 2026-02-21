@@ -151,6 +151,24 @@ final class CatalogSearchUtil {
             return FurnitureSearchResult.of(substringMatches.get(0));
         }
 
+        // 3. Alias fallback: try alternative search terms
+        String[] alternatives = CatalogAliases.getAlternatives(lowerQuery);
+        if (alternatives != null) {
+            for (String alt : alternatives) {
+                String lowerAlt = alt.toLowerCase();
+                for (FurnitureCategory category : catalog.getCategories()) {
+                    for (CatalogPieceOfFurniture piece : category.getFurniture()) {
+                        if (filter != null && !filter.test(piece)) continue;
+                        String pieceName = piece.getName();
+                        if (pieceName == null) continue;
+                        if (pieceName.toLowerCase().contains(lowerAlt)) {
+                            return FurnitureSearchResult.of(piece);
+                        }
+                    }
+                }
+            }
+        }
+
         return FurnitureSearchResult.notFound();
     }
 
