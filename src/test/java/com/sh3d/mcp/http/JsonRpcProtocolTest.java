@@ -1,6 +1,6 @@
 package com.sh3d.mcp.http;
 
-import com.sh3d.mcp.plugin.SH3DMcpPlugin;
+import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.protocol.JsonUtil;
 import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.Test;
@@ -275,7 +275,7 @@ class JsonRpcProtocolTest {
         Map<String, Object> result = (Map<String, Object>) parsed.get("result");
         Map<String, Object> serverInfo = (Map<String, Object>) result.get("serverInfo");
         assertEquals("sweethome3d", serverInfo.get("name"));
-        assertEquals(SH3DMcpPlugin.PLUGIN_VERSION, serverInfo.get("version"));
+        assertEquals(PluginConfig.PLUGIN_VERSION, serverInfo.get("version"));
     }
 
     @Test

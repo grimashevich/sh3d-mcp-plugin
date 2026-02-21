@@ -62,7 +62,7 @@ import java.util.logging.SimpleFormatter;
  */
 public class SH3DMcpPlugin extends Plugin {
 
-    public static final String PLUGIN_VERSION = "0.9.0";
+    public static final String PLUGIN_VERSION = PluginConfig.PLUGIN_VERSION;
 
     private static final Logger LOG = Logger.getLogger(SH3DMcpPlugin.class.getName());
 

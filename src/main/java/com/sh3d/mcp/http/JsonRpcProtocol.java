@@ -1,6 +1,6 @@
 package com.sh3d.mcp.http;
 
-import com.sh3d.mcp.plugin.SH3DMcpPlugin;
+import com.sh3d.mcp.config.PluginConfig;
 import com.sh3d.mcp.protocol.JsonUtil;
 import com.sh3d.mcp.protocol.Response;
 
@@ -109,7 +109,7 @@ public final class JsonRpcProtocol {
 
         Map<String, Object> serverInfo = new LinkedHashMap<>();
         serverInfo.put("name", "sweethome3d");
-        serverInfo.put("version", SH3DMcpPlugin.PLUGIN_VERSION);
+        serverInfo.put("version", PluginConfig.PLUGIN_VERSION);
         result.put("serverInfo", serverInfo);
 
         return formatResult(id, result);

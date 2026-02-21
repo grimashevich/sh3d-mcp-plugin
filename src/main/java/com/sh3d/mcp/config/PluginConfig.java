@@ -12,6 +12,8 @@ import java.util.Properties;
  */
 public class PluginConfig {
 
+    public static final String PLUGIN_VERSION = "0.9.0";
+
     public static final int DEFAULT_PORT = 9877;
     public static final boolean DEFAULT_AUTO_START = true;
     public static final String DEFAULT_LOG_LEVEL = "INFO";
