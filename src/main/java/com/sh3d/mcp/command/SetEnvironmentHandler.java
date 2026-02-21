@@ -9,7 +9,6 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.colorToHex;
-import static com.sh3d.mcp.command.FormatUtil.parseHexColor;
 import static com.sh3d.mcp.command.FormatUtil.round2;
 import static com.sh3d.mcp.command.SchemaUtil.enumProp;
 import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
@@ -52,56 +51,24 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
         }
 
         // --- Parse colors outside EDT ---
-        Integer groundColor = null;
-        boolean hasGroundColor = params.containsKey("groundColor");
-        if (hasGroundColor) {
-            Object val = params.get("groundColor");
-            if (val == null) {
-                return Response.error("groundColor cannot be null. Use '#RRGGBB' format");
-            }
-            groundColor = parseHexColor(val.toString());
-            if (groundColor == null) {
-                return Response.error("Invalid groundColor format: '" + val + "'. Expected '#RRGGBB'");
-            }
+        ColorParser.ColorResult groundColorResult = ColorParser.parseRequired(params, "groundColor");
+        if (groundColorResult != null && groundColorResult.hasError()) {
+            return Response.error(groundColorResult.error);
         }
 
-        Integer skyColor = null;
-        boolean hasSkyColor = params.containsKey("skyColor");
-        if (hasSkyColor) {
-            Object val = params.get("skyColor");
-            if (val == null) {
-                return Response.error("skyColor cannot be null. Use '#RRGGBB' format");
-            }
-            skyColor = parseHexColor(val.toString());
-            if (skyColor == null) {
-                return Response.error("Invalid skyColor format: '" + val + "'. Expected '#RRGGBB'");
-            }
+        ColorParser.ColorResult skyColorResult = ColorParser.parseRequired(params, "skyColor");
+        if (skyColorResult != null && skyColorResult.hasError()) {
+            return Response.error(skyColorResult.error);
         }
 
-        Integer lightColor = null;
-        boolean hasLightColor = params.containsKey("lightColor");
-        if (hasLightColor) {
-            Object val = params.get("lightColor");
-            if (val == null) {
-                return Response.error("lightColor cannot be null. Use '#RRGGBB' format");
-            }
-            lightColor = parseHexColor(val.toString());
-            if (lightColor == null) {
-                return Response.error("Invalid lightColor format: '" + val + "'. Expected '#RRGGBB'");
-            }
+        ColorParser.ColorResult lightColorResult = ColorParser.parseRequired(params, "lightColor");
+        if (lightColorResult != null && lightColorResult.hasError()) {
+            return Response.error(lightColorResult.error);
         }
 
-        Integer ceilingLightColor = null;
-        boolean hasCeilingLightColor = params.containsKey("ceilingLightColor");
-        if (hasCeilingLightColor) {
-            Object val = params.get("ceilingLightColor");
-            if (val == null) {
-                return Response.error("ceilingLightColor cannot be null. Use '#RRGGBB' format");
-            }
-            ceilingLightColor = parseHexColor(val.toString());
-            if (ceilingLightColor == null) {
-                return Response.error("Invalid ceilingLightColor format: '" + val + "'. Expected '#RRGGBB'");
-            }
+        ColorParser.ColorResult ceilingLightColorResult = ColorParser.parseRequired(params, "ceilingLightColor");
+        if (ceilingLightColorResult != null && ceilingLightColorResult.hasError()) {
+            return Response.error(ceilingLightColorResult.error);
         }
 
         // --- Parse wallsAlpha ---
@@ -184,10 +151,14 @@ public class SetEnvironmentHandler implements CommandHandler, CommandDescriptor 
         }
 
         // --- Capture for lambda ---
-        final int finalGroundColor = hasGroundColor ? groundColor : 0;
-        final int finalSkyColor = hasSkyColor ? skyColor : 0;
-        final int finalLightColor = hasLightColor ? lightColor : 0;
-        final int finalCeilingLightColor = hasCeilingLightColor ? ceilingLightColor : 0;
+        final boolean hasGroundColor = groundColorResult != null;
+        final int finalGroundColor = hasGroundColor ? groundColorResult.value : 0;
+        final boolean hasSkyColor = skyColorResult != null;
+        final int finalSkyColor = hasSkyColor ? skyColorResult.value : 0;
+        final boolean hasLightColor = lightColorResult != null;
+        final int finalLightColor = hasLightColor ? lightColorResult.value : 0;
+        final boolean hasCeilingLightColor = ceilingLightColorResult != null;
+        final int finalCeilingLightColor = hasCeilingLightColor ? ceilingLightColorResult.value : 0;
         final float finalWallsAlpha = hasWallsAlpha ? wallsAlpha : 0f;
         final HomeEnvironment.DrawingMode finalDrawingMode = drawingMode;
         final boolean finalAllLevelsVisible = allLevelsVisible != null && allLevelsVisible;

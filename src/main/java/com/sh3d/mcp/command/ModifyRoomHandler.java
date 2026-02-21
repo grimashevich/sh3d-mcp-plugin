@@ -8,7 +8,6 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.colorToHex;
-import static com.sh3d.mcp.command.FormatUtil.parseHexColor;
 import static com.sh3d.mcp.command.FormatUtil.round2;
 import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
@@ -47,34 +46,14 @@ public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
         }
 
         // Parse and validate colors before EDT
-        Integer floorColor = null;
-        boolean hasFloorColor = params.containsKey("floorColor");
-        boolean clearFloorColor = false;
-        if (hasFloorColor) {
-            Object val = params.get("floorColor");
-            if (val == null) {
-                clearFloorColor = true;
-            } else {
-                floorColor = parseHexColor(val.toString());
-                if (floorColor == null) {
-                    return Response.error("Invalid floorColor format: '" + val + "'. Expected '#RRGGBB'");
-                }
-            }
+        ColorParser.ColorResult floorColorResult = ColorParser.parseNullable(params, "floorColor");
+        if (floorColorResult != null && floorColorResult.hasError()) {
+            return Response.error(floorColorResult.error);
         }
 
-        Integer ceilingColor = null;
-        boolean hasCeilingColor = params.containsKey("ceilingColor");
-        boolean clearCeilingColor = false;
-        if (hasCeilingColor) {
-            Object val = params.get("ceilingColor");
-            if (val == null) {
-                clearCeilingColor = true;
-            } else {
-                ceilingColor = parseHexColor(val.toString());
-                if (ceilingColor == null) {
-                    return Response.error("Invalid ceilingColor format: '" + val + "'. Expected '#RRGGBB'");
-                }
-            }
+        ColorParser.ColorResult ceilingColorResult = ColorParser.parseNullable(params, "ceilingColor");
+        if (ceilingColorResult != null && ceilingColorResult.hasError()) {
+            return Response.error(ceilingColorResult.error);
         }
 
         // Validate shininess before EDT
@@ -84,12 +63,12 @@ public class ModifyRoomHandler implements CommandHandler, CommandDescriptor {
         }
 
         // Capture for lambda
-        final Integer finalFloorColor = floorColor;
-        final boolean doSetFloorColor = hasFloorColor;
-        final boolean doClearFloorColor = clearFloorColor;
-        final Integer finalCeilingColor = ceilingColor;
-        final boolean doSetCeilingColor = hasCeilingColor;
-        final boolean doClearCeilingColor = clearCeilingColor;
+        final boolean doSetFloorColor = floorColorResult != null;
+        final boolean doClearFloorColor = doSetFloorColor && floorColorResult.clear;
+        final int finalFloorColor = doSetFloorColor ? floorColorResult.value : 0;
+        final boolean doSetCeilingColor = ceilingColorResult != null;
+        final boolean doClearCeilingColor = doSetCeilingColor && ceilingColorResult.clear;
+        final int finalCeilingColor = doSetCeilingColor ? ceilingColorResult.value : 0;
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();

@@ -8,7 +8,6 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.colorToHex;
-import static com.sh3d.mcp.command.FormatUtil.parseHexColor;
 import static com.sh3d.mcp.command.FormatUtil.round2;
 import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
@@ -203,52 +202,39 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         ParsedColors c = new ParsedColors();
 
         // 'color' shortcut
-        if (params.containsKey("color")) {
-            Object val = params.get("color");
-            if (val == null) {
-                c.colorBoth = 0;
-                c.colorBothClear = true;
-            } else {
-                Integer parsed = parseHexColor(val.toString());
-                if (parsed == null) {
-                    c.error = "Invalid color format: '" + val + "'. Expected '#RRGGBB'";
-                    return c;
-                }
-                c.colorBoth = parsed;
+        ColorParser.ColorResult colorBothResult = ColorParser.parseNullable(params, "color");
+        if (colorBothResult != null) {
+            if (colorBothResult.hasError()) {
+                c.error = colorBothResult.error;
+                return c;
             }
+            c.colorBoth = colorBothResult.clear ? 0 : colorBothResult.value;
+            c.colorBothClear = colorBothResult.clear;
         }
 
         // Individual colors
-        c.error = parseSideColor(params, "leftSideColor", c, "left");
-        if (c.error != null) return c;
-        c.error = parseSideColor(params, "rightSideColor", c, "right");
-        if (c.error != null) return c;
-        c.error = parseSideColor(params, "topColor", c, "top");
-        return c;
-    }
+        ColorParser.ColorResult leftResult = ColorParser.parseNullable(params, "leftSideColor");
+        if (leftResult != null) {
+            if (leftResult.hasError()) { c.error = leftResult.error; return c; }
+            c.leftColor = leftResult.clear ? 0 : leftResult.value;
+            c.leftColorClear = leftResult.clear;
+        }
 
-    private static String parseSideColor(Map<String, Object> params, String key,
-                                         ParsedColors c, String side) {
-        if (!params.containsKey(key)) return null;
-        Object val = params.get(key);
-        if (val == null) {
-            switch (side) {
-                case "left": c.leftColor = 0; c.leftColorClear = true; break;
-                case "right": c.rightColor = 0; c.rightColorClear = true; break;
-                case "top": c.topColor = 0; c.topColorClear = true; break;
-            }
-            return null;
+        ColorParser.ColorResult rightResult = ColorParser.parseNullable(params, "rightSideColor");
+        if (rightResult != null) {
+            if (rightResult.hasError()) { c.error = rightResult.error; return c; }
+            c.rightColor = rightResult.clear ? 0 : rightResult.value;
+            c.rightColorClear = rightResult.clear;
         }
-        Integer parsed = parseHexColor(val.toString());
-        if (parsed == null) {
-            return "Invalid " + key + " format: '" + val + "'. Expected '#RRGGBB'";
+
+        ColorParser.ColorResult topResult = ColorParser.parseNullable(params, "topColor");
+        if (topResult != null) {
+            if (topResult.hasError()) { c.error = topResult.error; return c; }
+            c.topColor = topResult.clear ? 0 : topResult.value;
+            c.topColorClear = topResult.clear;
         }
-        switch (side) {
-            case "left": c.leftColor = parsed; break;
-            case "right": c.rightColor = parsed; break;
-            case "top": c.topColor = parsed; break;
-        }
-        return null;
+
+        return c;
     }
 
     private static String validateShininess(Map<String, Object> params) {
