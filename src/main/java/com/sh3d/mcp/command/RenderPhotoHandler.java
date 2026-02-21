@@ -3,14 +3,10 @@ package com.sh3d.mcp.command;
 import com.eteks.sweethome3d.j3d.AbstractPhotoRenderer;
 import com.eteks.sweethome3d.j3d.PhotoRenderer;
 import com.eteks.sweethome3d.model.Camera;
-import com.eteks.sweethome3d.model.Elevatable;
 import com.eteks.sweethome3d.model.Home;
-import com.eteks.sweethome3d.model.HomeFurnitureGroup;
-import com.eteks.sweethome3d.model.HomePieceOfFurniture;
 import com.eteks.sweethome3d.model.Room;
 import com.eteks.sweethome3d.model.Wall;
 import com.sh3d.mcp.bridge.HomeAccessor;
-import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
@@ -25,7 +21,6 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,7 +30,6 @@ import static com.sh3d.mcp.command.SchemaUtil.prop;
 import static com.sh3d.mcp.command.SchemaUtil.propWithDefault;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
@@ -79,6 +73,9 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
 
     private static final Logger LOG = Logger.getLogger(RenderPhotoHandler.class.getName());
 
+    private final SceneBoundsCalculator boundsCalculator = new SceneBoundsCalculator();
+    private final OverheadCameraComputer cameraComputer = new OverheadCameraComputer();
+
     /** Default image width in pixels for standard and inline overhead modes. */
     private static final int DEFAULT_WIDTH = 800;
     /** Default image height in pixels for standard and inline overhead modes. */
@@ -92,10 +89,6 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     static final float DEFAULT_FOCUS_PITCH_DEG = 55.0f;
     /** Default camera field of view in degrees. */
     private static final float DEFAULT_FOV_DEG = 63.0f;
-    /** Safety margin multiplier (5%) applied to camera distance to ensure the scene fits within the frame. */
-    private static final float OVERHEAD_MARGIN = 1.05f;
-    /** Minimum scene height in cm, used as floor for maxZ when scene is very flat. */
-    private static final float MIN_SCENE_HEIGHT = 100.0f;
 
     /** Default image width in pixels for overhead mode with filePath (higher resolution). */
     static final int DEFAULT_OVERHEAD_WIDTH = 1200;
@@ -105,13 +98,6 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
     static final float OVERHEAD_WALL_HEIGHT = 1.0f;
     /** Default floor color (light grey, RGB 0xE0E0E0) applied to rooms without texture. */
     static final int DEFAULT_FLOOR_COLOR = 0xE0E0E0;
-    /** Padding around focused furniture as a ratio of its largest dimension (50%). */
-    static final float FURNITURE_PADDING_RATIO = 0.5f;
-    /** Minimum padding around focused furniture in cm, even for small items. */
-    static final float MIN_FURNITURE_PADDING = 200.0f;
-    /** Fixed padding around focused room in cm. */
-    static final float ROOM_PADDING = 50.0f;
-
     /** JPEG compression quality (0.0-1.0). 0.85 balances file size and visual quality. */
     static final float JPEG_QUALITY = 0.85f;
 
@@ -314,13 +300,13 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         // Bounding box: focusOn → конкретный объект, иначе вся сцена
         SceneBounds bounds;
         if (focusOn != null) {
-            bounds = computeFocusBounds(accessor, focusType, focusId);
+            bounds = boundsCalculator.computeFocusBounds(accessor, focusType, focusId);
             if (bounds == null) {
                 String label = focusType.substring(0, 1).toUpperCase() + focusType.substring(1);
                 return Response.error(label + " not found: " + focusId);
             }
         } else {
-            bounds = computeSceneBounds(accessor);
+            bounds = boundsCalculator.computeSceneBounds(accessor);
             if (bounds == null) {
                 return Response.error("Cannot compute overhead view: scene is empty "
                         + "(no walls, furniture, or rooms)");
@@ -339,7 +325,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         // Вычисляем камеры для каждого ракурса
         List<Camera> cameras = new ArrayList<>();
         for (int i = 0; i < angles; i++) {
-            cameras.add(computeOverheadCamera(baseCamera, bounds,
+            cameras.add(cameraComputer.computeOverheadCamera(baseCamera, bounds,
                     OVERHEAD_YAWS[i], pitchDeg, fovDeg, width, height));
         }
 
@@ -444,231 +430,7 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         return Response.ok(data);
     }
 
-    // --- Bounding box ---
-
-    /** Package-private для тестов. */
-    SceneBounds computeSceneBounds(HomeAccessor accessor) {
-        return accessor.runOnEDT(() -> {
-            Home home = accessor.getHome();
-            float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
-            float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
-            float maxZ = 0;
-            boolean hasContent = false;
-
-            // Стены
-            for (Wall wall : home.getWalls()) {
-                if (isLevelHidden(wall)) {
-                    continue;
-                }
-                float[][] points = wall.getPoints();
-                for (float[] pt : points) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                Float wallHeight = wall.getHeight();
-                float h = wallHeight != null ? wallHeight : home.getWallHeight();
-                float baseElevation = wall.getLevel() != null ? wall.getLevel().getElevation() : 0;
-                maxZ = Math.max(maxZ, baseElevation + h);
-                hasContent = true;
-            }
-
-            // Мебель
-            for (HomePieceOfFurniture piece : home.getFurniture()) {
-                if (!piece.isVisible()) {
-                    continue;
-                }
-                if (isLevelHidden(piece)) {
-                    continue;
-                }
-                if (piece instanceof HomeFurnitureGroup) {
-                    for (HomePieceOfFurniture child : ((HomeFurnitureGroup) piece).getFurniture()) {
-                        if (child.isVisible()) {
-                            float[][] pts = child.getPoints();
-                            for (float[] pt : pts) {
-                                minX = Math.min(minX, pt[0]);
-                                minY = Math.min(minY, pt[1]);
-                                maxX = Math.max(maxX, pt[0]);
-                                maxY = Math.max(maxY, pt[1]);
-                            }
-                            maxZ = Math.max(maxZ, child.getElevation() + child.getHeight());
-                            hasContent = true;
-                        }
-                    }
-                } else {
-                    float[][] pts = piece.getPoints();
-                    for (float[] pt : pts) {
-                        minX = Math.min(minX, pt[0]);
-                        minY = Math.min(minY, pt[1]);
-                        maxX = Math.max(maxX, pt[0]);
-                        maxY = Math.max(maxY, pt[1]);
-                    }
-                    maxZ = Math.max(maxZ, piece.getElevation() + piece.getHeight());
-                    hasContent = true;
-                }
-            }
-
-            // Комнаты
-            for (Room room : home.getRooms()) {
-                if (isLevelHidden(room)) {
-                    continue;
-                }
-                float[][] points = room.getPoints();
-                for (float[] pt : points) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                hasContent = true;
-            }
-
-            if (!hasContent) {
-                return null;
-            }
-
-            SceneBounds bounds = new SceneBounds();
-            bounds.minX = minX;
-            bounds.minY = minY;
-            bounds.maxX = maxX;
-            bounds.maxY = maxY;
-            bounds.maxZ = Math.max(maxZ, MIN_SCENE_HEIGHT);
-            bounds.centerX = (minX + maxX) / 2;
-            bounds.centerY = (minY + maxY) / 2;
-            bounds.sceneWidth = maxX - minX;
-            bounds.sceneDepth = maxY - minY;
-            return bounds;
-        });
-    }
-
-    /** Package-private для тестов. Вычисляет bounds конкретного объекта + padding. */
-    SceneBounds computeFocusBounds(HomeAccessor accessor, String type, String id) {
-        return accessor.runOnEDT(() -> {
-            Home home = accessor.getHome();
-            float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
-            float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
-            float maxZ = 0;
-
-            if ("furniture".equals(type)) {
-                HomePieceOfFurniture piece = ObjectResolver.findFurniture(home, id);
-                if (piece == null) {
-                    return null;
-                }
-                float[][] pts = piece.getPoints();
-                for (float[] pt : pts) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                maxZ = piece.getElevation() + piece.getHeight();
-            } else if ("room".equals(type)) {
-                Room room = ObjectResolver.findRoom(home, id);
-                if (room == null) {
-                    return null;
-                }
-                float[][] pts = room.getPoints();
-                for (float[] pt : pts) {
-                    minX = Math.min(minX, pt[0]);
-                    minY = Math.min(minY, pt[1]);
-                    maxX = Math.max(maxX, pt[0]);
-                    maxY = Math.max(maxY, pt[1]);
-                }
-                maxZ = home.getWallHeight();
-            } else {
-                return null;
-            }
-
-            maxZ = Math.max(maxZ, MIN_SCENE_HEIGHT);
-
-            // Padding: мебель — 50% от размера (min 100 см), комната — фикс. 50 см
-            float w = maxX - minX;
-            float d = maxY - minY;
-            float padding;
-            if ("furniture".equals(type)) {
-                padding = Math.max(Math.max(w, d) * FURNITURE_PADDING_RATIO, MIN_FURNITURE_PADDING);
-            } else {
-                padding = ROOM_PADDING;
-            }
-            minX -= padding;
-            minY -= padding;
-            maxX += padding;
-            maxY += padding;
-
-            SceneBounds bounds = new SceneBounds();
-            bounds.minX = minX;
-            bounds.minY = minY;
-            bounds.maxX = maxX;
-            bounds.maxY = maxY;
-            bounds.maxZ = maxZ;
-            bounds.centerX = (minX + maxX) / 2;
-            bounds.centerY = (minY + maxY) / 2;
-            bounds.sceneWidth = maxX - minX;
-            bounds.sceneDepth = maxY - minY;
-            return bounds;
-        });
-    }
-
-    private static boolean isLevelHidden(Object item) {
-        if (item instanceof Elevatable) {
-            com.eteks.sweethome3d.model.Level level = ((Elevatable) item).getLevel();
-            if (level != null && !level.isViewableAndVisible()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // --- Camera computation ---
-
-    /** Package-private для тестов. */
-    Camera computeOverheadCamera(Camera template, SceneBounds bounds,
-                                 float yawDeg, float pitchDeg, float fovDeg,
-                                 int imageWidth, int imageHeight) {
-        Camera cam = template.clone();
-
-        float pitchRad = (float) Math.toRadians(pitchDeg);
-        float yawRad = (float) Math.toRadians(yawDeg);
-        float fovRad = (float) Math.toRadians(fovDeg);
-
-        // Derive vertical FOV from horizontal FOV using the image aspect ratio
-        float vFov = (float) (2 * Math.atan(Math.tan(fovRad / 2) * imageHeight / imageWidth));
-
-        // Use scene diagonal as worst-case extent (fits any yaw rotation)
-        float diagonal = (float) Math.sqrt(
-                bounds.sceneWidth * bounds.sceneWidth + bounds.sceneDepth * bounds.sceneDepth);
-        diagonal = Math.max(diagonal, 50.0f); // avoid division by zero for point-like scenes
-
-        // Horizontal distance: ensure the full diagonal fits within the horizontal FOV
-        float hDist = (diagonal / 2) / (float) Math.tan(fovRad / 2);
-
-        // Vertical distance: project scene depth and height onto the camera's vertical axis
-        // fullVertExtent = diagonal projected through pitch + scene height projected through pitch
-        float fullVertExtent = diagonal * (float) Math.sin(pitchRad)
-                + bounds.maxZ * (float) Math.cos(pitchRad);
-        float vDist = (fullVertExtent / 2) / (float) Math.tan(vFov / 2);
-
-        float distance = Math.max(hDist, vDist) * OVERHEAD_MARGIN;
-
-        // Позиция: от центра назад по вектору, обратному направлению взгляда
-        // SH3D direction convention: lookDir = (-sin(yaw), cos(yaw))
-        // Camera position = center - lookDir * distance * cos(pitch)
-        //                 = center + (sin(yaw), -cos(yaw)) * distance * cos(pitch)
-        float cosPitch = (float) Math.cos(pitchRad);
-        float camX = bounds.centerX + distance * cosPitch * (float) Math.sin(yawRad);
-        float camY = bounds.centerY - distance * cosPitch * (float) Math.cos(yawRad);
-        float camZ = bounds.maxZ / 2 + distance * (float) Math.sin(pitchRad);
-
-        cam.setX(camX);
-        cam.setY(camY);
-        cam.setZ(camZ);
-        cam.setYaw(yawRad);
-        cam.setPitch(pitchRad);
-        cam.setFieldOfView(fovRad);
-
-        return cam;
-    }
+    // Bounds and camera computation delegated to SceneBoundsCalculator and OverheadCameraComputer
 
     // --- Single image render ---
 
@@ -841,13 +603,6 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
             return rgb;
         }
         return image;
-    }
-
-    // --- Value object ---
-
-    static class SceneBounds {
-        float minX, minY, maxX, maxY, maxZ;
-        float centerX, centerY, sceneWidth, sceneDepth;
     }
 
     // --- Descriptor ---

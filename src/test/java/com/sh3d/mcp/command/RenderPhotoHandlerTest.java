@@ -11,7 +11,6 @@ import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +20,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class RenderPhotoHandlerTest {
 
     private RenderPhotoHandler handler;
+    private SceneBoundsCalculator boundsCalculator;
+    private OverheadCameraComputer cameraComputer;
     private HomeAccessor accessor;
     private Home home;
 
     @BeforeEach
     void setUp() {
         handler = new RenderPhotoHandler();
+        boundsCalculator = new SceneBoundsCalculator();
+        cameraComputer = new OverheadCameraComputer();
         home = new Home();
         accessor = new HomeAccessor(home, null);
     }
@@ -325,14 +328,14 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testSceneBoundsEmptyScene() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
         assertNull(bounds);
     }
 
     @Test
     void testSceneBoundsWallsOnly() {
         addWalls(); // Прямоугольник 0,0 -> 500,400
-        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
         assertNotNull(bounds);
 
         // Стены имеют толщину, поэтому bounds немного выходят за точки
@@ -356,7 +359,7 @@ class RenderPhotoHandlerTest {
         piece.setY(200);
         home.addPieceOfFurniture(piece);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
         assertNotNull(bounds);
         assertTrue(bounds.maxX >= 600, "Furniture should expand maxX, got " + bounds.maxX);
     }
@@ -368,7 +371,7 @@ class RenderPhotoHandlerTest {
         Room room = new Room(points);
         home.addRoom(room);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
         assertNotNull(bounds);
         assertTrue(bounds.minX <= 0, "minX should be <= 0");
         assertTrue(bounds.maxX >= 600, "maxX should be >= 600");
@@ -386,7 +389,7 @@ class RenderPhotoHandlerTest {
         piece.setVisible(false);
         home.addPieceOfFurniture(piece);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
         assertNotNull(bounds);
         assertTrue(bounds.maxX < 900, "Invisible furniture should not expand bounds, maxX=" + bounds.maxX);
     }
@@ -398,7 +401,7 @@ class RenderPhotoHandlerTest {
         Room room = new Room(points);
         home.addRoom(room);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeSceneBounds(accessor);
+        SceneBounds bounds = boundsCalculator.computeSceneBounds(accessor);
         assertNotNull(bounds);
         assertTrue(bounds.maxZ >= 100, "maxZ should be at least 100, got " + bounds.maxZ);
     }
@@ -409,9 +412,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraNWPosition() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
 
         // yaw=315: camera in NW, looking SE
         // NW = x < centerX, y < centerY
@@ -423,9 +426,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraSEPosition() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 135, 30, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 135, 30, 63, 800, 600);
 
         // yaw=135: camera in SE, looking NW
         assertTrue(cam.getX() > bounds.centerX,
@@ -436,9 +439,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraZAboveScene() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
 
         assertTrue(cam.getZ() > bounds.maxZ,
                 "Camera Z should be above scene maxZ, got " + cam.getZ() + " vs maxZ=" + bounds.maxZ);
@@ -446,9 +449,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraPitchApplied() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
 
         assertEquals(Math.toRadians(30), cam.getPitch(), 0.001,
                 "Pitch should be 30 degrees in radians");
@@ -456,9 +459,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraCustomPitch() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 45, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 315, 45, 63, 800, 600);
 
         assertEquals(Math.toRadians(45), cam.getPitch(), 0.001,
                 "Pitch should be 45 degrees in radians");
@@ -466,9 +469,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraFovApplied() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
 
         assertEquals(Math.toRadians(63), cam.getFieldOfView(), 0.001,
                 "FOV should be 63 degrees in radians");
@@ -476,9 +479,9 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraYawApplied() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
-        Camera cam = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera cam = cameraComputer.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
 
         assertEquals(Math.toRadians(315), cam.getYaw(), 0.001,
                 "Yaw should be 315 degrees in radians");
@@ -486,14 +489,14 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testOverheadCameraAllFourPositions() {
-        RenderPhotoHandler.SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
+        SceneBounds bounds = createTestBounds(0, 0, 500, 400, 250);
         Camera template = new Camera(0f, 0f, 170f, 0f, 0f, (float) Math.toRadians(63));
 
         // Все 4 камеры должны быть в разных квадрантах
-        Camera nw = handler.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
-        Camera se = handler.computeOverheadCamera(template, bounds, 135, 30, 63, 800, 600);
-        Camera ne = handler.computeOverheadCamera(template, bounds, 45, 30, 63, 800, 600);
-        Camera sw = handler.computeOverheadCamera(template, bounds, 225, 30, 63, 800, 600);
+        Camera nw = cameraComputer.computeOverheadCamera(template, bounds, 315, 30, 63, 800, 600);
+        Camera se = cameraComputer.computeOverheadCamera(template, bounds, 135, 30, 63, 800, 600);
+        Camera ne = cameraComputer.computeOverheadCamera(template, bounds, 45, 30, 63, 800, 600);
+        Camera sw = cameraComputer.computeOverheadCamera(template, bounds, 225, 30, 63, 800, 600);
 
         // NW: x < center, y < center
         assertTrue(nw.getX() < bounds.centerX && nw.getY() < bounds.centerY, "NW position");
@@ -599,7 +602,7 @@ class RenderPhotoHandlerTest {
         piece.setY(250);
         home.addPieceOfFurniture(piece);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", piece.getId());
+        SceneBounds bounds = boundsCalculator.computeFocusBounds(accessor, "furniture", piece.getId());
         assertNotNull(bounds);
         // Центр bounds должен быть примерно в позиции мебели
         assertEquals(300, bounds.centerX, 60);
@@ -615,7 +618,7 @@ class RenderPhotoHandlerTest {
         Room room = new Room(points);
         home.addRoom(room);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", room.getId());
+        SceneBounds bounds = boundsCalculator.computeFocusBounds(accessor, "room", room.getId());
         assertNotNull(bounds);
         // Центр = (250, 225), но с padding bounds шире
         assertEquals(250, bounds.centerX, 1);
@@ -633,7 +636,7 @@ class RenderPhotoHandlerTest {
         piece.setY(200);
         home.addPieceOfFurniture(piece);
 
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", piece.getId());
+        SceneBounds bounds = boundsCalculator.computeFocusBounds(accessor, "furniture", piece.getId());
         assertNotNull(bounds);
         // С padding >= 200 с каждой стороны, ширина >= 400
         assertTrue(bounds.sceneWidth >= 400, "Padding should ensure minimum width, got " + bounds.sceneWidth);
@@ -642,19 +645,19 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testFocusBoundsFurnitureNotFound() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "furniture", "nonexistent");
+        SceneBounds bounds = boundsCalculator.computeFocusBounds(accessor, "furniture", "nonexistent");
         assertNull(bounds);
     }
 
     @Test
     void testFocusBoundsRoomNotFound() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "room", "nonexistent");
+        SceneBounds bounds = boundsCalculator.computeFocusBounds(accessor, "room", "nonexistent");
         assertNull(bounds);
     }
 
     @Test
     void testFocusBoundsInvalidType() {
-        RenderPhotoHandler.SceneBounds bounds = handler.computeFocusBounds(accessor, "wall", "nonexistent");
+        SceneBounds bounds = boundsCalculator.computeFocusBounds(accessor, "wall", "nonexistent");
         assertNull(bounds);
     }
 
@@ -705,8 +708,8 @@ class RenderPhotoHandlerTest {
 
     @Test
     void testFocusPaddingConstants() {
-        assertEquals(0.5f, RenderPhotoHandler.FURNITURE_PADDING_RATIO, 0.001);
-        assertEquals(200.0f, RenderPhotoHandler.MIN_FURNITURE_PADDING, 0.001);
+        assertEquals(0.5f, SceneBoundsCalculator.FURNITURE_PADDING_RATIO, 0.001);
+        assertEquals(200.0f, SceneBoundsCalculator.MIN_FURNITURE_PADDING, 0.001);
     }
 
     // ==========================================================
@@ -1027,18 +1030,8 @@ class RenderPhotoHandlerTest {
     }
 
     /** Создаёт SceneBounds для тестов камеры. */
-    private static RenderPhotoHandler.SceneBounds createTestBounds(
+    private static SceneBounds createTestBounds(
             float minX, float minY, float maxX, float maxY, float maxZ) {
-        RenderPhotoHandler.SceneBounds bounds = new RenderPhotoHandler.SceneBounds();
-        bounds.minX = minX;
-        bounds.minY = minY;
-        bounds.maxX = maxX;
-        bounds.maxY = maxY;
-        bounds.maxZ = maxZ;
-        bounds.centerX = (minX + maxX) / 2;
-        bounds.centerY = (minY + maxY) / 2;
-        bounds.sceneWidth = maxX - minX;
-        bounds.sceneDepth = maxY - minY;
-        return bounds;
+        return SceneBounds.of(minX, minY, maxX, maxY, maxZ);
     }
 }
