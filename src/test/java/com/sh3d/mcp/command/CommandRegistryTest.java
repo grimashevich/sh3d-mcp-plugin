@@ -1,5 +1,6 @@
 package com.sh3d.mcp.command;
 
+import com.sh3d.mcp.bridge.CommandException;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;

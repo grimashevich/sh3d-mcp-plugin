@@ -1,4 +1,4 @@
-package com.sh3d.mcp.command;
+package com.sh3d.mcp.bridge;
 
 /**
  * Исключение, возникающее при выполнении команды (EDT-ошибки, бизнес-логика).

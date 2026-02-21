@@ -2,6 +2,7 @@ package com.sh3d.mcp.command;
 
 import com.eteks.sweethome3d.model.Home;
 import com.eteks.sweethome3d.model.Wall;
+import com.sh3d.mcp.bridge.CommandException;
 import com.sh3d.mcp.bridge.CheckpointManager;
 import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
