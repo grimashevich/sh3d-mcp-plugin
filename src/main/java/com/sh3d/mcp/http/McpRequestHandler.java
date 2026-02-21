@@ -297,11 +297,24 @@ public class McpRequestHandler implements HttpHandler {
         if (origin == null) {
             return true;
         }
-        // Допускаем только localhost origins
-        return origin.startsWith("http://localhost")
-                || origin.startsWith("http://127.0.0.1")
-                || origin.startsWith("https://localhost")
-                || origin.startsWith("https://127.0.0.1");
+        // Допускаем только localhost origins (exact match or with port/path)
+        return isLocalhostOrigin(origin, "http://localhost")
+                || isLocalhostOrigin(origin, "http://127.0.0.1")
+                || isLocalhostOrigin(origin, "https://localhost")
+                || isLocalhostOrigin(origin, "https://127.0.0.1");
+    }
+
+    /**
+     * Checks that origin is exactly the given prefix, or the prefix followed by ':' or '/'.
+     * This prevents DNS rebinding attacks like "http://localhost.evil.com".
+     */
+    private static boolean isLocalhostOrigin(String origin, String prefix) {
+        if (!origin.startsWith(prefix)) {
+            return false;
+        }
+        return origin.length() == prefix.length()
+                || origin.charAt(prefix.length()) == ':'
+                || origin.charAt(prefix.length()) == '/';
     }
 
     private String getSessionIdHeader(HttpExchange exchange) {

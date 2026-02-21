@@ -23,14 +23,6 @@ public class McpSession {
         return sessionId;
     }
 
-    public String getProtocolVersion() {
-        return protocolVersion;
-    }
-
-    public long getCreatedAt() {
-        return createdAt;
-    }
-
     public long getLastAccessedAt() {
         return lastAccessedAt;
     }

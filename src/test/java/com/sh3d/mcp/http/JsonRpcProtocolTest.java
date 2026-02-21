@@ -1,5 +1,6 @@
 package com.sh3d.mcp.http;
 
+import com.sh3d.mcp.plugin.SH3DMcpPlugin;
 import com.sh3d.mcp.protocol.Response;
 import org.junit.jupiter.api.Test;
 
@@ -141,32 +142,6 @@ class JsonRpcProtocolTest {
         assertTrue(result.isEmpty());
     }
 
-    // === isNotification ===
-
-    @Test
-    void testIsNotificationTrueWhenNoId() {
-        Map<String, Object> request = new LinkedHashMap<>();
-        request.put("method", "notifications/initialized");
-        assertTrue(JsonRpcProtocol.isNotification(request));
-    }
-
-    @Test
-    void testIsNotificationFalseWhenIdPresent() {
-        Map<String, Object> request = new LinkedHashMap<>();
-        request.put("id", 1);
-        request.put("method", "initialize");
-        assertFalse(JsonRpcProtocol.isNotification(request));
-    }
-
-    @Test
-    void testIsNotificationFalseWhenIdIsNull() {
-        // containsKey("id") returns true even if value is null
-        Map<String, Object> request = new LinkedHashMap<>();
-        request.put("id", null);
-        request.put("method", "initialize");
-        assertFalse(JsonRpcProtocol.isNotification(request));
-    }
-
     // === formatResult ===
 
     @Test
@@ -263,7 +238,7 @@ class JsonRpcProtocolTest {
     @Test
     void testFormatInitializeResultContainsServerInfo() {
         String json = JsonRpcProtocol.formatInitializeResult(1, "2025-03-26");
-        assertTrue(json.contains("\"serverInfo\":{\"name\":\"sweethome3d\",\"version\":\"0.1.0\"}"));
+        assertTrue(json.contains("\"serverInfo\":{\"name\":\"sweethome3d\",\"version\":\"" + SH3DMcpPlugin.PLUGIN_VERSION + "\"}"));
     }
 
     @Test

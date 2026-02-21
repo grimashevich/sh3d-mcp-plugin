@@ -62,6 +62,8 @@ import java.util.logging.SimpleFormatter;
  */
 public class SH3DMcpPlugin extends Plugin {
 
+    public static final String PLUGIN_VERSION = "0.9.0";
+
     private static final Logger LOG = Logger.getLogger(SH3DMcpPlugin.class.getName());
 
     private HttpMcpServer httpServer;
@@ -129,7 +131,7 @@ public class SH3DMcpPlugin extends Plugin {
             }
             rootLogger.setLevel(level);
 
-            LOG.info("SH3D MCP Plugin v0.1.0 | port=" + cfg.getPort()
+            LOG.info("SH3D MCP Plugin v" + PLUGIN_VERSION + " | port=" + cfg.getPort()
                     + " | Java " + System.getProperty("java.version")
                     + " | " + System.getProperty("os.name") + " " + System.getProperty("os.arch")
                     + " | log=" + logPath);

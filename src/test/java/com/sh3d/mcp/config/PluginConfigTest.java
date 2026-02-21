@@ -12,7 +12,6 @@ class PluginConfigTest {
     void testDefaultValues() {
         PluginConfig config = PluginConfig.load();
         assertEquals(PluginConfig.DEFAULT_PORT, config.getPort());
-        assertEquals(PluginConfig.DEFAULT_EDT_TIMEOUT, config.getEdtTimeout());
         assertTrue(config.isAutoStart());
     }
 

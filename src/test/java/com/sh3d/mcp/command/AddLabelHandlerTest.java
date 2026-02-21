@@ -41,7 +41,9 @@ class AddLabelHandlerTest {
         assertEquals(100f, label.getX(), 0.01f);
         assertEquals(200f, label.getY(), 0.01f);
 
-        assertEquals(0, resp.getData().get("id"));
+        Object id = resp.getData().get("id");
+        assertInstanceOf(String.class, id, "id should be a string UUID");
+        assertFalse(((String) id).isEmpty(), "id should not be empty");
         assertEquals("Hello", resp.getData().get("text"));
         assertEquals(100f, ((Number) resp.getData().get("x")).floatValue(), 0.01f);
         assertEquals(200f, ((Number) resp.getData().get("y")).floatValue(), 0.01f);
@@ -268,7 +270,8 @@ class AddLabelHandlerTest {
 
         assertTrue(resp2.isOk());
         assertEquals(2, home.getLabels().size());
-        assertEquals(1, resp2.getData().get("id"));
+        Object id2 = resp2.getData().get("id");
+        assertInstanceOf(String.class, id2, "id should be a string UUID");
     }
 
     @Test
@@ -288,7 +291,7 @@ class AddLabelHandlerTest {
 
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertInstanceOf(String.class, data.get("id"), "id should be a string UUID");
         assertEquals("Full", data.get("text"));
         assertNotNull(data.get("x"));
         assertNotNull(data.get("y"));

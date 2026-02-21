@@ -47,7 +47,8 @@ class AddDimensionLineHandlerTest {
         Response resp = exec(params(100, 200, 600, 200, 30));
         assertTrue(resp.isOk());
         Map<String, Object> data = resp.getData();
-        assertEquals(0, data.get("id"));
+        assertInstanceOf(String.class, data.get("id"), "id should be a string UUID");
+        assertFalse(((String) data.get("id")).isEmpty(), "id should not be empty");
         assertEquals(100f, ((Number) data.get("xStart")).floatValue(), 0.01f);
         assertEquals(200f, ((Number) data.get("yStart")).floatValue(), 0.01f);
         assertEquals(600f, ((Number) data.get("xEnd")).floatValue(), 0.01f);
@@ -109,8 +110,11 @@ class AddDimensionLineHandlerTest {
         Response r2 = exec(params(0, 0, 0, 400, 20));
         assertTrue(r1.isOk());
         assertTrue(r2.isOk());
-        assertEquals(0, r1.getData().get("id"));
-        assertEquals(1, r2.getData().get("id"));
+        Object id1 = r1.getData().get("id");
+        Object id2 = r2.getData().get("id");
+        assertInstanceOf(String.class, id1, "id should be a string UUID");
+        assertInstanceOf(String.class, id2, "id should be a string UUID");
+        assertNotEquals(id1, id2, "two dimension lines should have different IDs");
         assertEquals(2, home.getDimensionLines().size());
     }
 

@@ -7,7 +7,6 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -142,10 +141,8 @@ public class AddLabelHandler implements CommandHandler, CommandDescriptor {
 
             home.addLabel(label);
 
-            int id = new ArrayList<>(home.getLabels()).indexOf(label);
-
             Map<String, Object> result = new LinkedHashMap<>();
-            result.put("id", id);
+            result.put("id", label.getId());
             result.put("text", label.getText());
             result.put("x", round2(label.getX()));
             result.put("y", round2(label.getY()));

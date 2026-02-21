@@ -1,5 +1,6 @@
 package com.sh3d.mcp.http;
 
+import com.sh3d.mcp.plugin.SH3DMcpPlugin;
 import com.sh3d.mcp.protocol.JsonUtil;
 import com.sh3d.mcp.protocol.Response;
 
@@ -66,13 +67,6 @@ public final class JsonRpcProtocol {
     }
 
     /**
-     * Проверяет, является ли запрос notification (без id).
-     */
-    public static boolean isNotification(Map<String, Object> request) {
-        return !request.containsKey("id");
-    }
-
-    /**
      * Форматирует JSON-RPC 2.0 result response.
      */
     public static String formatResult(Object id, Object result) {
@@ -115,7 +109,7 @@ public final class JsonRpcProtocol {
 
         Map<String, Object> serverInfo = new LinkedHashMap<>();
         serverInfo.put("name", "sweethome3d");
-        serverInfo.put("version", "0.1.0");
+        serverInfo.put("version", SH3DMcpPlugin.PLUGIN_VERSION);
         result.put("serverInfo", serverInfo);
 
         return formatResult(id, result);

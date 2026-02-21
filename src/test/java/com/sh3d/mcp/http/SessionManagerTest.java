@@ -25,7 +25,6 @@ class SessionManagerTest {
         assertNotNull(session);
         assertNotNull(session.getSessionId());
         assertFalse(session.getSessionId().isEmpty());
-        assertEquals("2025-03-26", session.getProtocolVersion());
     }
 
     @Test
@@ -63,7 +62,6 @@ class SessionManagerTest {
 
         assertNotNull(found);
         assertEquals(created.getSessionId(), found.getSessionId());
-        assertEquals(created.getProtocolVersion(), found.getProtocolVersion());
     }
 
     @Test

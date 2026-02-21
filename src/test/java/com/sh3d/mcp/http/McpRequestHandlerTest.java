@@ -431,6 +431,58 @@ class McpRequestHandlerTest {
     }
 
     @Test
+    void testLocalhostSubdomainOriginBlocked() throws Exception {
+        // http://localhost.evil.com should NOT be allowed (DNS rebinding attack)
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}";
+        HttpExchange exchange = createPostExchange(body, null, "http://localhost.evil.com");
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(403), anyLong());
+        String response = responseBody.toString(StandardCharsets.UTF_8.name());
+        assertTrue(response.contains("Forbidden origin"));
+    }
+
+    @Test
+    void testLocalhostIpSubdomainOriginBlocked() throws Exception {
+        // http://127.0.0.1.evil.com should NOT be allowed
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}";
+        HttpExchange exchange = createPostExchange(body, null, "http://127.0.0.1.evil.com");
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(403), anyLong());
+        String response = responseBody.toString(StandardCharsets.UTF_8.name());
+        assertTrue(response.contains("Forbidden origin"));
+    }
+
+    @Test
+    void testLocalhostExactOriginAllowed() throws Exception {
+        // http://localhost (without port) should be allowed
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}";
+        HttpExchange exchange = createPostExchange(body, null, "http://localhost");
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(200), anyLong());
+    }
+
+    @Test
+    void testLocalhostWithPathOriginAllowed() throws Exception {
+        // http://localhost/ should be allowed
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}";
+        HttpExchange exchange = createPostExchange(body, null, "http://localhost/");
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
+        verify(exchange).sendResponseHeaders(eq(200), anyLong());
+    }
+
+    @Test
     void testForeignOriginBlocksAllMethods() throws Exception {
         // DELETE with foreign origin should also be blocked
         HttpExchange exchange = createExchange("DELETE", null, null, "https://evil.example.com");
