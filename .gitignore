@@ -9,3 +9,7 @@ target/
 .project
 .claude/
 .mcp.json
+com/
+audit_reports/
+jules_*.md
+AUDIT_*.md
