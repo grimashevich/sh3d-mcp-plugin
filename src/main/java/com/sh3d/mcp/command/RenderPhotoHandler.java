@@ -619,21 +619,19 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         float yawRad = (float) Math.toRadians(yawDeg);
         float fovRad = (float) Math.toRadians(fovDeg);
 
-        // Вертикальный FOV из горизонтального с учётом aspect ratio
+        // Derive vertical FOV from horizontal FOV using the image aspect ratio
         float vFov = (float) (2 * Math.atan(Math.tan(fovRad / 2) * imageHeight / imageWidth));
 
-        // Диагональ сцены — worst case для любого yaw
+        // Use scene diagonal as worst-case extent (fits any yaw rotation)
         float diagonal = (float) Math.sqrt(
                 bounds.sceneWidth * bounds.sceneWidth + bounds.sceneDepth * bounds.sceneDepth);
-        // Минимум, чтобы не делить на 0 для точечной сцены
-        diagonal = Math.max(diagonal, 50.0f);
+        diagonal = Math.max(diagonal, 50.0f); // avoid division by zero for point-like scenes
 
-        // Горизонтальное расстояние: diagonal должна поместиться в hFov
-        // Горизонтальная ось камеры параллельна земле, pitch не влияет
+        // Horizontal distance: ensure the full diagonal fits within the horizontal FOV
         float hDist = (diagonal / 2) / (float) Math.tan(fovRad / 2);
 
-        // Вертикальное расстояние: проекция глубины сцены + высоты на вертикальную ось камеры
-        // Полная вертикальная протяжённость: diag*sin(pitch) (глубина) + maxZ*cos(pitch) (высота)
+        // Vertical distance: project scene depth and height onto the camera's vertical axis
+        // fullVertExtent = diagonal projected through pitch + scene height projected through pitch
         float fullVertExtent = diagonal * (float) Math.sin(pitchRad)
                 + bounds.maxZ * (float) Math.cos(pitchRad);
         float vDist = (fullVertExtent / 2) / (float) Math.tan(vFov / 2);

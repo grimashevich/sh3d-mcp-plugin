@@ -181,8 +181,10 @@ public final class JsonUtil {
     }
 
     /**
-     * Минимальный рекурсивный JSON-парсер.
-     * Поддерживает: String, Number (int/double/long), Boolean, Null, Object, Array.
+     * Recursive descent JSON parser.
+     * Supports: String, Number (int/double/long), Boolean, Null, Object, Array.
+     * Enforces a maximum nesting depth of {@link #MAX_DEPTH} to guard against
+     * stack overflow from deeply nested or malicious input.
      */
     static final class JsonReader {
         private static final int MAX_DEPTH = 32;
@@ -201,6 +203,7 @@ public final class JsonUtil {
             return pos < src.length();
         }
 
+        /** Reads the next JSON value (object, array, string, number, boolean, or null). */
         Object readValue() {
             skipWhitespace();
             if (pos >= src.length()) {
@@ -216,6 +219,7 @@ public final class JsonUtil {
             throw error("Unexpected character '" + c + "'");
         }
 
+        /** Reads a JSON object ({@code {...}}) into a {@link java.util.LinkedHashMap}. */
         private Map<String, Object> readObject() {
             if (++depth > MAX_DEPTH) {
                 throw error("Nesting depth exceeds maximum of " + MAX_DEPTH);
@@ -248,6 +252,7 @@ public final class JsonUtil {
             }
         }
 
+        /** Reads a JSON array ({@code [...]}) into a {@link java.util.ArrayList}. */
         private List<Object> readArray() {
             if (++depth > MAX_DEPTH) {
                 throw error("Nesting depth exceeds maximum of " + MAX_DEPTH);

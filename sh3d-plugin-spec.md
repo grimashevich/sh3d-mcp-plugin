@@ -1,3 +1,9 @@
+> **АРХИВ / DEPRECATED**
+>
+> Этот документ описывает первоначальный дизайн плагина (TCP-архитектура).
+> Актуальная архитектура — встроенный HTTP MCP-сервер (Streamable HTTP, JSON-RPC 2.0).
+> См. [ARCHITECTURE.md](ARCHITECTURE.md) и [CLAUDE.md](CLAUDE.md) для текущей документации.
+
 # Sweet Home 3D MCP Plugin — Концептуальное ТЗ
 
 ## Суть проекта

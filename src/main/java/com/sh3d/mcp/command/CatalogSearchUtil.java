@@ -32,6 +32,7 @@ final class CatalogSearchUtil {
 
     // ======================== Result types ========================
 
+    /** Result of a furniture catalog search: found piece, not-found, or disambiguation error. */
     static final class FurnitureSearchResult {
         private final CatalogPieceOfFurniture found;
         private final String error;
@@ -59,6 +60,7 @@ final class CatalogSearchUtil {
         String getError() { return error; }
     }
 
+    /** Result of a texture catalog search: found texture or not-found. */
     static final class TextureSearchResult {
         private final CatalogTexture found;
         private final String error;

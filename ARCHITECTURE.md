@@ -49,7 +49,7 @@
 |  |  SH3DMcpPlugin      |---->|  HttpMcpServer      McpRequestHandler   |  |
 |  |  (extends Plugin)   |     |  (HttpServer)        (JSON-RPC 2.0)     |  |
 |  |                     |     |                                          |  |
-|  |  ServerToggleAction |     |  SessionManager      JsonRpcProtocol    |  |
+|  |  McpSettingsAction  |     |  SessionManager      JsonRpcProtocol    |  |
 |  |  (PluginAction)     |     +-------------------|----------------------+  |
 |  +---------------------+                         |                        |
 |                                                  | dispatch(Request)      |
@@ -59,7 +59,7 @@
 |  |                                                                      | |
 |  |  CommandRegistry -----> CommandHandler (interface)                    | |
 |  |                         CommandDescriptor (auto-discovery)            | |
-|  |                         38 handler-классов                            | |
+|  |                         39 handler-классов                            | |
 |  +-------------------------------------|--------------------------------+ |
 |                                        |                                  |
 |                                        v                                  |
@@ -109,7 +109,8 @@ com.sh3d.mcp/
 |
 |-- plugin/                         # Точка входа плагина и SH3D-интеграция
 |   |-- SH3DMcpPlugin.java         # extends Plugin, точка входа
-|   |-- ServerToggleAction.java     # PluginAction для Start/Stop через меню
+|   |-- McpSettingsAction.java      # PluginAction — открывает McpSettingsDialog (настройки MCP-сервера)
+|   |-- McpSettingsDialog.java     # Swing-диалог настроек: статус, порт, autoStart, Claude Desktop конфиг
 |
 |-- http/                           # HTTP MCP-сервер (Streamable HTTP)
 |   |-- HttpMcpServer.java         # com.sun.net.httpserver.HttpServer, lifecycle
@@ -124,6 +125,7 @@ com.sh3d.mcp/
 |
 |-- protocol/                       # JSON-утилиты и value objects
 |   |-- JsonUtil.java              # Recursive descent JSON-парсер/сериализатор
+|   |-- JsonProtocol.java          # TCP-уровень парсинга: action+params → Request (наследие TCP-архитектуры)
 |   |-- Request.java               # Value object: action + params
 |   |-- Response.java              # Value object: status + data/message
 |
@@ -142,9 +144,11 @@ com.sh3d.mcp/
 |-- bridge/                         # Мост к Sweet Home 3D API
 |   |-- HomeAccessor.java          # Thread-safe обертка над Home через EDT
 |   |-- CheckpointManager.java     # In-memory undo/redo (Home.clone())
+|   |-- ObjectResolver.java        # Поиск объектов Home по стабильному строковому ID (HomeObject.getId())
 |
 |-- config/                         # Конфигурация
     |-- PluginConfig.java          # Настраиваемые параметры
+    |-- ClaudeDesktopConfigurator.java  # Автоконфигурация Claude Desktop (мерж MCP-секции в claude_desktop_config.json)
 ```
 
 ### 2.2 Описание ключевых классов
@@ -153,14 +157,20 @@ com.sh3d.mcp/
 
 **`SH3DMcpPlugin extends com.eteks.sweethome3d.plugin.Plugin`**
 - Главный класс плагина, указывается в `ApplicationPlugin.properties`
-- `getActions()` -- создаёт `HomeAccessor`, `CommandRegistry` (38 команд), `HttpMcpServer`
+- `getActions()` -- создаёт `HomeAccessor`, `CommandRegistry` (39 команд), `HttpMcpServer`
 - При `autoStart=true` запускает HTTP-сервер сразу
 - `destroy()` -- останавливает HTTP-сервер при закрытии Home
 
-**`ServerToggleAction extends PluginAction`**
-- Пункт меню "MCP Server: Start / Stop"
-- `execute()` -- переключает состояние сервера (запуск/остановка)
-- Подписан на `ServerStateListener` для обновления текста меню
+**`McpSettingsAction extends PluginAction`**
+- Пункт меню "MCP Server..." (в меню Tools)
+- `execute()` -- открывает `McpSettingsDialog` (модальный Swing-диалог настроек)
+- Диалог показывает статус сервера, порт, позволяет start/stop и автоконфигурацию Claude Desktop
+
+**`McpSettingsDialog extends JDialog`**
+- Swing-диалог настроек MCP-сервера
+- Показывает текущий статус (RUNNING/STOPPED), порт, autoStart
+- Кнопки Start/Stop для управления сервером
+- Интеграция с `ClaudeDesktopConfigurator` для автоконфигурации Claude Desktop
 
 #### Пакет `http`
 
@@ -208,6 +218,12 @@ void onStateChanged(ServerState oldState, ServerState newState);
 - `serialize(Object) → String` -- рекурсивная сериализация в JSON-строку
 - `appendValue(StringBuilder, Object)` / `appendString(StringBuilder, String)` -- для построения JSON
 
+**`JsonProtocol`**
+- Статический utility-класс уровня TCP-протокола (наследие исходной TCP-архитектуры)
+- `parseRequest(json)` -- парсит JSON вида `{"action":"...","params":{...}}` в `Request`
+- `formatResponse(Response)` -- сериализует `Response` в JSON-строку
+- Делегирует JSON-операции в `JsonUtil`
+
 **`Request`** (value object)
 - `action: String`, `params: Map<String, Object>`
 - Методы: `getString(key)`, `getFloat(key)`, `getFloat(key, default)`, `getInt(key, default)`, `getBoolean(key, default)`
@@ -227,6 +243,12 @@ void onStateChanged(ServerState oldState, ServerState newState);
 - In-memory undo/redo через `Home.clone()`
 - Таймлайн с курсором, fork при новом checkpoint после restore
 - `maxDepth=32`, ~50-200 KB на снимок
+
+**`ObjectResolver`**
+- Статический utility-класс для поиска объектов Home по стабильному строковому ID
+- Использует `HomeObject.getId()` (SH3D 7.x) — ID автогенерируется, стабилен при удалении других объектов, сохраняется при сериализации и клонировании
+- Методы: `findWall()`, `findFurniture()`, `findRoom()`, `findLevel()`, `findDimensionLine()`
+- Используется handler-классами для операций modify/delete/connect по ID объекта
 
 ---
 
@@ -292,7 +314,7 @@ void onStateChanged(ServerState oldState, ServerState newState);
 ```
 
 Триггеры остановки:
-- Пользователь нажал "Stop" в меню (ServerToggleAction.execute())
+- Пользователь нажал "Stop" в диалоге настроек (McpSettingsDialog)
 - Вызван `Plugin.destroy()` (закрытие Home)
 - JVM завершается (daemon-потоки умирают автоматически)
 
@@ -368,14 +390,14 @@ void onStateChanged(ServerState oldState, ServerState newState);
 с обработчиком. `CommandDescriptor` предоставляет описание и JSON Schema для MCP `tools/list`.
 
 ```
-CommandRegistry (38 команд)
+CommandRegistry (39 команд)
   |
   |-- "get_state"               --> GetStateHandler
   |-- "create_walls"            --> CreateWallsHandler
   |-- "place_furniture"         --> PlaceFurnitureHandler
   |-- "render_photo"            --> RenderPhotoHandler
   |-- "batch_commands"          --> BatchCommandsHandler
-  |-- ... (ещё 33 обработчика)
+  |-- ... (ещё 34 обработчика)
 ```
 
 ### 4.2 Интерфейсы
@@ -494,7 +516,7 @@ public class SH3DMcpPlugin extends Plugin {
         }
 
         return new PluginAction[] {
-            new ServerToggleAction(this, httpServer)
+            new McpSettingsAction(this, httpServer)
         };
     }
 
@@ -507,7 +529,7 @@ public class SH3DMcpPlugin extends Plugin {
 
     private CommandRegistry createCommandRegistry(ExportableView planView) {
         CommandRegistry registry = new CommandRegistry();
-        // 38 команд: checkpoint, create_walls, place_furniture, get_state, ...
+        // 39 команд: checkpoint, create_walls, place_furniture, get_state, list_categories, ...
         return registry;
     }
 }
@@ -659,7 +681,16 @@ logLevel=INFO
 2. Файл `sh3d-mcp.properties` в папке плагинов
 3. Значения по умолчанию (зашиты в `PluginConfig`)
 
-### 7.3 Логирование
+### 7.3 Автоконфигурация Claude Desktop
+
+`ClaudeDesktopConfigurator` — утилита для автоматической интеграции с Claude Desktop:
+- Мержит секцию `mcpServers.sweethome3d` в `claude_desktop_config.json`
+- Кросс-платформенный поиск конфига (Windows: `%APPDATA%\Claude\`, macOS: `~/Library/Application Support/Claude/`, Linux: `~/.config/Claude/`)
+- Создаёт `.bak` бэкап перед модификацией существующего конфига
+- Claude Desktop не поддерживает `"type": "http"` — используется `npx mcp-remote` как stdio-мост к HTTP endpoint плагина
+- Вызывается из `McpSettingsDialog` по нажатию кнопки
+
+### 7.4 Логирование
 
 Лог записывается в файл `sh3d-mcp.log` в папке плагинов (rotated, 2 файла по 1 МБ).
 Уровень настраивается через `logLevel`.
@@ -683,7 +714,7 @@ sh3d-mcp-plugin/
 |-- src/
 |   |-- main/
 |   |   |-- java/com/sh3d/mcp/
-|   |   |   |-- plugin/          # SH3DMcpPlugin, ServerToggleAction
+|   |   |   |-- plugin/          # SH3DMcpPlugin, McpSettingsAction, McpSettingsDialog
 |   |   |   |-- http/            # HttpMcpServer, McpRequestHandler, JsonRpcProtocol, ...
 |   |   |   |-- server/          # ServerState, ServerStateListener
 |   |   |   |-- protocol/        # JsonUtil, Request, Response
@@ -694,7 +725,7 @@ sh3d-mcp-plugin/
 |   |   |-- resources/
 |   |       |-- ApplicationPlugin.properties
 |   |       |-- com/sh3d/mcp/plugin/
-|   |           |-- ServerToggleAction.properties
+|   |           |-- McpSettingsAction.properties
 |   |
 |   |-- test/
 |       |-- java/com/sh3d/mcp/   # ~36 тестовых классов
@@ -864,7 +895,7 @@ Claude                    McpRequestHandler    JsonRpcProtocol
 
 **Статус:** Принято (действует)
 
-Паттерн Command + Registry хорошо масштабируется. С 5 команд в MVP вырос до 38 команд,
+Паттерн Command + Registry хорошо масштабируется. С 5 команд в MVP вырос до 39 команд,
 добавление новой команды по-прежнему = 1 класс + 1 строка регистрации. Расширен интерфейсом
 `CommandDescriptor` для auto-discovery (MCP `tools/list`).
 

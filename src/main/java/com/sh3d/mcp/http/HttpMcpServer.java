@@ -133,6 +133,7 @@ public class HttpMcpServer {
         stateListeners.remove(listener);
     }
 
+    /** Performs the actual server startup on a background thread (binds socket, registers handler). */
     private void doStart() {
         try {
             executor = Executors.newCachedThreadPool(new DaemonThreadFactory("sh3d-mcp-http"));

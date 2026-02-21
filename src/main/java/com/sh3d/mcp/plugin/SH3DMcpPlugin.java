@@ -106,6 +106,7 @@ public class SH3DMcpPlugin extends Plugin {
         }
     }
 
+    /** Configures file-based logging for the com.sh3d.mcp logger hierarchy. */
     private void setupFileLogging(PluginConfig cfg) {
         Path logPath = PluginConfig.resolveLogPath();
         if (logPath == null) {
@@ -137,6 +138,7 @@ public class SH3DMcpPlugin extends Plugin {
         }
     }
 
+    /** Resolves the plan view for SVG/PNG export via HomeController. */
     private ExportableView resolvePlanView() {
         try {
             PlanView planView = getHomeController().getPlanController().getView();

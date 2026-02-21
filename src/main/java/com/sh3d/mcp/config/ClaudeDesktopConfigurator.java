@@ -25,7 +25,8 @@ public class ClaudeDesktopConfigurator {
     private static final String CONFIG_FILENAME = "claude_desktop_config.json";
 
     /**
-     * Результат операции configure.
+     * Immutable result of a {@link #configure(int)} operation.
+     * Contains the config file path, optional backup path, and a human-readable message.
      */
     public static class ConfigureResult {
         private final Path configPath;
@@ -40,9 +41,13 @@ public class ClaudeDesktopConfigurator {
             this.message = message;
         }
 
+        /** Returns the absolute path to claude_desktop_config.json. */
         public Path getConfigPath() { return configPath; }
+        /** Returns the backup (.bak) path, or {@code null} if the config was newly created. */
         public Path getBackupPath() { return backupPath; }
+        /** Returns {@code true} if the config file was created from scratch (did not exist before). */
         public boolean isCreated() { return created; }
+        /** Returns a human-readable summary of what was done. */
         public String getMessage() { return message; }
     }
 

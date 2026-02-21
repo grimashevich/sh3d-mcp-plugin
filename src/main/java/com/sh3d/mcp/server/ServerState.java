@@ -1,7 +1,7 @@
 package com.sh3d.mcp.server;
 
 /**
- * Состояния TCP-сервера.
+ * Состояния HTTP MCP-сервера.
  */
 public enum ServerState {
     STOPPED,

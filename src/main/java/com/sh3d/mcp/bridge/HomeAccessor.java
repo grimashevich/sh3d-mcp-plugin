@@ -25,18 +25,22 @@ public class HomeAccessor {
         this.userPreferences = userPreferences;
     }
 
+    /** Returns the current Home model instance. */
     public Home getHome() {
         return home;
     }
 
+    /** Returns the application-wide user preferences. */
     public UserPreferences getUserPreferences() {
         return userPreferences;
     }
 
+    /** Returns the furniture catalog from user preferences. */
     public FurnitureCatalog getFurnitureCatalog() {
         return userPreferences.getFurnitureCatalog();
     }
 
+    /** Returns the textures catalog from user preferences. */
     public TexturesCatalog getTexturesCatalog() {
         return userPreferences.getTexturesCatalog();
     }
