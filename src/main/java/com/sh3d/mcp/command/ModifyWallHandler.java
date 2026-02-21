@@ -8,7 +8,6 @@ import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
 import static com.sh3d.mcp.command.FormatUtil.colorToHex;
-import static com.sh3d.mcp.command.FormatUtil.parseHexColor;
 import static com.sh3d.mcp.command.FormatUtil.round2;
 import static com.sh3d.mcp.command.SchemaUtil.nullableProp;
 import static com.sh3d.mcp.command.SchemaUtil.prop;
@@ -37,7 +36,10 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        String id = request.getRequiredString("id");
+        String id = request.getString("id");
+        if (id == null) {
+            return Response.error("Missing required parameter 'id'");
+        }
 
         Map<String, Object> params = request.getParams();
         boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);
@@ -59,6 +61,29 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         String shininessError = validateShininess(params);
         if (shininessError != null) {
             return Response.error(shininessError);
+        }
+
+        // Validate height/heightAtEnd/thickness before EDT
+        if (params.containsKey("height")) {
+            float h = request.getFloat("height");
+            if (h <= 0) {
+                return Response.error("Parameter 'height' must be positive, got " + h);
+            }
+        }
+        if (params.containsKey("heightAtEnd")) {
+            Object val = params.get("heightAtEnd");
+            if (val != null) {
+                float h = request.getFloat("heightAtEnd");
+                if (h <= 0) {
+                    return Response.error("Parameter 'heightAtEnd' must be positive, got " + h);
+                }
+            }
+        }
+        if (params.containsKey("thickness")) {
+            float t = request.getFloat("thickness");
+            if (t <= 0) {
+                return Response.error("Parameter 'thickness' must be positive, got " + t);
+            }
         }
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
@@ -83,13 +108,9 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
                 wall.setYEnd(request.getFloat("yEnd"));
             }
 
-            // Height
+            // Height (already validated)
             if (params.containsKey("height")) {
-                float h = request.getFloat("height");
-                if (h <= 0) {
-                    return errorMap("Parameter 'height' must be positive, got " + h);
-                }
-                wall.setHeight(h);
+                wall.setHeight(request.getFloat("height"));
             }
 
             if (params.containsKey("heightAtEnd")) {
@@ -97,21 +118,13 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
                 if (val == null) {
                     wall.setHeightAtEnd(null);
                 } else {
-                    float h = request.getFloat("heightAtEnd");
-                    if (h <= 0) {
-                        return errorMap("Parameter 'heightAtEnd' must be positive, got " + h);
-                    }
-                    wall.setHeightAtEnd(h);
+                    wall.setHeightAtEnd(request.getFloat("heightAtEnd"));
                 }
             }
 
-            // Thickness
+            // Thickness (already validated)
             if (params.containsKey("thickness")) {
-                float t = request.getFloat("thickness");
-                if (t <= 0) {
-                    return errorMap("Parameter 'thickness' must be positive, got " + t);
-                }
-                wall.setThickness(t);
+                wall.setThickness(request.getFloat("thickness"));
             }
 
             // Arc extent
@@ -169,11 +182,6 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
             return Response.error("Wall not found: id '" + id + "'");
         }
 
-        // Check for inline error
-        if (data.containsKey("__error")) {
-            return Response.error((String) data.get("__error"));
-        }
-
         return Response.ok(data);
     }
 
@@ -203,52 +211,39 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         ParsedColors c = new ParsedColors();
 
         // 'color' shortcut
-        if (params.containsKey("color")) {
-            Object val = params.get("color");
-            if (val == null) {
-                c.colorBoth = 0;
-                c.colorBothClear = true;
-            } else {
-                Integer parsed = parseHexColor(val.toString());
-                if (parsed == null) {
-                    c.error = "Invalid color format: '" + val + "'. Expected '#RRGGBB'";
-                    return c;
-                }
-                c.colorBoth = parsed;
+        ColorParser.ColorResult colorBothResult = ColorParser.parseNullable(params, "color");
+        if (colorBothResult != null) {
+            if (colorBothResult.hasError()) {
+                c.error = colorBothResult.error;
+                return c;
             }
+            c.colorBoth = colorBothResult.clear ? 0 : colorBothResult.value;
+            c.colorBothClear = colorBothResult.clear;
         }
 
         // Individual colors
-        c.error = parseSideColor(params, "leftSideColor", c, "left");
-        if (c.error != null) return c;
-        c.error = parseSideColor(params, "rightSideColor", c, "right");
-        if (c.error != null) return c;
-        c.error = parseSideColor(params, "topColor", c, "top");
-        return c;
-    }
+        ColorParser.ColorResult leftResult = ColorParser.parseNullable(params, "leftSideColor");
+        if (leftResult != null) {
+            if (leftResult.hasError()) { c.error = leftResult.error; return c; }
+            c.leftColor = leftResult.clear ? 0 : leftResult.value;
+            c.leftColorClear = leftResult.clear;
+        }
 
-    private static String parseSideColor(Map<String, Object> params, String key,
-                                         ParsedColors c, String side) {
-        if (!params.containsKey(key)) return null;
-        Object val = params.get(key);
-        if (val == null) {
-            switch (side) {
-                case "left": c.leftColor = 0; c.leftColorClear = true; break;
-                case "right": c.rightColor = 0; c.rightColorClear = true; break;
-                case "top": c.topColor = 0; c.topColorClear = true; break;
-            }
-            return null;
+        ColorParser.ColorResult rightResult = ColorParser.parseNullable(params, "rightSideColor");
+        if (rightResult != null) {
+            if (rightResult.hasError()) { c.error = rightResult.error; return c; }
+            c.rightColor = rightResult.clear ? 0 : rightResult.value;
+            c.rightColorClear = rightResult.clear;
         }
-        Integer parsed = parseHexColor(val.toString());
-        if (parsed == null) {
-            return "Invalid " + key + " format: '" + val + "'. Expected '#RRGGBB'";
+
+        ColorParser.ColorResult topResult = ColorParser.parseNullable(params, "topColor");
+        if (topResult != null) {
+            if (topResult.hasError()) { c.error = topResult.error; return c; }
+            c.topColor = topResult.clear ? 0 : topResult.value;
+            c.topColorClear = topResult.clear;
         }
-        switch (side) {
-            case "left": c.leftColor = parsed; break;
-            case "right": c.rightColor = parsed; break;
-            case "top": c.topColor = parsed; break;
-        }
-        return null;
+
+        return c;
     }
 
     private static String validateShininess(Map<String, Object> params) {
@@ -265,12 +260,6 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
             }
         }
         return null;
-    }
-
-    private static Map<String, Object> errorMap(String message) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("__error", message);
-        return m;
     }
 
     // --- Parsed colors holder ---

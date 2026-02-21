@@ -39,7 +39,10 @@ public class PlaceDoorOrWindowHandler implements CommandHandler, CommandDescript
 
         // --- Validate wallId ---
         Map<String, Object> params = request.getParams();
-        String wallId = request.getRequiredString("wallId");
+        String wallId = request.getString("wallId");
+        if (wallId == null) {
+            return Response.error("Missing required parameter 'wallId'");
+        }
 
         // --- Validate position ---
         float position = request.getFloat("position", 0.5f);
