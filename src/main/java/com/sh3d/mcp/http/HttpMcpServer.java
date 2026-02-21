@@ -13,8 +13,9 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +31,10 @@ public class HttpMcpServer {
 
     private static final Logger LOG = Logger.getLogger(HttpMcpServer.class.getName());
     private static final String MCP_ENDPOINT = "/mcp";
+
+    static final int CORE_POOL_SIZE = 4;
+    static final int MAX_POOL_SIZE = 16;
+    static final long KEEP_ALIVE_SECONDS = 60;
 
     private volatile int port;
     private final CommandRegistry commandRegistry;
@@ -146,7 +151,10 @@ public class HttpMcpServer {
                 return;
             }
 
-            localExecutor = Executors.newCachedThreadPool(new DaemonThreadFactory("sh3d-mcp-http"));
+            localExecutor = new ThreadPoolExecutor(
+                    CORE_POOL_SIZE, MAX_POOL_SIZE, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS,
+                    new LinkedBlockingQueue<>(),
+                    new DaemonThreadFactory("sh3d-mcp-http"));
 
             // Re-check after potentially slow operations
             if (state.get() != ServerState.STARTING) {

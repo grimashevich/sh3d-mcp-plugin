@@ -113,7 +113,7 @@ class McpRequestHandlerTest {
     }
 
     @Test
-    void testToolsListWithInvalidSessionAutoRecreatesSession() throws Exception {
+    void testToolsListWithUnknownSessionReturns404() throws Exception {
         registerTestTool("create_wall", "Create a wall", null);
 
         String body = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}";
@@ -122,13 +122,31 @@ class McpRequestHandlerTest {
 
         handler.handle(exchange);
 
+        verify(exchange).sendResponseHeaders(eq(404), anyLong());
+        String response = responseBody.toString(StandardCharsets.UTF_8.name());
+        assertTrue(response.contains("Unknown session"));
+    }
+
+    @Test
+    void testToolsListWithExpiredSessionAutoRecreatesSession() throws Exception {
+        registerTestTool("create_wall", "Create a wall", null);
+
+        // Initialize and delete a session so its ID becomes known-expired
+        String sessionId = initializeSession();
+        HttpExchange deleteExchange = createExchange("DELETE", null, sessionId, null);
+        handler.handle(deleteExchange);
+
+        // Now use the deleted session ID — should be auto-recreated (200, not 404)
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}";
+        HttpExchange exchange = createPostExchange(body, sessionId, null);
+        ByteArrayOutputStream responseBody = captureResponseBody(exchange);
+
+        handler.handle(exchange);
+
         verify(exchange).sendResponseHeaders(eq(200), anyLong());
         String response = responseBody.toString(StandardCharsets.UTF_8.name());
         assertTrue(response.contains("\"tools\""));
         assertTrue(response.contains("\"create_wall\""));
-
-        // Session reuses the same ID (no new header needed, avoids session leak)
-        // Verify session was auto-recreated and request succeeded (200 instead of 404)
     }
 
     // === POST tools/call ===
@@ -193,7 +211,7 @@ class McpRequestHandlerTest {
     }
 
     @Test
-    void testToolsCallWithInvalidSessionAutoRecreatesSession() throws Exception {
+    void testToolsCallWithUnknownSessionReturns404() throws Exception {
         commandRegistry.register("get_state", (req, acc) -> {
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("walls", 0);
@@ -207,12 +225,9 @@ class McpRequestHandlerTest {
 
         handler.handle(exchange);
 
-        verify(exchange).sendResponseHeaders(eq(200), anyLong());
+        verify(exchange).sendResponseHeaders(eq(404), anyLong());
         String response = responseBody.toString(StandardCharsets.UTF_8.name());
-        assertTrue(response.contains("\"isError\":false"));
-
-        // Session reuses the same ID (no new header needed, avoids session leak)
-        // Verify session was auto-recreated and request succeeded (200 instead of 404)
+        assertTrue(response.contains("Unknown session"));
     }
 
     @Test
@@ -323,7 +338,8 @@ class McpRequestHandlerTest {
 
         verify(exchange).sendResponseHeaders(200, -1);
 
-        // After deletion, using the old session ID triggers auto-recreate (200, not 404)
+        // After deletion, the session ID is remembered as known-expired.
+        // Using it again triggers auto-recreate (200, not 404).
         String body = "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/list\"}";
         HttpExchange exchange2 = createPostExchange(body, sessionId, null);
         ByteArrayOutputStream responseBody2 = captureResponseBody(exchange2);
@@ -331,9 +347,6 @@ class McpRequestHandlerTest {
         handler.handle(exchange2);
 
         verify(exchange2).sendResponseHeaders(eq(200), anyLong());
-
-        // Session is auto-recreated with the SAME ID (no new header needed)
-        // The old session ID continues to work transparently
     }
 
     @Test

@@ -77,14 +77,15 @@ class SessionManagerTest {
     @Test
     void testGetSessionTouchesSession() throws Exception {
         McpSession session = sessionManager.createSession("2025-03-26");
-        long initialAccess = session.getLastAccessedAt();
 
-        // Small delay to ensure time advances
-        Thread.sleep(15);
+        // Set lastAccessedAt to a known past value via reflection instead of Thread.sleep
+        long pastTime = System.currentTimeMillis() - 5000;
+        setLastAccessedAt(session, pastTime);
+        assertEquals(pastTime, session.getLastAccessedAt());
 
         McpSession found = sessionManager.getSession(session.getSessionId());
         assertNotNull(found);
-        assertTrue(found.getLastAccessedAt() >= initialAccess,
+        assertTrue(found.getLastAccessedAt() > pastTime,
                 "getSession should touch the session, updating lastAccessedAt");
     }
 
@@ -182,6 +183,96 @@ class SessionManagerTest {
         // Old expired session should be removed, only the new one remains
         assertEquals(1, sessionManager.size());
         assertNull(sessionManager.getSession(old.getSessionId()));
+    }
+
+    // === isKnownExpired ===
+
+    @Test
+    void testRemovedSessionBecomesKnownExpired() {
+        McpSession session = sessionManager.createSession("2025-03-26");
+        String id = session.getSessionId();
+
+        assertFalse(sessionManager.isKnownExpired(id), "Active session should not be known-expired");
+
+        sessionManager.removeSession(id);
+
+        assertTrue(sessionManager.isKnownExpired(id),
+                "Removed session ID should be tracked as known-expired");
+    }
+
+    @Test
+    void testUnknownIdIsNotKnownExpired() {
+        assertFalse(sessionManager.isKnownExpired("never-seen-id"),
+                "A never-created session ID should not be known-expired");
+    }
+
+    @Test
+    void testIsKnownExpiredNullReturnsFalse() {
+        assertFalse(sessionManager.isKnownExpired(null));
+    }
+
+    @Test
+    void testExpiredSessionBecomesKnownExpiredOnGet() throws Exception {
+        McpSession session = sessionManager.createSession("2025-03-26");
+        String id = session.getSessionId();
+
+        // Expire the session
+        setLastAccessedAt(session, System.currentTimeMillis() - 31 * 60 * 1000);
+
+        // getSession triggers expiration detection and remembers the ID
+        assertNull(sessionManager.getSession(id));
+        assertTrue(sessionManager.isKnownExpired(id),
+                "Session expired via getSession should be tracked as known-expired");
+    }
+
+    @Test
+    void testExpiredSessionBecomesKnownExpiredOnCleanup() throws Exception {
+        McpSession session = sessionManager.createSession("2025-03-26");
+        String id = session.getSessionId();
+
+        // Expire the session
+        setLastAccessedAt(session, System.currentTimeMillis() - 31 * 60 * 1000);
+
+        // Creating a new session triggers cleanupExpired() which remembers expired IDs
+        sessionManager.createSession("2025-03-26");
+
+        assertTrue(sessionManager.isKnownExpired(id),
+                "Session expired during cleanup should be tracked as known-expired");
+    }
+
+    @Test
+    void testKnownExpiredSetIsBounded() {
+        // Create and remove more than MAX_KNOWN_EXPIRED sessions
+        int maxKnown = SessionManager.MAX_KNOWN_EXPIRED;
+        String[] ids = new String[maxKnown + 10];
+
+        for (int i = 0; i < ids.length; i++) {
+            McpSession session = sessionManager.createSession("2025-03-26");
+            ids[i] = session.getSessionId();
+            sessionManager.removeSession(ids[i]);
+        }
+
+        // The oldest IDs should have been evicted
+        int evictedCount = ids.length - maxKnown;
+        for (int i = 0; i < evictedCount; i++) {
+            assertFalse(sessionManager.isKnownExpired(ids[i]),
+                    "Oldest expired ID [" + i + "] should have been evicted from known set");
+        }
+
+        // Recent IDs should still be tracked
+        for (int i = evictedCount; i < ids.length; i++) {
+            assertTrue(sessionManager.isKnownExpired(ids[i]),
+                    "Recent expired ID [" + i + "] should still be in known set");
+        }
+    }
+
+    @Test
+    void testRemoveNonExistentSessionDoesNotAddToKnown() {
+        // Removing a session that never existed should NOT add to known-expired
+        sessionManager.removeSession("never-existed-id");
+
+        assertFalse(sessionManager.isKnownExpired("never-existed-id"),
+                "Removing a non-existent session should not add it to known-expired set");
     }
 
     @Test

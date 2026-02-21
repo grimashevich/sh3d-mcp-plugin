@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Менеджер чекпоинтов — таймлайн с курсором.
@@ -22,7 +23,12 @@ import java.util.Map;
  */
 public class CheckpointManager {
 
+    private static final Logger LOG = Logger.getLogger(CheckpointManager.class.getName());
+
     public static final int DEFAULT_MAX_DEPTH = 32;
+
+    /** Minimum free memory threshold in bytes (50 MB). Below this, oldest checkpoints are evicted. */
+    static final long LOW_MEMORY_THRESHOLD = 50L * 1024 * 1024;
 
     private final int maxDepth;
     private final List<Snapshot> timeline = new ArrayList<>();
@@ -53,6 +59,14 @@ public class CheckpointManager {
         // Truncate forward history if cursor is not at the end
         if (cursor >= 0 && cursor < timeline.size() - 1) {
             timeline.subList(cursor + 1, timeline.size()).clear();
+        }
+
+        // Evict oldest checkpoints while memory is low
+        while (!timeline.isEmpty() && isFreeMemoryLow()) {
+            timeline.remove(0);
+            LOG.warning("Checkpoint evicted due to low memory (free < "
+                    + (LOW_MEMORY_THRESHOLD / (1024 * 1024)) + " MB). "
+                    + "Remaining checkpoints: " + timeline.size());
         }
 
         // Enforce maxDepth: remove oldest
@@ -139,6 +153,20 @@ public class CheckpointManager {
 
     public int getMaxDepth() {
         return maxDepth;
+    }
+
+    /**
+     * Returns true if JVM free memory is below {@link #LOW_MEMORY_THRESHOLD}.
+     * Package-private for testing.
+     */
+    boolean isFreeMemoryLow() {
+        Runtime rt = Runtime.getRuntime();
+        long free = rt.freeMemory();
+        long maxMem = rt.maxMemory();
+        long totalMem = rt.totalMemory();
+        // Available = free in current heap + heap room to grow
+        long available = free + (maxMem - totalMem);
+        return available < LOW_MEMORY_THRESHOLD;
     }
 
     private SnapshotInfo toInfo(int index) {
