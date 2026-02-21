@@ -7,6 +7,9 @@ import com.sh3d.mcp.bridge.ObjectResolver;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -67,14 +70,4 @@ public class DeleteWallHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static float round2(float v) {
-        return Math.round(v * 100f) / 100f;
-    }
-
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
 }

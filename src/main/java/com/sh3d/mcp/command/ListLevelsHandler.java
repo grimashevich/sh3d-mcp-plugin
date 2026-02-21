@@ -6,6 +6,8 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.round2;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -67,7 +69,4 @@ public class ListLevelsHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static float round2(float v) {
-        return Math.round(v * 100f) / 100f;
-    }
 }

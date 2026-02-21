@@ -15,6 +15,9 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.colorToHex;
+import static com.sh3d.mcp.command.FormatUtil.round2;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -303,19 +306,8 @@ public class GetStateHandler implements CommandHandler, CommandDescriptor {
 
     // --- Utilities ---
 
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
     private static String textureName(HomeTexture texture) {
         return texture != null ? texture.getName() : null;
-    }
-
-    private static String colorToHex(Integer color) {
-        if (color == null) {
-            return null;
-        }
-        return String.format("#%06X", color & 0xFFFFFF);
     }
 
     // --- Descriptor ---

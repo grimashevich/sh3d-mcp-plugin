@@ -6,6 +6,9 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -81,10 +84,6 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         return Response.ok(data);
     }
 
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
     @Override
     public String getDescription() {
         return "Places a piece of furniture from the Sweet Home 3D catalog. "
@@ -126,10 +125,4 @@ public class PlaceFurnitureHandler implements CommandHandler, CommandDescriptor 
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
 }

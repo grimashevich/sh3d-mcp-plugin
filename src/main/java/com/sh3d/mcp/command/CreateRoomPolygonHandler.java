@@ -6,6 +6,11 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.colorToHex;
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+import static com.sh3d.mcp.command.SchemaUtil.propWithDefault;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -204,24 +209,4 @@ public class CreateRoomPolygonHandler implements CommandHandler, CommandDescript
         return schema;
     }
 
-    private static float round2(float v) {
-        return Math.round(v * 100f) / 100f;
-    }
-
-    private static String colorToHex(Integer color) {
-        return color != null ? String.format("#%06X", color & 0xFFFFFF) : null;
-    }
-
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> propWithDefault(String type, String description, Object defaultValue) {
-        Map<String, Object> p = prop(type, description);
-        p.put("default", defaultValue);
-        return p;
-    }
 }

@@ -7,6 +7,8 @@ import com.sh3d.mcp.bridge.HomeAccessor;
 import com.sh3d.mcp.protocol.Request;
 import com.sh3d.mcp.protocol.Response;
 
+import static com.sh3d.mcp.command.FormatUtil.round2;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -109,10 +111,6 @@ public class StoreCameraHandler implements CommandHandler, CommandDescriptor {
 
         LOG.info("Deleted stored camera '" + name + "'");
         return Response.ok(result);
-    }
-
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
     }
 
     @Override

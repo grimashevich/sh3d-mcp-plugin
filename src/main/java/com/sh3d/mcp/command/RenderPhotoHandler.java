@@ -28,6 +28,11 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import static com.sh3d.mcp.command.FormatUtil.round2;
+import static com.sh3d.mcp.command.SchemaUtil.enumProp;
+import static com.sh3d.mcp.command.SchemaUtil.prop;
+import static com.sh3d.mcp.command.SchemaUtil.propWithDefault;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -793,10 +798,6 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         return image;
     }
 
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
     // --- Value object ---
 
     static class SceneBounds {
@@ -830,10 +831,12 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         schema.put("type", "object");
 
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("view", enumProp(
+        Map<String, Object> viewProp = enumProp(
                 "View mode: 'overhead' for automatic bird's eye orbit rendering from 4 diagonal angles. "
                         + "Recommended for scene assessment. Incompatible with x/y/z/yaw parameters.",
-                "overhead"));
+                "overhead");
+        viewProp.put("default", "overhead");
+        properties.put("view", viewProp);
         properties.put("angles", propWithDefault("integer",
                 "Number of orbital angles for overhead view: 1 (single NW-to-SE view) "
                         + "or 4 (all four diagonal directions). Only used with view='overhead'.",
@@ -850,11 +853,15 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
                 true));
         properties.put("width", propWithDefault("integer", "Image width in pixels", DEFAULT_WIDTH));
         properties.put("height", propWithDefault("integer", "Image height in pixels", DEFAULT_HEIGHT));
-        properties.put("quality", enumProp("Quality: 'low' (fast preview) or 'high' (ray-traced)", "low", "high"));
-        properties.put("format", enumProp(
+        Map<String, Object> qualityProp = enumProp("Quality: 'low' (fast preview) or 'high' (ray-traced)", "low", "high");
+        qualityProp.put("default", "low");
+        properties.put("quality", qualityProp);
+        Map<String, Object> formatProp = enumProp(
                 "Image format: 'jpeg' (smaller, default for inline) or 'png' (lossless, default for filePath). "
                         + "JPEG typically produces 5-10x smaller images than PNG for 3D renders.",
-                "jpeg", "png"));
+                "jpeg", "png");
+        formatProp.put("default", "jpeg");
+        properties.put("format", formatProp);
         properties.put("filePath", prop("string",
                 "Absolute path to save image file(s). Extension is auto-corrected to match format. "
                         + "For overhead with angles=4, files are saved as {path}_1 through {path}_4."));
@@ -872,25 +879,4 @@ public class RenderPhotoHandler implements CommandHandler, CommandDescriptor {
         return schema;
     }
 
-    private static Map<String, Object> prop(String type, String description) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", type);
-        p.put("description", description);
-        return p;
-    }
-
-    private static Map<String, Object> propWithDefault(String type, String description, Object defaultValue) {
-        Map<String, Object> p = prop(type, description);
-        p.put("default", defaultValue);
-        return p;
-    }
-
-    private static Map<String, Object> enumProp(String description, String... values) {
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("type", "string");
-        p.put("description", description);
-        p.put("enum", Arrays.asList(values));
-        p.put("default", values[0]);
-        return p;
-    }
 }
