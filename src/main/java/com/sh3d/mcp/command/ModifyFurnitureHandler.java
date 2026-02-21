@@ -28,7 +28,10 @@ public class ModifyFurnitureHandler implements CommandHandler, CommandDescriptor
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        String id = request.getRequiredString("id");
+        String id = request.getString("id");
+        if (id == null) {
+            return Response.error("Missing required parameter 'id'");
+        }
 
         Map<String, Object> params = request.getParams();
         boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);

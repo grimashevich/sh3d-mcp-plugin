@@ -151,10 +151,6 @@ public class ApplyTextureHandler implements CommandHandler, CommandDescriptor {
             return Response.error(typeName + " not found: " + targetId);
         }
 
-        if (data.containsKey("__error")) {
-            return Response.error((String) data.get("__error"));
-        }
-
         return Response.ok(data);
     }
 

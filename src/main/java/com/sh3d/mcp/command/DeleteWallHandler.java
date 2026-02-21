@@ -22,7 +22,10 @@ public class DeleteWallHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        String id = request.getRequiredString("id");
+        String id = request.getString("id");
+        if (id == null) {
+            return Response.error("Missing required parameter 'id'");
+        }
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();

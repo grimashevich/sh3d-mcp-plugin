@@ -24,8 +24,14 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        String wall1Id = request.getRequiredString("wall1Id");
-        String wall2Id = request.getRequiredString("wall2Id");
+        String wall1Id = request.getString("wall1Id");
+        if (wall1Id == null) {
+            return Response.error("Missing required parameter 'wall1Id'");
+        }
+        String wall2Id = request.getString("wall2Id");
+        if (wall2Id == null) {
+            return Response.error("Missing required parameter 'wall2Id'");
+        }
 
         if (wall1Id.equals(wall2Id)) {
             return Response.error("Cannot connect a wall to itself (wall1Id == wall2Id == " + wall1Id + ")");
@@ -41,20 +47,25 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
             return Response.error("Parameter 'wall2End' must be 'start' or 'end', got '" + wall2EndParam + "'");
         }
 
-        Map<String, Object> data = accessor.runOnEDT(() -> {
+        // Lookup both walls on EDT (read-only)
+        Wall[] walls = accessor.runOnEDT(() -> {
             Home home = accessor.getHome();
-            Wall wall1 = ObjectResolver.findWall(home, wall1Id);
+            Wall w1 = ObjectResolver.findWall(home, wall1Id);
+            Wall w2 = ObjectResolver.findWall(home, wall2Id);
+            return new Wall[]{w1, w2};
+        });
 
-            if (wall1 == null) {
-                return null;
-            }
+        if (walls[0] == null) {
+            return Response.error("Wall not found: wall1Id '" + wall1Id + "'");
+        }
+        if (walls[1] == null) {
+            return Response.error("Wall not found: wall2Id '" + wall2Id + "'");
+        }
 
-            Wall wall2 = ObjectResolver.findWall(home, wall2Id);
-            if (wall2 == null) {
-                Map<String, Object> err = new LinkedHashMap<>();
-                err.put("_error", "wall2");
-                return err;
-            }
+        // Mutate on EDT
+        Map<String, Object> data = accessor.runOnEDT(() -> {
+            Wall wall1 = walls[0];
+            Wall wall2 = walls[1];
 
             String w1End = wall1EndParam;
             String w2End = wall2EndParam;
@@ -79,13 +90,6 @@ public class ConnectWallsHandler implements CommandHandler, CommandDescriptor {
                     + ") \u2194 wall " + wall2Id + " (" + w2End + ")");
             return result;
         });
-
-        if (data == null) {
-            return Response.error("Wall not found: wall1Id '" + wall1Id + "'");
-        }
-        if (data.containsKey("_error")) {
-            return Response.error("Wall not found: wall2Id '" + wall2Id + "'");
-        }
 
         return Response.ok(data);
     }

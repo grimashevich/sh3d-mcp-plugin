@@ -36,7 +36,10 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
 
     @Override
     public Response execute(Request request, HomeAccessor accessor) {
-        String id = request.getRequiredString("id");
+        String id = request.getString("id");
+        if (id == null) {
+            return Response.error("Missing required parameter 'id'");
+        }
 
         Map<String, Object> params = request.getParams();
         boolean hasModifiable = MODIFIABLE_KEYS.stream().anyMatch(params::containsKey);
@@ -58,6 +61,29 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
         String shininessError = validateShininess(params);
         if (shininessError != null) {
             return Response.error(shininessError);
+        }
+
+        // Validate height/heightAtEnd/thickness before EDT
+        if (params.containsKey("height")) {
+            float h = request.getFloat("height");
+            if (h <= 0) {
+                return Response.error("Parameter 'height' must be positive, got " + h);
+            }
+        }
+        if (params.containsKey("heightAtEnd")) {
+            Object val = params.get("heightAtEnd");
+            if (val != null) {
+                float h = request.getFloat("heightAtEnd");
+                if (h <= 0) {
+                    return Response.error("Parameter 'heightAtEnd' must be positive, got " + h);
+                }
+            }
+        }
+        if (params.containsKey("thickness")) {
+            float t = request.getFloat("thickness");
+            if (t <= 0) {
+                return Response.error("Parameter 'thickness' must be positive, got " + t);
+            }
         }
 
         Map<String, Object> data = accessor.runOnEDT(() -> {
@@ -82,13 +108,9 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
                 wall.setYEnd(request.getFloat("yEnd"));
             }
 
-            // Height
+            // Height (already validated)
             if (params.containsKey("height")) {
-                float h = request.getFloat("height");
-                if (h <= 0) {
-                    return errorMap("Parameter 'height' must be positive, got " + h);
-                }
-                wall.setHeight(h);
+                wall.setHeight(request.getFloat("height"));
             }
 
             if (params.containsKey("heightAtEnd")) {
@@ -96,21 +118,13 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
                 if (val == null) {
                     wall.setHeightAtEnd(null);
                 } else {
-                    float h = request.getFloat("heightAtEnd");
-                    if (h <= 0) {
-                        return errorMap("Parameter 'heightAtEnd' must be positive, got " + h);
-                    }
-                    wall.setHeightAtEnd(h);
+                    wall.setHeightAtEnd(request.getFloat("heightAtEnd"));
                 }
             }
 
-            // Thickness
+            // Thickness (already validated)
             if (params.containsKey("thickness")) {
-                float t = request.getFloat("thickness");
-                if (t <= 0) {
-                    return errorMap("Parameter 'thickness' must be positive, got " + t);
-                }
-                wall.setThickness(t);
+                wall.setThickness(request.getFloat("thickness"));
             }
 
             // Arc extent
@@ -166,11 +180,6 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
 
         if (data == null) {
             return Response.error("Wall not found: id '" + id + "'");
-        }
-
-        // Check for inline error
-        if (data.containsKey("__error")) {
-            return Response.error((String) data.get("__error"));
         }
 
         return Response.ok(data);
@@ -251,12 +260,6 @@ public class ModifyWallHandler implements CommandHandler, CommandDescriptor {
             }
         }
         return null;
-    }
-
-    private static Map<String, Object> errorMap(String message) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("__error", message);
-        return m;
     }
 
     // --- Parsed colors holder ---

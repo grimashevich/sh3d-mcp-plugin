@@ -342,15 +342,15 @@ class PlaceDoorOrWindowHandlerTest {
     }
 
     @Test
-    void testMissingWallIdThrowsException() {
+    void testMissingWallIdReturnsError() {
         addWall(0, 0, 500, 0);
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("name", "Front Door");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> handler.execute(new Request("place_door_or_window", params), accessor));
-        assertTrue(ex.getMessage().contains("wallId"));
+        Response resp = handler.execute(new Request("place_door_or_window", params), accessor);
+        assertTrue(resp.isError());
+        assertTrue(resp.getMessage().contains("wallId"));
     }
 
     @Test
